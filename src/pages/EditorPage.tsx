@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { pdf } from '@react-pdf/renderer'
 import { AWBFormPanel } from '../components/AWBFormPanel'
@@ -7,9 +7,12 @@ import { AWBData, defaultAWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
 import { useAuth } from '../auth/AuthContext'
 import { saveAWB, getAWB } from '../lib/awbService'
+import { usePlan } from '../lib/usePlan'
+import { supabase } from '../lib/supabase'
 
 export function EditorPage() {
   const { user, logout, orgName } = useAuth()
+  const { plan, orgId, canCreateAWB, awbUsedThisMonth, awbLimit } = usePlan()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const docId = searchParams.get('id')
@@ -23,15 +26,20 @@ export function EditorPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
 
-  // Load from Supabase if id param present, otherwise load local draft
+  // Auto-disable DRAFT watermark for paid plans
+  useEffect(() => {
+    if (plan !== 'free' && data.isDraft) {
+      setData(prev => ({ ...prev, isDraft: false }))
+    }
+  }, [plan])
+
+  // Load doc
   useEffect(() => {
     if (docId) {
       getAWB(docId).then(doc => {
         setData(doc.data)
         setCurrentId(doc.id)
-      }).catch(() => {
-        // Doc not found — fall back to default
-      })
+      }).catch(() => {})
     } else {
       const raw = localStorage.getItem(draftKey)
       if (!raw) return
@@ -39,11 +47,9 @@ export function EditorPage() {
     }
   }, [docId, draftKey])
 
-  // Persist local draft while editing (only when no saved doc)
+  // Persist local draft
   useEffect(() => {
-    if (!currentId) {
-      localStorage.setItem(draftKey, JSON.stringify(data))
-    }
+    if (!currentId) localStorage.setItem(draftKey, JSON.stringify(data))
   }, [data, draftKey, currentId])
 
   // Debounced PDF regeneration
@@ -65,22 +71,31 @@ export function EditorPage() {
   }
 
   async function handleSave() {
+    // Enforce Free plan limit on new docs
+    if (!currentId && orgId) {
+      const { data: result } = await supabase.rpc('increment_awb_usage', { p_org_id: orgId })
+      if (result === 'limit_reached') {
+        setSaveMsg('Límite del plan Free (10/mes)')
+        setTimeout(() => setSaveMsg(null), 4000)
+        return
+      }
+    }
     setSaving(true)
     setSaveMsg(null)
     try {
       const doc = await saveAWB(data, currentId ?? undefined)
       setCurrentId(doc.id)
-      // Update URL so refresh keeps this doc
       navigate(`/editor?id=${doc.id}`, { replace: true })
       setSaveMsg('Guardado ✓')
       setTimeout(() => setSaveMsg(null), 2500)
-    } catch (e) {
+    } catch {
       setSaveMsg('Error al guardar')
     }
     setSaving(false)
   }
 
   const awbFull = data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : 'AWB'
+  const atLimit = plan === 'free' && !canCreateAWB && !currentId
 
   return (
     <div className="app">
@@ -95,6 +110,12 @@ export function EditorPage() {
         <div className="topbar-actions">
           <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
             {orgName ?? user?.email}
+            {plan === 'free' && awbLimit !== null && (
+              <span style={{ marginLeft: 6, opacity: 0.7 }}>· {awbUsedThisMonth}/{awbLimit} AWBs</span>
+            )}
+            {plan !== 'free' && (
+              <span style={{ marginLeft: 6, opacity: 0.7, textTransform: 'capitalize' }}>· {plan}</span>
+            )}
           </span>
           {generating && <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>Generando...</span>}
           <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>Mis AWBs</Link>
@@ -103,8 +124,9 @@ export function EditorPage() {
           <button
             className="btn-example"
             onClick={handleSave}
-            disabled={saving}
-            style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700 }}
+            disabled={saving || atLimit}
+            style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700, opacity: atLimit ? 0.5 : 1 }}
+            title={atLimit ? 'Límite mensual alcanzado — actualiza tu plan' : undefined}
           >
             {saving ? 'Guardando...' : saveMsg ?? 'Guardar'}
           </button>
@@ -116,6 +138,14 @@ export function EditorPage() {
           )}
         </div>
       </div>
+
+      {/* Free plan limit banner */}
+      {atLimit && (
+        <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>Has alcanzado el límite de 10 AWBs del plan Free este mes.</span>
+          <Link to="/pricing" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none' }}>Actualizar a Starter →</Link>
+        </div>
+      )}
 
       <div className="main">
         <div className="form-panel-wrap">

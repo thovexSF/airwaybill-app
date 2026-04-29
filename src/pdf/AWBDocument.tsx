@@ -1,5 +1,5 @@
 import React from 'react'
-import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, View, Text, StyleSheet, Image } from '@react-pdf/renderer'
 import { AWBData } from '../types/awb'
 
 const RED = '#8B0000'
@@ -212,7 +212,7 @@ export function AWBDocument({ data }: { data: AWBData }) {
             </View>
           </View>
           <View style={s.notNegCell}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 6 * scale }}>Not Negotiable</Text>
                 <Text style={s.awbTitle}>Air Waybill</Text>
@@ -224,6 +224,9 @@ export function AWBDocument({ data }: { data: AWBData }) {
                   <Text style={{ fontSize: (TXT - 1) }}>{data.carrierAddress}</Text>
                 ) : null}
               </View>
+              {data.carrierLogoUrl ? (
+                <Image src={data.carrierLogoUrl} style={{ width: 48 * scale, height: 24 * scale, objectFit: 'contain' }} />
+              ) : null}
             </View>
             <Text style={s.copiesTxt}>
               Copies 1, 2 and 3 of this Air Waybill are originals and have the same validity.

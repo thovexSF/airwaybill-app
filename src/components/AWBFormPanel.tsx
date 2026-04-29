@@ -1,5 +1,6 @@
 import React from 'react'
 import { AWBData, RateItem, OtherCharge } from '../types/awb'
+import { validateAWBSerial, computeCheckDigit } from '../lib/awbCheckDigit'
 
 interface Props {
   data: AWBData
@@ -89,7 +90,28 @@ export function AWBFormPanel({ data, onChange }: Props) {
       <Section title="AWB Number">
         <Row>
           <Field label="Prefix (airline code)" value={data.awbPrefix} onChange={set('awbPrefix')} placeholder="014" />
-          <Field label="Serial Number" value={data.awbSerial} onChange={set('awbSerial')} placeholder="57318306" />
+          <div className="field">
+            <label>Serial Number</label>
+            <input
+              value={data.awbSerial}
+              onChange={(e) => set('awbSerial')(e.target.value)}
+              placeholder="57318306"
+              style={{ borderColor: data.awbSerial.length === 8 ? (validateAWBSerial(data.awbSerial) ? '#2a7a2a' : '#c00') : undefined }}
+            />
+            {data.awbSerial.length >= 7 && data.awbSerial.length < 8 && (
+              <span style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
+                Check digit: <strong>{computeCheckDigit(data.awbSerial)}</strong>
+              </span>
+            )}
+            {data.awbSerial.length === 8 && !validateAWBSerial(data.awbSerial) && (
+              <span style={{ fontSize: 11, color: '#c00', marginTop: 2 }}>
+                ✗ Check digit inválido (esperado: {computeCheckDigit(data.awbSerial.slice(0, 7))})
+              </span>
+            )}
+            {data.awbSerial.length === 8 && validateAWBSerial(data.awbSerial) && (
+              <span style={{ fontSize: 11, color: '#2a7a2a', marginTop: 2 }}>✓ Válido</span>
+            )}
+          </div>
         </Row>
         <Row>
           <div className="field">
@@ -118,6 +140,32 @@ export function AWBFormPanel({ data, onChange }: Props) {
       <Section title="Issuing Carrier">
         <Field label="Carrier Name" value={data.carrierName} onChange={set('carrierName')} placeholder="AIR CANADA" />
         <Field label="Carrier Address" value={data.carrierAddress} onChange={set('carrierAddress')} rows={2} placeholder="AIR CANADA CENTER 271, COTE VERTU OUEST, QUEBEC, CANADA" />
+        <div className="field">
+          <label>Carrier Logo <span style={{ fontWeight: 400, color: '#888' }}>(Starter+)</span></label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {data.carrierLogoUrl && (
+              <img src={data.carrierLogoUrl} alt="logo" style={{ height: 32, objectFit: 'contain', border: '1px solid #eee', borderRadius: 4, padding: 2 }} />
+            )}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/svg+xml"
+              style={{ fontSize: 12 }}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                const reader = new FileReader()
+                reader.onload = (ev) => onChange({ ...data, carrierLogoUrl: ev.target?.result as string })
+                reader.readAsDataURL(file)
+              }}
+            />
+            {data.carrierLogoUrl && (
+              <button type="button" onClick={() => onChange({ ...data, carrierLogoUrl: '' })}
+                style={{ fontSize: 11, color: '#c00', background: 'none', border: 'none', cursor: 'pointer' }}>
+                Quitar
+              </button>
+            )}
+          </div>
+        </div>
       </Section>
 
       {/* SHIPPER */}

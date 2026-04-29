@@ -5,6 +5,8 @@ import { EditorPage } from './pages/EditorPage'
 import { SignupPage } from './pages/SignupPage'
 import { LoginPage } from './pages/LoginPage'
 import { MyAWBsPage } from './pages/MyAWBsPage'
+import { PricingPage } from './pages/PricingPage'
+import { BillingSuccessPage } from './pages/BillingSuccessPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 
 export default function App() {
@@ -25,6 +27,22 @@ export default function App() {
           element={(
             <ProtectedRoute>
               <MyAWBsPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/pricing"
+          element={(
+            <ProtectedRoute>
+              <PricingPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/billing/success"
+          element={(
+            <ProtectedRoute>
+              <BillingSuccessPage />
             </ProtectedRoute>
           )}
         />

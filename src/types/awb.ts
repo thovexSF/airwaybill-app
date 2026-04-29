@@ -106,6 +106,7 @@ export interface AWBData {
   isDraft: boolean
   copyNumber: 1 | 2 | 3
   copyLabel: string
+  carrierLogoUrl?: string  // base64 or https URL
 }
 
 export const defaultAWBData: AWBData = {

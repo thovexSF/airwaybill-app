@@ -50,6 +50,17 @@ const PLANS = [
     desc: 'Get started at no cost',
     features: ['10 AWBs per month', 'PDF download', 'DRAFT watermark', 'Basic AWB form', '1 user'],
     cta: 'Get Started Free',
+    ctaLink: '/signup',
+    highlight: false,
+  },
+  {
+    name: 'Starter',
+    price: '$15',
+    period: 'per month',
+    desc: 'For small freight forwarders',
+    features: ['Unlimited AWBs', 'No watermark', 'Custom carrier logo', 'AWB check digit validation', '2 users', 'Email support'],
+    cta: 'Start 14-day Trial',
+    ctaLink: '/signup?plan=starter',
     highlight: false,
   },
   {
@@ -57,8 +68,9 @@ const PLANS = [
     price: '$29',
     period: 'per month',
     desc: 'For active freight forwarders',
-    features: ['Unlimited AWBs', 'No watermark', 'Custom carrier logo', 'HAWB + DGD + Manifest', 'AWB number check digit', '3 users', 'Email support'],
+    features: ['Everything in Starter', 'HAWB + DGD + Manifest', 'Flight manifest export', '5 users', 'Priority support'],
     cta: 'Start 14-day Trial',
+    ctaLink: '/signup?plan=pro',
     highlight: true,
   },
   {
@@ -68,6 +80,7 @@ const PLANS = [
     desc: 'For airlines & large agencies',
     features: ['Everything in Pro', 'Unlimited users', 'API access', 'Cargo-IMP / CUSCAR export', 'Custom domain', 'SSO / SAML', 'Dedicated support'],
     cta: 'Contact Sales',
+    ctaLink: '/contact',
     highlight: false,
   },
 ]
@@ -221,7 +234,7 @@ export function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  to={plan.name === 'Enterprise' ? '/contact' : '/signup'}
+                  to={plan.ctaLink}
                   className={`lp-plan-cta ${plan.highlight ? 'lp-plan-cta-primary' : 'lp-plan-cta-ghost'}`}
                 >
                   {plan.cta}
