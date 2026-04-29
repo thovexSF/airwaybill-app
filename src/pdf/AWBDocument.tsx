@@ -538,7 +538,7 @@ export function AWBDocument({ data }: { data: AWBData }) {
 
         {/* ── FOOTER ── */}
         <View style={s.footer}>
-          <Text style={s.footerBrand}>AWBEDITOR.COM</Text>
+          <Text style={s.footerBrand}>AIRWAYBILL APP</Text>
           <View style={{ alignItems: 'center' }}>
             <Text style={s.footerCopy}>{data.copyLabel}</Text>
             <Text style={[s.awbNumFull, { marginTop: 1 }]}>{awbFull}</Text>

@@ -25,7 +25,7 @@ export function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">✈ AWBEDITOR</div>
+        <div className="auth-logo">✈ AIRWAYBILL APP</div>
         <p className="auth-sub">Inicia sesión para acceder al editor y a tus documentos.</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>

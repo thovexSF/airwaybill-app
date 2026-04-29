@@ -24,7 +24,7 @@ export function SignupPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">✈ AWBEDITOR</div>
+        <div className="auth-logo">✈ AIRWAYBILL APP</div>
         <p className="auth-sub">Crea tu cuenta de empresa y empieza a generar AWBs.</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>

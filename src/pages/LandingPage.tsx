@@ -78,7 +78,7 @@ export function LandingPage() {
       {/* ── NAV ── */}
       <nav className="lp-nav">
         <div className="lp-nav-inner">
-          <div className="lp-logo">✈ AWB<span>EDITOR</span></div>
+          <div className="lp-logo">✈ AIRWAYBILL <span>APP</span></div>
           <div className="lp-nav-links">
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
@@ -116,7 +116,7 @@ export function LandingPage() {
         <div className="lp-hero-mockup">
           <div className="lp-mockup-bar">
             <span /><span /><span />
-            <div className="lp-mockup-url">awbeditor.com/editor</div>
+            <div className="lp-mockup-url">airwaybill.app/editor</div>
           </div>
           <div className="lp-mockup-body">
             <div className="lp-mockup-sidebar">
@@ -224,7 +224,7 @@ export function LandingPage() {
       <section className="lp-final-cta">
         <div className="lp-section-inner" style={{ textAlign: 'center' }}>
           <h2>Ready to modernize your air freight documentation?</h2>
-          <p>Join freight forwarders worldwide who've switched from desktop software to AWB Editor.</p>
+          <p>Join freight forwarders worldwide who've switched from desktop software to Airwaybill App.</p>
           <Link to="/editor" className="lp-cta-primary lp-cta-lg">
             Start for free — no credit card →
           </Link>
@@ -235,7 +235,7 @@ export function LandingPage() {
       <footer className="lp-footer">
         <div className="lp-footer-inner">
           <div className="lp-footer-brand">
-            <div className="lp-logo">✈ AWB<span>EDITOR</span></div>
+            <div className="lp-logo">✈ AIRWAYBILL <span>APP</span></div>
             <p>Professional Air Waybill generation for modern freight forwarders.</p>
           </div>
           <div className="lp-footer-links">
@@ -258,7 +258,7 @@ export function LandingPage() {
           </div>
         </div>
         <div className="lp-footer-bottom">
-          <span>© 2025 AWBEditor.com · All rights reserved</span>
+          <span>© 2026 Airwaybill App · All rights reserved</span>
           <span>Built for IATA Resolution 600a compliance</span>
         </div>
       </footer>
