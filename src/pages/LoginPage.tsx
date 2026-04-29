@@ -1,25 +1,28 @@
 import React, { FormEvent, useState } from 'react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import './AuthPage.css'
 
 export function LoginPage() {
   const { login, currentUser } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const location = useLocation()
 
   const destination = (location.state as { from?: string } | undefined)?.from || '/editor'
   if (currentUser) return <Navigate to={destination} replace />
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    setError('')
     const result = login({ email, password })
     if (!result.ok) {
       setError(result.error)
       return
     }
+    navigate(destination, { replace: true })
   }
 
   return (

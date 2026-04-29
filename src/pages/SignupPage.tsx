@@ -1,10 +1,11 @@
 import React, { FormEvent, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import './AuthPage.css'
 
 export function SignupPage() {
   const { signup, currentUser } = useAuth()
+  const navigate = useNavigate()
   const [companyName, setCompanyName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -14,11 +15,13 @@ export function SignupPage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    setError('')
     const result = signup({ companyName, email, password })
     if (!result.ok) {
       setError(result.error)
       return
     }
+    navigate('/editor', { replace: true })
   }
 
   return (
