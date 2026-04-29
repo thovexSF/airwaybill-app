@@ -8,7 +8,7 @@ const TXT = 7.5
 const XS = 3.8
 
 const s = StyleSheet.create({
-  page: { padding: 12, fontFamily: 'Helvetica', fontSize: TXT, backgroundColor: '#fff' },
+  page: { padding: 14, fontFamily: 'Helvetica', fontSize: TXT, backgroundColor: '#fff' },
 
   // ---- Header AWB number ----
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 },
@@ -32,37 +32,37 @@ const s = StyleSheet.create({
   borderRight: { borderTopWidth: 0.5, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid' },
 
   // ---- Section 1: Shipper / Not Negotiable ----
-  sec1: { flexDirection: 'row', minHeight: 52 },
+  sec1: { flexDirection: 'row', minHeight: 70 },
   shipperCol: { flex: 1.1, flexDirection: 'column' },
-  shipperName: { flex: 1, borderWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2 },
-  shipperAcct: { height: 16, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2 },
-  notNegCell: { flex: 2, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3 },
+  shipperName: { flex: 1, borderWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3 },
+  shipperAcct: { minHeight: 20, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3 },
+  notNegCell: { flex: 2, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 4 },
   awbTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: RED },
   copiesTxt: { fontSize: XS, color: RED, fontFamily: 'Helvetica-Bold', marginTop: 2 },
 
   // ---- Section 2: Consignee / Conditions ----
-  sec2: { flexDirection: 'row', minHeight: 46 },
+  sec2: { flexDirection: 'row', minHeight: 62 },
   consigneeCol: { flex: 1.1, flexDirection: 'column' },
-  consigneeName: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2 },
-  consigneeAcct: { height: 16, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2 },
+  consigneeName: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3 },
+  consigneeAcct: { minHeight: 20, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3 },
   conditionsCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3 },
   condTxt: { fontSize: XS, lineHeight: 1.4 },
 
   // ---- Section 3: Agent / Accounting ----
-  agentCell: { flex: 1.4, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2, height: 26 },
-  accountingCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2, height: 26 },
+  agentCell: { flex: 1.4, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 30 },
+  accountingCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 30 },
 
   // ---- Section 4: IATA / AccountNo ----
-  iataCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2, height: 18 },
-  agentAcctCell: { flex: 0.8, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2, height: 18 },
+  iataCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 22 },
+  agentAcctCell: { flex: 0.8, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 22 },
 
   // ---- Section 5: Departure / Reference ----
-  departureCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2, height: 18 },
-  referenceCell: { flex: 1.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2, height: 18 },
-  optionalCell: { flex: 1.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2, height: 18 },
+  departureCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 22 },
+  referenceCell: { flex: 1.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 22 },
+  optionalCell: { flex: 1.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 22 },
 
   // ---- Section 6: Routing ----
-  routingSec: { flexDirection: 'row', height: 28 },
+  routingSec: { flexDirection: 'row', minHeight: 32 },
   toCell: { width: 26, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
   byCell: { width: 24, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
   firstByCell: { width: 32, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
@@ -76,9 +76,9 @@ const s = StyleSheet.create({
   ppdCollRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 1 },
 
   // ---- Section 7: Destination / Flight / Insurance ----
-  destSec: { flexDirection: 'row', height: 24 },
-  destCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2 },
-  flightCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2 },
+  destSec: { flexDirection: 'row', minHeight: 28 },
+  destCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3 },
+  flightCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3 },
   insAmtCell: { flex: 0.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2, alignItems: 'center', justifyContent: 'center' },
   insTxtCell: { flex: 2.2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2 },
 
