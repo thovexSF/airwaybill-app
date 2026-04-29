@@ -97,3 +97,72 @@
   text-decoration: none;
   font-weight: 700;
 }
+
+.auth-social {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.auth-social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.auth-social-btn.google {
+  background: #fff;
+  border: 1px solid #d0c4c4;
+  color: #333;
+}
+
+.auth-social-btn.google:hover {
+  background: #fafafa;
+  border-color: #b0a0a0;
+}
+
+.auth-social-btn.github {
+  background: #24292e;
+  border: 1px solid #24292e;
+  color: #fff;
+}
+
+.auth-social-btn.github:hover {
+  background: #1a1e22;
+}
+
+.auth-social-btn.apple {
+  background: #000;
+  border: 1px solid #000;
+  color: #fff;
+}
+
+.auth-social-btn.apple:hover {
+  background: #222;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 0;
+  color: #aaa;
+  font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e8dcdc;
+}
