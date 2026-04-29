@@ -45,7 +45,7 @@
 
 .lp-btn-primary, .lp-cta-primary {
   padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 700;
-  background: var(--red); color: #fff;
+  background: var(--red); color: #fff !important;
   display: inline-block; transition: all .15s;
 }
 .lp-btn-primary:hover, .lp-cta-primary:hover { background: var(--red2); transform: translateY(-1px); }

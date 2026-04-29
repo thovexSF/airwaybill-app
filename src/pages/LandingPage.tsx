@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 import './LandingPage.css'
 
 const FEATURES = [
@@ -72,6 +73,8 @@ const PLANS = [
 ]
 
 export function LandingPage() {
+  const { user, orgName } = useAuth()
+
   return (
     <div className="lp">
 
@@ -85,8 +88,17 @@ export function LandingPage() {
             <a href="#how">How it works</a>
           </div>
           <div className="lp-nav-actions">
-            <Link to="/editor" className="lp-btn-ghost">Try Demo</Link>
-            <Link to="/signup" className="lp-btn-primary">Get Started Free</Link>
+            {user ? (
+              <>
+                <span style={{ fontSize: 13, color: '#666' }}>{orgName ?? user.email}</span>
+                <Link to="/editor" className="lp-btn-primary">Ir al Editor →</Link>
+              </>
+            ) : (
+              <>
+                <Link to="/editor" className="lp-btn-ghost">Try Demo</Link>
+                <Link to="/signup" className="lp-btn-primary">Get Started Free</Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
