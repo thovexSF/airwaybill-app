@@ -88,7 +88,7 @@ export function EditorPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>← Home</Link>
           <div>
-            <div className="topbar-logo">✈ AIRWAYBILL APP</div>
+            <Link to="/" style={{ color: '#fff', textDecoration: 'none' }} className="topbar-logo">✈ AIRWAYBILL APP</Link>
             <div className="topbar-sub">Air Waybill Generator — IATA Format</div>
           </div>
         </div>

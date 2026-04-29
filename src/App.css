@@ -11,7 +11,10 @@
   --font: 'Segoe UI', system-ui, sans-serif;
 }
 
-body { font-family: var(--font); background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); }
+
+/* Editor layout locks scroll — landing page scrolls freely */
+.app { overflow: hidden; }
 
 /* ── Layout ── */
 .app { display: flex; flex-direction: column; height: 100vh; }
