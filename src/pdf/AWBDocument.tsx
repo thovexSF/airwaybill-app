@@ -3,127 +3,155 @@ import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import { AWBData } from '../types/awb'
 
 const RED = '#8B0000'
-const LBL = 4.5
-const TXT = 7.5
-const XS = 3.8
 
-const s = StyleSheet.create({
-  page: { padding: 14, fontFamily: 'Helvetica', fontSize: TXT, backgroundColor: '#fff' },
+// ── Dynamic scale: shrinks everything proportionally to fit A4 ──
+function getScale(data: AWBData): number {
+  const shipperLines  = (data.shipperNameAndAddress  || '').split('\n').length
+  const consigneeLines = (data.consigneeNameAndAddress || '').split('\n').length
+  const handlingLines = Math.ceil(((data.handlingInformation || '').length) / 55)
+  const rateExtra     = Math.max(0, (data.rateItems    || []).length - 3)
+  const chargeExtra   = Math.max(0, (data.otherCharges || []).length - 3)
 
-  // ---- Header AWB number ----
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 },
-  prefixBox: { width: 42, height: 18, borderWidth: 1, borderColor: RED, borderStyle: 'solid', justifyContent: 'center', alignItems: 'center' },
-  serialBox: { height: 18, minWidth: 120, borderTopWidth: 1, borderBottomWidth: 1, borderRightWidth: 1, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', justifyContent: 'center', paddingLeft: 4 },
-  awbNumLg: { fontSize: 12, fontFamily: 'Helvetica-Bold' },
-  awbNumFull: { fontSize: 11, fontFamily: 'Helvetica-Bold' },
+  const pressure = shipperLines + consigneeLines + handlingLines
+                 + rateExtra * 2 + chargeExtra * 1.5
 
-  // ---- Generic ----
-  row: { flexDirection: 'row' },
-  lbl: { fontSize: LBL, color: RED },
-  xlbl: { fontSize: XS, color: RED },
-  txt: { fontSize: TXT },
-  bold: { fontFamily: 'Helvetica-Bold' },
-  red: { color: RED },
+  if (pressure <= 8)  return 1.00
+  if (pressure <= 11) return 0.94
+  if (pressure <= 14) return 0.88
+  if (pressure <= 18) return 0.82
+  return 0.76
+}
 
-  // borders helpers
-  border: { borderWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
-  borderNoTop: { borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
-  borderNoTopRight: { borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid' },
-  borderRight: { borderTopWidth: 0.5, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid' },
+function makeStyles(k: number) {
+  const LBL = 4.5 * k
+  const TXT = 7.5 * k
+  const XS  = 3.8 * k
+  const P   = Math.round(3 * k)   // standard cell padding
+  const P4  = Math.round(4 * k)
 
-  // ---- Section 1: Shipper / Not Negotiable ----
-  sec1: { flexDirection: 'row', minHeight: 70 },
-  shipperCol: { flex: 1.1, flexDirection: 'column' },
-  shipperName: { flex: 1, borderWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3 },
-  shipperAcct: { minHeight: 20, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3 },
-  notNegCell: { flex: 2, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 4 },
-  awbTitle: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: RED },
-  copiesTxt: { fontSize: XS, color: RED, fontFamily: 'Helvetica-Bold', marginTop: 2 },
+  return StyleSheet.create({
+    page: { padding: Math.round(14 * k), fontFamily: 'Helvetica', fontSize: TXT, backgroundColor: '#fff' },
 
-  // ---- Section 2: Consignee / Conditions ----
-  sec2: { flexDirection: 'row', minHeight: 62 },
-  consigneeCol: { flex: 1.1, flexDirection: 'column' },
-  consigneeName: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3 },
-  consigneeAcct: { minHeight: 20, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3 },
-  conditionsCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3 },
-  condTxt: { fontSize: XS, lineHeight: 1.4 },
+    // ---- Header AWB number ----
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 },
+    prefixBox: { width: 42 * k, height: 18 * k, borderWidth: 1, borderColor: RED, borderStyle: 'solid', justifyContent: 'center', alignItems: 'center' },
+    serialBox: { height: 18 * k, minWidth: 120 * k, borderTopWidth: 1, borderBottomWidth: 1, borderRightWidth: 1, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', justifyContent: 'center', paddingLeft: P },
+    awbNumLg:   { fontSize: 12 * k, fontFamily: 'Helvetica-Bold' },
+    awbNumFull: { fontSize: 11 * k, fontFamily: 'Helvetica-Bold' },
 
-  // ---- Section 3: Agent / Accounting ----
-  agentCell: { flex: 1.4, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 30 },
-  accountingCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 30 },
+    // ---- Generic ----
+    row:  { flexDirection: 'row' },
+    lbl:  { fontSize: LBL, color: RED },
+    xlbl: { fontSize: XS,  color: RED },
+    txt:  { fontSize: TXT },
+    bold: { fontFamily: 'Helvetica-Bold' },
+    red:  { color: RED },
 
-  // ---- Section 4: IATA / AccountNo ----
-  iataCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 22 },
-  agentAcctCell: { flex: 0.8, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 22 },
+    // borders helpers
+    border:            { borderWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
+    borderNoTop:       { borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
+    borderNoTopRight:  { borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid' },
+    borderRight:       { borderTopWidth: 0.5, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid' },
 
-  // ---- Section 5: Departure / Reference ----
-  departureCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 22 },
-  referenceCell: { flex: 1.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 22 },
-  optionalCell: { flex: 1.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 3, minHeight: 22 },
+    // ---- Section 1: Shipper / Not Negotiable ----
+    sec1:        { flexDirection: 'row', minHeight: 70 * k },
+    shipperCol:  { flex: 1.1, flexDirection: 'column' },
+    shipperName: { flex: 1, borderWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P },
+    shipperAcct: { minHeight: 20 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P },
+    notNegCell:  { flex: 2, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P4 },
+    awbTitle:    { fontSize: 16 * k, fontFamily: 'Helvetica-Bold', color: RED },
+    copiesTxt:   { fontSize: XS, color: RED, fontFamily: 'Helvetica-Bold', marginTop: 2 * k },
 
-  // ---- Section 6: Routing ----
-  routingSec: { flexDirection: 'row', minHeight: 32 },
-  toCell: { width: 26, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
-  byCell: { width: 24, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
-  firstByCell: { width: 32, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
-  routingLabelCell: { width: 36, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
-  currencyCell: { width: 28, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
-  chgsCell: { width: 18, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
-  wtValCell: { width: 36, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
-  otherChgCell: { width: 36, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
-  declCarriageCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
-  declCustomsCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 1 },
-  ppdCollRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 1 },
+    // ---- Section 2: Consignee / Conditions ----
+    sec2:           { flexDirection: 'row', minHeight: 62 * k },
+    consigneeCol:   { flex: 1.1, flexDirection: 'column' },
+    consigneeName:  { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P },
+    consigneeAcct:  { minHeight: 20 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P },
+    conditionsCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P },
+    condTxt:        { fontSize: XS, lineHeight: 1.4 },
 
-  // ---- Section 7: Destination / Flight / Insurance ----
-  destSec: { flexDirection: 'row', minHeight: 28 },
-  destCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3 },
-  flightCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 3 },
-  insAmtCell: { flex: 0.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2, alignItems: 'center', justifyContent: 'center' },
-  insTxtCell: { flex: 2.2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2 },
+    // ---- Section 3: Agent / Accounting ----
+    agentCell:      { flex: 1.4, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P, minHeight: 30 * k },
+    accountingCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P, minHeight: 30 * k },
 
-  // ---- Section 8: Handling / SCI ----
-  handlingSec: { flexDirection: 'row', minHeight: 20 },
-  handlingCell: { flex: 4, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2 },
-  sciCell: { flex: 0.7, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2 },
+    // ---- Section 4: IATA / AccountNo ----
+    iataCell:      { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P, minHeight: 22 * k },
+    agentAcctCell: { flex: 0.8, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P, minHeight: 22 * k },
 
-  // ---- Rate Table ----
-  rateHeader: { flexDirection: 'row', borderTopWidth: 0.5, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
-  rateHCell: { borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 1, justifyContent: 'center', alignItems: 'center' },
-  rateRow: { flexDirection: 'row', borderTopWidth: 0, borderBottomWidth: 0, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', minHeight: 16 },
-  rateCell: { borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2, justifyContent: 'center' },
-  rateLastRow: { flexDirection: 'row', borderWidth: 0.5, borderColor: RED, borderStyle: 'solid', height: 14 },
-  colPcs: { width: 26 }, colGW: { width: 38 }, colRC: { width: 36 },
-  colCW: { width: 38 }, colRate: { width: 44 }, colTotal: { width: 50 }, colNature: { flex: 1 },
+    // ---- Section 5: Departure / Reference ----
+    departureCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P, minHeight: 22 * k },
+    referenceCell: { flex: 1.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P, minHeight: 22 * k },
+    optionalCell:  { flex: 1.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P, minHeight: 22 * k },
 
-  // ---- Charges ----
-  chargesSec: { flexDirection: 'row', minHeight: 72 },
-  chargesLeft: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid' },
-  chargesRight: { flex: 2.2, borderTopWidth: 0, borderBottomWidth: 0, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
-  chgRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
-  chgLabelCell: { flex: 1, padding: 1, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
-  chgValueCell: { flex: 1, padding: 2 },
+    // ---- Section 6: Routing ----
+    routingSec:       { flexDirection: 'row', minHeight: 32 * k },
+    toCell:           { width: 26 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    byCell:           { width: 24 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    firstByCell:      { width: 32 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    routingLabelCell: { width: 36 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    currencyCell:     { width: 28 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    chgsCell:         { width: 18 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    wtValCell:        { width: 36 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    otherChgCell:     { width: 36 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    declCarriageCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    declCustomsCell:  { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    ppdCollRow:       { flexDirection: 'row', justifyContent: 'space-around', marginTop: 1 },
 
-  // ---- Totals / Execution ----
-  totalsRow: { flexDirection: 'row', height: 16 },
-  totalCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2 },
-  ccRow: { flexDirection: 'row', height: 16 },
-  ccCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
-  execCell: { flex: 2.2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2, flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
-  bottomRow: { flexDirection: 'row', height: 16 },
-  btmCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    // ---- Section 7: Destination / Flight / Insurance ----
+    destSec:    { flexDirection: 'row', minHeight: 28 * k },
+    destCell:   { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P },
+    flightCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P },
+    insAmtCell: { flex: 0.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2, alignItems: 'center', justifyContent: 'center' },
+    insTxtCell: { flex: 2.2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 2 },
 
-  // ---- Footer ----
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 3 },
-  footerBrand: { fontSize: 5, color: '#666' },
-  footerCopy: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: RED, textAlign: 'center' },
+    // ---- Section 8: Handling / SCI ----
+    handlingSec:  { flexDirection: 'row', minHeight: 20 * k },
+    handlingCell: { flex: 4, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P },
+    sciCell:      { flex: 0.7, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P },
 
-  // ---- Draft watermark ----
-  watermark: { position: 'absolute', top: 260, left: 70, fontSize: 100, color: 'rgba(180,0,0,0.07)', fontFamily: 'Helvetica-Bold', transform: 'rotate(-45deg)' },
+    // ---- Rate Table ----
+    rateHeader:  { flexDirection: 'row', borderTopWidth: 0.5, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
+    rateHCell:   { borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 1, justifyContent: 'center', alignItems: 'center' },
+    rateRow:     { flexDirection: 'row', borderTopWidth: 0, borderBottomWidth: 0, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', minHeight: 16 * k },
+    rateCell:    { borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P, justifyContent: 'center' },
+    rateLastRow: { flexDirection: 'row', borderWidth: 0.5, borderColor: RED, borderStyle: 'solid', height: 14 * k },
+    colPcs:    { width: 26 * k }, colGW:   { width: 38 * k }, colRC:    { width: 36 * k },
+    colCW:     { width: 38 * k }, colRate: { width: 44 * k }, colTotal: { width: 50 * k }, colNature: { flex: 1 },
 
-  // Signature line
-  sigLine: { borderBottomWidth: 0.5, borderColor: '#000', borderStyle: 'solid', marginTop: 8 },
-})
+    // ---- Charges ----
+    chargesSec:    { flexDirection: 'row', minHeight: 72 * k },
+    chargesLeft:   { flex: 1, borderTopWidth: 0, borderBottomWidth: 0, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid' },
+    chargesRight:  { flex: 2.2, borderTopWidth: 0, borderBottomWidth: 0, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
+    chgRow:        { flexDirection: 'row', borderBottomWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
+    chgLabelCell:  { flex: 1, padding: 1, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid' },
+    chgValueCell:  { flex: 1, padding: P },
+
+    // ---- Totals / Execution ----
+    totalsRow: { flexDirection: 'row', height: 16 * k },
+    totalCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P },
+    ccRow:     { flexDirection: 'row', height: 16 * k },
+    ccCell:    { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+    execCell:  { flex: 2.2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P, flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
+    bottomRow: { flexDirection: 'row', height: 16 * k },
+    btmCell:   { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 1 },
+
+    // ---- Footer ----
+    footer:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 3 },
+    footerBrand: { fontSize: 5 * k, color: '#666' },
+    footerCopy:  { fontSize: 9 * k, fontFamily: 'Helvetica-Bold', color: RED, textAlign: 'center' },
+
+    // ---- Draft watermark ----
+    watermark: { position: 'absolute', top: 260, left: 70, fontSize: 100, color: 'rgba(180,0,0,0.07)', fontFamily: 'Helvetica-Bold', transform: 'rotate(-45deg)' },
+
+    // Signature line
+    sigLine: { borderBottomWidth: 0.5, borderColor: '#000', borderStyle: 'solid', marginTop: 8 * k },
+
+    // Exposed sizes for inline use
+    _lbl:  LBL,
+    _txt:  TXT,
+    _xs:   XS,
+  } as any)
+}
 
 const IATA_CONDITIONS =
   'It is agreed that the goods described herein are accepted in apparent good order and condition (except as noted) for carriage SUBJECT TO THE CONDITIONS OF CONTRACT ON THE REVERSE HEREOF. ALL GOODS MAY BE CARRIED BY ANY OTHER MEANS INCLUDING ROAD OR ANY OTHER CARRIER UNLESS SPECIFIC CONTRARY INSTRUCTIONS ARE GIVEN HEREON BY THE SHIPPER, AND SHIPPER AGREES THAT THE SHIPMENT MAY BE CARRIED VIA INTERMEDIATE STOPPING PLACES WHICH THE CARRIER DEEMS APPROPRIATE. THE SHIPPER\'S ATTENTION IS DRAWN TO THE NOTICE CONCERNING CARRIER\'S LIMITATION OF LIABILITY. Shipper may increase such limitation of liability by declaring a higher value for carriage and paying a supplemental charge if required.'
@@ -135,7 +163,7 @@ const SHIPPER_CERT =
   'Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is properly described by name and is in proper condition for carriage by air according to the applicable Dangerous Goods Regulations.'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function Cell({ label, children, style }: { label?: string; children?: React.ReactNode; style?: any }) {
+function Cell({ label, children, style, s }: { label?: string; children?: React.ReactNode; style?: any; s: any }) {
   return (
     <View style={style}>
       {label && <Text style={s.lbl}>{label}</Text>}
@@ -145,6 +173,12 @@ function Cell({ label, children, style }: { label?: string; children?: React.Rea
 }
 
 export function AWBDocument({ data }: { data: AWBData }) {
+  const scale = getScale(data)
+  const s = makeStyles(scale)
+  const LBL = s._lbl as number
+  const TXT = s._txt as number
+  const XS  = s._xs  as number
+
   const awbFull = data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : ''
 
   return (
@@ -180,14 +214,14 @@ export function AWBDocument({ data }: { data: AWBData }) {
           <View style={s.notNegCell}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 6 }}>Not Negotiable</Text>
+                <Text style={{ fontSize: 6 * scale }}>Not Negotiable</Text>
                 <Text style={s.awbTitle}>Air Waybill</Text>
-                <View style={{ flexDirection: 'row', marginTop: 2 }}>
+                <View style={{ flexDirection: 'row', marginTop: 2 * scale }}>
                   <Text style={[s.lbl, { marginRight: 3 }]}>Issued by</Text>
-                  <Text style={{ fontSize: TXT - 0.5 }}>{data.carrierName}</Text>
+                  <Text style={{ fontSize: (TXT - 0.5) }}>{data.carrierName}</Text>
                 </View>
                 {data.carrierAddress ? (
-                  <Text style={{ fontSize: TXT - 1 }}>{data.carrierAddress}</Text>
+                  <Text style={{ fontSize: (TXT - 1) }}>{data.carrierAddress}</Text>
                 ) : null}
               </View>
             </View>
@@ -216,33 +250,33 @@ export function AWBDocument({ data }: { data: AWBData }) {
 
         {/* ── SECTION 3: Agent / Accounting ── */}
         <View style={s.row}>
-          <Cell label="Issuing Carrier's Agent Name and City" style={s.agentCell}>
+          <Cell label="Issuing Carrier's Agent Name and City" style={s.agentCell} s={s}>
             <Text style={s.txt}>{data.agentNameAndCity}</Text>
           </Cell>
-          <Cell label="Accounting Information" style={s.accountingCell}>
+          <Cell label="Accounting Information" style={s.accountingCell} s={s}>
             <Text style={s.txt}>{data.accountingInformation}</Text>
           </Cell>
         </View>
 
         {/* ── SECTION 4: IATA Code / Account No ── */}
         <View style={s.row}>
-          <Cell label="Agent's IATA Code" style={s.iataCell}>
+          <Cell label="Agent's IATA Code" style={s.iataCell} s={s}>
             <Text style={s.txt}>{data.agentIataCode}</Text>
           </Cell>
-          <Cell label="Account No." style={s.agentAcctCell}>
+          <Cell label="Account No." style={s.agentAcctCell} s={s}>
             <Text style={s.txt}>{data.agentAccountNumber}</Text>
           </Cell>
         </View>
 
         {/* ── SECTION 5: Airport of Departure / Reference ── */}
         <View style={s.row}>
-          <Cell label="Airport of Departure (Addr. of First Carrier) and Requested Routing" style={s.departureCell}>
+          <Cell label="Airport of Departure (Addr. of First Carrier) and Requested Routing" style={s.departureCell} s={s}>
             <Text style={s.txt}>{data.airportOfDeparture}</Text>
           </Cell>
-          <Cell label="Reference Number" style={s.referenceCell}>
+          <Cell label="Reference Number" style={s.referenceCell} s={s}>
             <Text style={s.txt}>{data.referenceNumber}</Text>
           </Cell>
-          <Cell label="Optional Shipping Information" style={s.optionalCell}>
+          <Cell label="Optional Shipping Information" style={s.optionalCell} s={s}>
             <Text style={s.txt}>{data.optionalShippingInfo}</Text>
           </Cell>
         </View>
@@ -321,10 +355,10 @@ export function AWBDocument({ data }: { data: AWBData }) {
 
         {/* ── SECTION 7: Destination / Flight / Insurance ── */}
         <View style={s.destSec}>
-          <Cell label="Airport of Destination" style={s.destCell}>
+          <Cell label="Airport of Destination" style={s.destCell} s={s}>
             <Text style={s.txt}>{data.airportOfDestination}</Text>
           </Cell>
-          <Cell label="Requested Flight/Date" style={s.flightCell}>
+          <Cell label="Requested Flight/Date" style={s.flightCell} s={s}>
             <Text style={s.txt}>{data.flightNumber}{data.flightNumber && data.flightDate ? '/' : ''}{data.flightDate}</Text>
           </Cell>
           <View style={s.insAmtCell}>
@@ -338,10 +372,10 @@ export function AWBDocument({ data }: { data: AWBData }) {
 
         {/* ── SECTION 8: Handling / SCI ── */}
         <View style={s.handlingSec}>
-          <Cell label="Handling Information" style={s.handlingCell}>
+          <Cell label="Handling Information" style={s.handlingCell} s={s}>
             <Text style={s.txt}>{data.handlingInformation}</Text>
           </Cell>
-          <Cell label="SCI" style={s.sciCell}>
+          <Cell label="SCI" style={s.sciCell} s={s}>
             <Text style={s.txt}>{data.sci}</Text>
           </Cell>
         </View>
@@ -349,12 +383,12 @@ export function AWBDocument({ data }: { data: AWBData }) {
         {/* ── RATE TABLE HEADER ── */}
         <View style={s.rateHeader}>
           {[
-            { w: s.colPcs, label: 'No. of\nPieces\nRCP' },
-            { w: s.colGW, label: 'Gross\nWeight\nkg / lb' },
-            { w: s.colRC, label: 'Rate Class\nCommodity\nItem No.' },
-            { w: s.colCW, label: 'Chargeable\nWeight' },
-            { w: s.colRate, label: 'Rate\nCharge' },
-            { w: s.colTotal, label: 'Total' },
+            { w: s.colPcs,    label: 'No. of\nPieces\nRCP' },
+            { w: s.colGW,     label: 'Gross\nWeight\nkg / lb' },
+            { w: s.colRC,     label: 'Rate Class\nCommodity\nItem No.' },
+            { w: s.colCW,     label: 'Chargeable\nWeight' },
+            { w: s.colRate,   label: 'Rate\nCharge' },
+            { w: s.colTotal,  label: 'Total' },
           ].map((col, i) => (
             <View key={i} style={[s.rateHCell, col.w]}>
               <Text style={[s.xlbl, { textAlign: 'center' }]}>{col.label}</Text>
@@ -395,7 +429,7 @@ export function AWBDocument({ data }: { data: AWBData }) {
 
         {/* Empty rows to pad table */}
         {Array.from({ length: Math.max(0, 5 - data.rateItems.length) }).map((_, i) => (
-          <View key={`e${i}`} style={[s.rateRow, { height: 14 }]}>
+          <View key={`e${i}`} style={[s.rateRow, { height: 14 * scale }]}>
             {[s.colPcs, s.colGW, s.colRC, s.colCW, s.colRate, s.colTotal].map((w, j) => (
               <View key={j} style={[s.rateCell, w]}><Text> </Text></View>
             ))}
@@ -420,47 +454,37 @@ export function AWBDocument({ data }: { data: AWBData }) {
 
         {/* ── CHARGES SECTION ── */}
         <View style={s.chargesSec}>
-          {/* Left: Prepaid/Collect breakdown */}
           <View style={s.chargesLeft}>
-            {/* Weight Charge */}
             <View style={s.chgRow}>
-              <View style={s.chgLabelCell}>
-                <Text style={s.xlbl}>Prepaid  Weight Charge</Text>
-              </View>
-              <View style={s.chgValueCell}>
-                <Text style={s.xlbl}>Collect</Text>
-              </View>
+              <View style={s.chgLabelCell}><Text style={s.xlbl}>Prepaid  Weight Charge</Text></View>
+              <View style={s.chgValueCell}><Text style={s.xlbl}>Collect</Text></View>
             </View>
             <View style={s.chgRow}>
               <View style={s.chgLabelCell}><Text style={s.txt}>{data.weightChargePPD}</Text></View>
               <View style={s.chgValueCell}><Text style={s.txt}>{data.weightChargeCOLL}</Text></View>
             </View>
-            {/* Valuation */}
-            <View style={[s.chgRow, { minHeight: 10 }]}>
+            <View style={[s.chgRow, { minHeight: 10 * scale }]}>
               <View style={{ flex: 2, padding: 1 }}><Text style={s.xlbl}>Valuation Charge</Text></View>
             </View>
             <View style={s.chgRow}>
               <View style={s.chgLabelCell}><Text style={s.txt}>{data.valuationChargePPD}</Text></View>
               <View style={s.chgValueCell}><Text style={s.txt}>{data.valuationChargeCOLL}</Text></View>
             </View>
-            {/* Tax */}
-            <View style={[s.chgRow, { minHeight: 10 }]}>
+            <View style={[s.chgRow, { minHeight: 10 * scale }]}>
               <View style={{ flex: 2, padding: 1 }}><Text style={s.xlbl}>Tax</Text></View>
             </View>
             <View style={s.chgRow}>
               <View style={s.chgLabelCell}><Text style={s.txt}>{data.taxPPD}</Text></View>
               <View style={s.chgValueCell}><Text style={s.txt}>{data.taxCOLL}</Text></View>
             </View>
-            {/* Due Agent */}
-            <View style={[s.chgRow, { minHeight: 10 }]}>
+            <View style={[s.chgRow, { minHeight: 10 * scale }]}>
               <View style={{ flex: 2, padding: 1 }}><Text style={s.xlbl}>Total Other Charges Due Agent</Text></View>
             </View>
             <View style={s.chgRow}>
               <View style={s.chgLabelCell}><Text style={s.txt}>{data.totalOtherChargesDueAgent}</Text></View>
               <View style={s.chgValueCell}><Text> </Text></View>
             </View>
-            {/* Due Carrier */}
-            <View style={[s.chgRow, { minHeight: 10 }]}>
+            <View style={[s.chgRow, { minHeight: 10 * scale }]}>
               <View style={{ flex: 2, padding: 1 }}><Text style={s.xlbl}>Total Other Charges Due Carrier</Text></View>
             </View>
             <View style={s.chgRow}>
@@ -469,20 +493,19 @@ export function AWBDocument({ data }: { data: AWBData }) {
             </View>
           </View>
 
-          {/* Right: Other Charges + Shipper Cert */}
           <View style={s.chargesRight}>
             <View style={{ borderBottomWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 1 }}>
               <Text style={s.xlbl}>Other Charges</Text>
             </View>
             {data.otherCharges.map((c) => (
-              <View key={c.id} style={{ flexDirection: 'row', borderBottomWidth: 0.3, borderColor: RED, borderStyle: 'solid', minHeight: 10 }}>
+              <View key={c.id} style={{ flexDirection: 'row', borderBottomWidth: 0.3, borderColor: RED, borderStyle: 'solid', minHeight: 10 * scale }}>
                 <View style={{ flex: 2, padding: 1 }}><Text style={s.txt}>{c.description}</Text></View>
                 <View style={{ flex: 1, padding: 1, alignItems: 'flex-end' }}><Text style={s.txt}>{c.amount}</Text></View>
               </View>
             ))}
             <View style={{ flex: 1, padding: 3, justifyContent: 'flex-end' }}>
               <Text style={{ fontSize: XS, lineHeight: 1.4 }}>{SHIPPER_CERT}</Text>
-              <Text style={[s.lbl, { marginTop: 6 }]}>Signature of Shipper or his Agent</Text>
+              <Text style={[s.lbl, { marginTop: 6 * scale }]}>Signature of Shipper or his Agent</Text>
               <View style={s.sigLine}>
                 <Text style={s.txt}>{data.signatureShipper}</Text>
               </View>
@@ -492,10 +515,10 @@ export function AWBDocument({ data }: { data: AWBData }) {
 
         {/* ── TOTALS ── */}
         <View style={s.totalsRow}>
-          <Cell label="Total Prepaid" style={[s.totalCell]}>
+          <Cell label="Total Prepaid" style={s.totalCell} s={s}>
             <Text style={s.txt}>{data.totalPrepaid}</Text>
           </Cell>
-          <Cell label="Total Collect" style={[s.totalCell]}>
+          <Cell label="Total Collect" style={s.totalCell} s={s}>
             <Text style={s.txt}>{data.totalCollect}</Text>
           </Cell>
           <View style={{ flex: 2.2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid' }} />
@@ -503,10 +526,10 @@ export function AWBDocument({ data }: { data: AWBData }) {
 
         {/* ── CURRENCY CONVERSION / EXECUTION ── */}
         <View style={s.ccRow}>
-          <Cell label="Currency Conversion Rates" style={s.ccCell}>
+          <Cell label="Currency Conversion Rates" style={s.ccCell} s={s}>
             <Text style={s.txt}>{data.currencyConversionRates}</Text>
           </Cell>
-          <Cell label="CC Charges in Dest. Currency" style={s.ccCell}>
+          <Cell label="CC Charges in Dest. Currency" style={s.ccCell} s={s}>
             <Text style={s.txt}>{data.ccChargesInDestCurrency}</Text>
           </Cell>
           <View style={s.execCell}>
@@ -527,7 +550,7 @@ export function AWBDocument({ data }: { data: AWBData }) {
             <Text style={s.xlbl}>For Carrier's Use only</Text>
             <Text style={s.xlbl}>at Destination</Text>
           </View>
-          <Cell label="Charges at Destination" style={[s.btmCell, { flex: 1 }]}>
+          <Cell label="Charges at Destination" style={[s.btmCell, { flex: 1 }]} s={s}>
             <Text style={s.txt}>{data.chargesAtDestination}</Text>
           </Cell>
           <View style={{ flex: 1.4, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: 1 }}>
