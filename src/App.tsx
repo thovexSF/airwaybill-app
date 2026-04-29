@@ -7,6 +7,18 @@ import { LoginPage } from './pages/LoginPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 
 export default function App() {
+  const isDevelopment = import.meta.env.VITE_APP_ENV === 'development'
+
+  if (isDevelopment) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="*" element={<EditorPage />} />
+        </Routes>
+      </BrowserRouter>
+    )
+  }
+
   return (
     <BrowserRouter>
       <Routes>

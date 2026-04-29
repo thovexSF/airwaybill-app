@@ -13,7 +13,8 @@ export function EditorPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const draftKey = `awb-saas-draft-${currentUser?.id || 'anon'}`
+  const appEnv = import.meta.env.VITE_APP_ENV || 'development'
+  const draftKey = `awb-saas-draft-${appEnv}-${currentUser?.id || 'anon'}`
 
   useEffect(() => {
     const raw = localStorage.getItem(draftKey)

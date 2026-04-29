@@ -20,11 +20,14 @@ type AuthContextValue = {
 
 const USERS_KEY = 'awb-saas-users'
 const SESSION_KEY = 'awb-saas-session'
+const APP_ENV = import.meta.env.VITE_APP_ENV || 'development'
+const USERS_KEY_BY_ENV = `${USERS_KEY}-${APP_ENV}`
+const SESSION_KEY_BY_ENV = `${SESSION_KEY}-${APP_ENV}`
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 function readUsers(): TenantUser[] {
-  const raw = localStorage.getItem(USERS_KEY)
+  const raw = localStorage.getItem(USERS_KEY_BY_ENV)
   if (!raw) return []
   try {
     const parsed = JSON.parse(raw) as TenantUser[]
@@ -35,11 +38,11 @@ function readUsers(): TenantUser[] {
 }
 
 function writeUsers(users: TenantUser[]) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users))
+  localStorage.setItem(USERS_KEY_BY_ENV, JSON.stringify(users))
 }
 
 function readSession(): Session | null {
-  const raw = localStorage.getItem(SESSION_KEY)
+  const raw = localStorage.getItem(SESSION_KEY_BY_ENV)
   if (!raw) return null
   try {
     const parsed = JSON.parse(raw) as Session
@@ -51,10 +54,10 @@ function readSession(): Session | null {
 
 function writeSession(session: Session | null) {
   if (!session) {
-    localStorage.removeItem(SESSION_KEY)
+    localStorage.removeItem(SESSION_KEY_BY_ENV)
     return
   }
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  localStorage.setItem(SESSION_KEY_BY_ENV, JSON.stringify(session))
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
