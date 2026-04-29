@@ -9,7 +9,7 @@ import { useAuth } from '../auth/AuthContext'
 import { saveAWB, getAWB } from '../lib/awbService'
 
 export function EditorPage() {
-  const { user, logout } = useAuth()
+  const { user, logout, orgName } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const docId = searchParams.get('id')
@@ -94,7 +94,7 @@ export function EditorPage() {
         </div>
         <div className="topbar-actions">
           <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
-            {user?.email}
+            {orgName ?? user?.email}
           </span>
           {generating && <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>Generando...</span>}
           <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>Mis AWBs</Link>

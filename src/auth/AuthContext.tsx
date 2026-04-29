@@ -6,6 +6,7 @@ type AuthContextValue = {
   user: User | null
   session: Session | null
   loading: boolean
+  orgName: string | null
   signup: (input: { companyName: string; email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
   login: (input: { email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
   loginWithProvider: (provider: 'google' | 'github' | 'apple') => Promise<void>
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [orgName, setOrgName] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -32,10 +34,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Load org name whenever user changes
+  useEffect(() => {
+    const userId = session?.user?.id
+    if (!userId) { setOrgName(null); return }
+
+    supabase
+      .from('organization_members')
+      .select('organizations(name)')
+      .eq('user_id', userId)
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        const name = (data as any)?.organizations?.name ?? null
+        setOrgName(name)
+      })
+  }, [session?.user?.id])
+
   const value: AuthContextValue = {
     user: session?.user ?? null,
     session,
     loading,
+    orgName,
 
     signup: async ({ companyName, email, password }) => {
       const { error } = await supabase.auth.signUp({
