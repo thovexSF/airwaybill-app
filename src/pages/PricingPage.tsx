@@ -2,21 +2,23 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
-import { createCheckoutSession } from '../lib/stripeService'
+import { openCheckout } from '../lib/paddleService'
 
 const PLANS = [
   {
     id: 'free' as const,
     name: 'Free',
     price: '$0',
-    period: 'forever',
+    period: 'para siempre',
     features: ['10 AWBs por mes', 'Descarga PDF', 'Marca DRAFT', '1 usuario'],
+    highlight: false,
   },
   {
     id: 'starter' as const,
     name: 'Starter',
     price: '$15',
     period: 'por mes',
+    priceId: import.meta.env.VITE_PADDLE_PRICE_STARTER,
     features: ['AWBs ilimitados', 'Sin marca DRAFT', 'Logo de aerolínea', 'Check digit IATA', '2 usuarios', 'Soporte por email'],
     highlight: false,
   },
@@ -25,6 +27,7 @@ const PLANS = [
     name: 'Pro',
     price: '$29',
     period: 'por mes',
+    priceId: import.meta.env.VITE_PADDLE_PRICE_PRO,
     features: ['Todo en Starter', 'HAWB + DGD + Manifiesto', '5 usuarios', 'Soporte prioritario'],
     highlight: true,
   },
@@ -32,20 +35,20 @@ const PLANS = [
 
 export function PricingPage() {
   const { user, logout, orgName } = useAuth()
-  const { plan: currentPlan } = usePlan()
+  const { plan: currentPlan, orgId } = usePlan()
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleUpgrade(planId: 'starter' | 'pro') {
+  async function handleUpgrade(planId: 'starter' | 'pro', priceId: string) {
+    if (!user || !orgId) return
     setLoading(planId)
     setError(null)
     try {
-      const url = await createCheckoutSession(planId)
-      window.location.href = url
+      await openCheckout({ priceId, email: user.email!, orgId })
     } catch (e: any) {
       setError(e.message)
-      setLoading(null)
     }
+    setLoading(null)
   }
 
   return (
@@ -60,7 +63,7 @@ export function PricingPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 900, margin: '48px auto', padding: '0 24px' }}>
+      <div style={{ maxWidth: 920, margin: '48px auto', padding: '0 24px' }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>Planes y precios</h1>
         <p style={{ textAlign: 'center', color: '#666', marginBottom: 40 }}>
           Plan actual: <strong style={{ textTransform: 'capitalize', color: '#8b0000' }}>{currentPlan}</strong>
@@ -75,14 +78,13 @@ export function PricingPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
           {PLANS.map(p => {
             const isCurrent = currentPlan === p.id
-            const isDowngrade = (p.id === 'free' && currentPlan !== 'free')
+            const isLower = (p.id === 'free' && currentPlan !== 'free') ||
+                            (p.id === 'starter' && currentPlan === 'pro')
             return (
               <div key={p.id} style={{
                 background: '#fff',
                 border: p.highlight ? '2px solid #8b0000' : '1px solid #e8dcdc',
-                borderRadius: 12,
-                padding: 28,
-                position: 'relative',
+                borderRadius: 12, padding: 28, position: 'relative',
               }}>
                 {p.highlight && (
                   <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#8b0000', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 12px', borderRadius: 20 }}>
@@ -102,11 +104,11 @@ export function PricingPage() {
 
                 {isCurrent ? (
                   <div style={{ textAlign: 'center', padding: '9px 0', fontSize: 13, fontWeight: 700, color: '#2a7a2a' }}>✓ Plan actual</div>
-                ) : isDowngrade ? (
+                ) : isLower ? (
                   <div style={{ textAlign: 'center', fontSize: 12, color: '#aaa' }}>Tu plan actual es superior</div>
-                ) : (
+                ) : p.id === 'free' ? null : (
                   <button
-                    onClick={() => handleUpgrade(p.id as 'starter' | 'pro')}
+                    onClick={() => handleUpgrade(p.id, p.priceId!)}
                     disabled={loading === p.id}
                     style={{
                       width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
@@ -115,7 +117,7 @@ export function PricingPage() {
                       fontWeight: 700, fontSize: 14,
                     }}
                   >
-                    {loading === p.id ? 'Redirigiendo...' : `Actualizar a ${p.name}`}
+                    {loading === p.id ? 'Abriendo checkout...' : `Actualizar a ${p.name}`}
                   </button>
                 )}
               </div>
@@ -124,7 +126,7 @@ export function PricingPage() {
         </div>
 
         <p style={{ textAlign: 'center', marginTop: 32, fontSize: 13, color: '#888' }}>
-          14 días de prueba gratis · Cancela cuando quieras · Sin compromiso
+          14 días de prueba gratis · Cancela cuando quieras · Pagos procesados por Paddle
         </p>
       </div>
     </div>
