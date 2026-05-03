@@ -7,6 +7,9 @@ import { LoginPage } from './pages/LoginPage'
 import { MyAWBsPage } from './pages/MyAWBsPage'
 import { PricingPage } from './pages/PricingPage'
 import { BillingSuccessPage } from './pages/BillingSuccessPage'
+import { TermsPage } from './pages/TermsPage'
+import { PrivacyPage } from './pages/PrivacyPage'
+import { RefundsPage } from './pages/RefundsPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 
 export default function App() {
@@ -49,6 +52,9 @@ export default function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/contact" element={<ComingSoon title="Contact Sales" />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/refunds" element={<RefundsPage />} />
       </Routes>
     </BrowserRouter>
   )

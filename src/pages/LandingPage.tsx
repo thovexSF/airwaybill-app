@@ -277,13 +277,14 @@ export function LandingPage() {
             </div>
             <div>
               <strong>Legal</strong>
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
+              <Link to="/privacy">Privacy Policy</Link>
+              <Link to="/terms">Terms of Service</Link>
+              <Link to="/refunds">Refund Policy</Link>
             </div>
           </div>
         </div>
         <div className="lp-footer-bottom">
-          <span>© 2026 Airwaybill App · All rights reserved</span>
+          <span>© 2025 Airwaybill App · All rights reserved</span>
           <span>Built for IATA Resolution 600a compliance</span>
         </div>
       </footer>
