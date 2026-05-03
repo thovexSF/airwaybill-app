@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
 import { openCheckout } from '../lib/paddleService'
@@ -36,11 +36,12 @@ const PLANS = [
 export function PricingPage() {
   const { user, logout, orgName } = useAuth()
   const { plan: currentPlan, orgId } = usePlan()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function handleUpgrade(planId: 'starter' | 'pro', priceId: string) {
-    if (!user || !orgId) return
+    if (!user || !orgId) { navigate('/signup'); return }
     setLoading(planId)
     setError(null)
     try {
@@ -117,7 +118,7 @@ export function PricingPage() {
                       fontWeight: 700, fontSize: 14,
                     }}
                   >
-                    {loading === p.id ? 'Abriendo checkout...' : `Actualizar a ${p.name}`}
+                    {loading === p.id ? 'Abriendo checkout...' : user ? `Actualizar a ${p.name}` : `Empezar con ${p.name}`}
                   </button>
                 )}
               </div>

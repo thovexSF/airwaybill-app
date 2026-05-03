@@ -15,86 +15,72 @@ export function RefundsPage() {
         <p className="legal-date">Last updated: May 3, 2025</p>
 
         <p>
-          At <strong>Airwaybill App</strong> we want you to be satisfied with our Service.
-          This Refund Policy describes your options for refunds and cancellations.
+          At <strong>Thovex Software Factory</strong> ("we", "us", "our"), operator of
+          Airwaybill App, we want you to be fully satisfied with our Service.
           Payments are processed by <strong>Paddle</strong>, who acts as our merchant of record.
+          All refund requests are handled in accordance with{' '}
+          <a href="https://www.paddle.com/legal/refund-policy" target="_blank" rel="noopener noreferrer">
+            Paddle's Refund Policy
+          </a>.
         </p>
 
-        <h2>1. Money-Back Guarantee</h2>
+        <h2>1. 14-Day Money-Back Guarantee</h2>
         <p>
-          If you are a <strong>first-time subscriber</strong> to any paid plan (Starter or Pro)
-          and you are not satisfied, you may request a full refund within{' '}
-          <strong>7 days of your initial payment</strong>. No questions asked.
+          We offer a <strong>full refund within 14 days of any payment</strong> — no questions asked.
+          This applies to all paid plans (Starter and Pro), including renewals.
         </p>
         <p>
-          To request a refund under this guarantee, send an email to{' '}
+          To request a refund, send an email to{' '}
           <a href="mailto:support@airwaybill.app">support@airwaybill.app</a> with the subject
           line <em>"Refund Request"</em> and include the email address associated with your
-          account. Refunds are typically processed within 5–10 business days, depending on
-          your payment method and bank.
+          account. Refunds are processed within 5–10 business days to your original
+          payment method. Paddle will send you a confirmation receipt.
         </p>
 
-        <h2>2. Cancellations</h2>
+        <h2>2. How to Request a Refund</h2>
+        <p>You may request a refund in any of the following ways:</p>
+        <ul>
+          <li>Email us at <a href="mailto:support@airwaybill.app">support@airwaybill.app</a></li>
+          <li>Contact Paddle directly at <a href="https://www.paddle.com/support" target="_blank" rel="noopener noreferrer">paddle.com/support</a></li>
+        </ul>
         <p>
-          You may cancel your subscription at any time from your account settings or by
-          contacting us. When you cancel:
+          Refunds are returned to the original payment method used at purchase and typically
+          appear within 5–10 business days depending on your bank.
+        </p>
+
+        <h2>3. Cancellations</h2>
+        <p>
+          You may cancel your subscription at any time. When you cancel:
         </p>
         <ul>
-          <li>Your subscription remains active until the <strong>end of the current
-              billing period</strong>.</li>
+          <li>Your subscription remains active until the <strong>end of the current billing period</strong>.</li>
           <li>You will not be charged for the next billing cycle.</li>
-          <li>No partial refunds are issued for unused days in the current period
-              (except under the 7-day money-back guarantee above).</li>
+          <li>You may request a refund within 14 days of any charge as described above.</li>
         </ul>
 
-        <h2>3. Non-Refundable Situations</h2>
-        <p>The following are generally not eligible for a refund:</p>
-        <ul>
-          <li>Renewals beyond the first billing period (unless required by applicable law).</li>
-          <li>Accounts suspended or terminated due to violations of our{' '}
-              <Link to="/terms">Terms of Service</Link>.</li>
-          <li>Charges that occurred more than 30 days prior to the refund request.</li>
-        </ul>
-
-        <h2>4. Duplicate Charges</h2>
+        <h2>4. Duplicate or Erroneous Charges</h2>
         <p>
           If you believe you have been charged in error or received a duplicate charge,
           contact us immediately at{' '}
           <a href="mailto:support@airwaybill.app">support@airwaybill.app</a>. We will
-          investigate and, if confirmed, process a full refund for the erroneous charge.
+          investigate and, if confirmed, process a full refund promptly.
         </p>
 
-        <h2>5. Annual Plans</h2>
+        <h2>5. Free Plan</h2>
         <p>
-          Annual subscriptions may be refunded in full within 7 days of purchase. After
-          7 days, annual plans are non-refundable. You may downgrade or cancel to prevent
-          renewal before the next annual term.
+          The Free plan has no cost, so no refunds are applicable.
         </p>
 
-        <h2>6. Free Plan</h2>
+        <h2>6. Contact</h2>
         <p>
-          The Free plan has no cost, so no refunds are applicable. To stop using the
-          Service simply stop logging in; your data will be retained for 90 days in
-          case you return.
-        </p>
-
-        <h2>7. How Refunds Are Issued</h2>
-        <p>
-          Refunds are returned to the original payment method (credit/debit card) used
-          at the time of purchase. Processing time depends on your bank and is typically
-          5–10 business days after we approve the refund. Paddle will send you a receipt
-          for the refund.
-        </p>
-
-        <h2>8. Contact</h2>
-        <p>
-          For any refund or billing questions, please contact us:<br />
+          For any refund or billing questions:<br />
+          <strong>Thovex Software Factory</strong><br />
           <a href="mailto:support@airwaybill.app">support@airwaybill.app</a>
         </p>
       </div>
 
       <footer className="legal-footer">
-        <span>© 2025 Airwaybill App</span>
+        <span>© 2025 Thovex Software Factory</span>
         <Link to="/terms">Terms of Service</Link>
         <Link to="/privacy">Privacy Policy</Link>
         <Link to="/refunds">Refund Policy</Link>

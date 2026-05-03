@@ -33,14 +33,7 @@ export default function App() {
             </ProtectedRoute>
           )}
         />
-        <Route
-          path="/pricing"
-          element={(
-            <ProtectedRoute>
-              <PricingPage />
-            </ProtectedRoute>
-          )}
-        />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route
           path="/billing/success"
           element={(

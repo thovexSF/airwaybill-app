@@ -15,10 +15,10 @@ export function PrivacyPage() {
         <p className="legal-date">Last updated: May 3, 2025</p>
 
         <p>
-          At <strong>Airwaybill App</strong> ("we", "us", or "our"), we respect your privacy
-          and are committed to protecting your personal data. This Privacy Policy explains how
-          we collect, use, and safeguard information when you use{' '}
-          <a href="https://airwaybill.app">airwaybill.app</a>.
+          At <strong>Thovex Software Factory</strong> ("we", "us", or "our"), operator of
+          Airwaybill App, we respect your privacy and are committed to protecting your
+          personal data. This Privacy Policy explains how we collect, use, and safeguard
+          information when you use <a href="https://airwaybill.app">airwaybill.app</a>.
         </p>
 
         <h2>1. Information We Collect</h2>
@@ -124,13 +124,13 @@ export function PrivacyPage() {
         <h2>12. Contact</h2>
         <p>
           Questions or requests regarding your privacy? Contact our data controller at:<br />
-          <strong>Airwaybill App</strong><br />
+          <strong>Thovex Software Factory</strong><br />
           <a href="mailto:support@airwaybill.app">support@airwaybill.app</a>
         </p>
       </div>
 
       <footer className="legal-footer">
-        <span>© 2025 Airwaybill App</span>
+        <span>© 2025 Thovex Software Factory</span>
         <Link to="/terms">Terms of Service</Link>
         <Link to="/privacy">Privacy Policy</Link>
         <Link to="/refunds">Refund Policy</Link>

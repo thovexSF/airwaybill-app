@@ -16,8 +16,9 @@ export function TermsPage() {
 
         <p>
           Please read these Terms of Service ("Terms") carefully before using
-          <strong> Airwaybill App</strong> ("Service", "we", "us", or "our")
-          operated at <a href="https://airwaybill.app">airwaybill.app</a>.
+          <strong> Airwaybill App</strong>, a service operated by{' '}
+          <strong>Thovex Software Factory</strong> ("Service", "we", "us", or "our")
+          at <a href="https://airwaybill.app">airwaybill.app</a>.
           By accessing or using the Service you agree to be bound by these Terms.
           If you do not agree, do not use the Service.
         </p>
@@ -127,13 +128,14 @@ export function TermsPage() {
 
         <h2>14. Contact</h2>
         <p>
-          Questions about these Terms? Contact us at{' '}
-          <a href="mailto:support@airwaybill.app">support@airwaybill.app</a>.
+          Questions about these Terms? Contact us at:<br />
+          <strong>Thovex Software Factory</strong><br />
+          <a href="mailto:support@airwaybill.app">support@airwaybill.app</a>
         </p>
       </div>
 
       <footer className="legal-footer">
-        <span>© 2025 Airwaybill App</span>
+        <span>© 2025 Thovex Software Factory</span>
         <Link to="/terms">Terms of Service</Link>
         <Link to="/privacy">Privacy Policy</Link>
         <Link to="/refunds">Refund Policy</Link>
