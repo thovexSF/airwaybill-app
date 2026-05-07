@@ -40,23 +40,27 @@ create policy "Users can read own memberships"
 
 -- Trigger: auto-create org when any user signs up (email OR OAuth)
 create or replace function handle_new_user()
-returns trigger language plpgsql security definer as $$
+returns trigger language plpgsql security definer set search_path = public as $$
 declare
   v_org_id uuid;
   v_org_name text;
 begin
   v_org_name := coalesce(
     nullif(trim(new.raw_user_meta_data->>'company_name'), ''),
-    split_part(new.email, '@', 2)  -- fallback: use email domain
+    nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
+    split_part(coalesce(new.email, new.id::text), '@', 2)
   );
 
-  insert into organizations (name)
+  insert into public.organizations (name)
   values (v_org_name)
   returning id into v_org_id;
 
-  insert into organization_members (organization_id, user_id, role)
+  insert into public.organization_members (organization_id, user_id, role)
   values (v_org_id, new.id, 'owner');
 
+  return new;
+exception when others then
+  raise log 'handle_new_user error: %', sqlerrm;
   return new;
 end;
 $$;
