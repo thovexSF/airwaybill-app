@@ -9,7 +9,7 @@ type AuthContextValue = {
   orgName: string | null
   signup: (input: { companyName: string; email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
   login: (input: { email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
-  loginWithProvider: (provider: 'google' | 'github' | 'apple') => Promise<void>
+  loginWithProvider: (provider: 'google' | 'github') => Promise<void>
   logout: () => Promise<void>
 }
 
