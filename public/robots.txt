@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /editor
+Disallow: /my-awbs
+Disallow: /billing
+
+Sitemap: https://airwaybill.app/sitemap.xml
