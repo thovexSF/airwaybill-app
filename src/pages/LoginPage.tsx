@@ -65,6 +65,9 @@ export function LoginPage() {
           <button type="submit" className="auth-submit" disabled={loading}>
             {loading ? 'Entrando...' : 'Iniciar sesión'}
           </button>
+          <p style={{ textAlign: 'right', margin: '4px 0 0' }}>
+            <Link to="/forgot-password" style={{ fontSize: 13, color: '#8b0000' }}>¿Olvidaste tu contraseña?</Link>
+          </p>
         </form>
 
         <p className="auth-switch">

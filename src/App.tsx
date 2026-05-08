@@ -7,6 +7,8 @@ import { LoginPage } from './pages/LoginPage'
 import { MyAWBsPage } from './pages/MyAWBsPage'
 import { PricingPage } from './pages/PricingPage'
 import { BillingSuccessPage } from './pages/BillingSuccessPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { TermsPage } from './pages/TermsPage'
 import { PrivacyPage } from './pages/PrivacyPage'
 import { RefundsPage } from './pages/RefundsPage'
@@ -44,6 +46,8 @@ export default function App() {
         />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/contact" element={<ComingSoon title="Contact Sales" />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
