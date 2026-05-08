@@ -41,11 +41,34 @@ export function EditorPage() {
         setCurrentId(doc.id)
       }).catch(() => {})
     } else {
+      // Try local draft first, then org defaults
       const raw = localStorage.getItem(draftKey)
-      if (!raw) return
-      try { setData(JSON.parse(raw) as AWBData) } catch { /* ignore */ }
+      if (raw) {
+        try { setData(JSON.parse(raw) as AWBData); return } catch { /* ignore */ }
+      }
+      // Load org defaults for new AWB
+      if (orgId) {
+        supabase
+          .from('organization_defaults')
+          .select('*')
+          .eq('organization_id', orgId)
+          .single()
+          .then(({ data: defaults }) => {
+            if (!defaults) return
+            setData(prev => ({
+              ...prev,
+              shipperNameAndAddress: defaults.shipper_name_and_address || prev.shipperNameAndAddress,
+              shipperAccountNumber: defaults.shipper_account_number || prev.shipperAccountNumber,
+              carrierName: defaults.carrier_name || prev.carrierName,
+              carrierAddress: defaults.carrier_address || prev.carrierAddress,
+              agentNameAndCity: defaults.issuing_carrier_agent || prev.agentNameAndCity,
+              airportOfDeparture: defaults.airport_of_departure || prev.airportOfDeparture,
+              awbPrefix: defaults.awb_prefix || prev.awbPrefix,
+            }))
+          })
+      }
     }
-  }, [docId, draftKey])
+  }, [docId, draftKey, orgId])
 
   // Persist local draft
   useEffect(() => {
@@ -119,6 +142,7 @@ export function EditorPage() {
           </span>
           {generating && <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>Generando...</span>}
           <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>Mis AWBs</Link>
+          <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>⚙ Config</Link>
           <button className="btn-example" onClick={() => setData(exampleAWB)}>Ejemplo</button>
           <button className="btn-example" onClick={() => { setData(defaultAWBData); setCurrentId(null) }}>Limpiar</button>
           <button

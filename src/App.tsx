@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage'
 import { MyAWBsPage } from './pages/MyAWBsPage'
 import { PricingPage } from './pages/PricingPage'
 import { BillingSuccessPage } from './pages/BillingSuccessPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { TermsPage } from './pages/TermsPage'
@@ -44,6 +45,7 @@ export default function App() {
             </ProtectedRoute>
           )}
         />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
