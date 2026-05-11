@@ -171,23 +171,24 @@ export function EditorPage() {
             )}
           </span>
           <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.myAwbs')}</Link>
-          <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.settings')}</Link>
-          {/* Plan badge — always shown for paid users, with downgrade tooltip */}
+          {/* Plan badge — simple label for paid users */}
           {plan !== 'free' && (
-            <div style={{ position: 'relative' }} className="plan-badge-wrap">
-              <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize', cursor: 'default' }}>
-                {plan}
-              </span>
-              <div className="plan-downgrade-tooltip">
-                <Link to="/pricing">Downgrade plan</Link>
-              </div>
-            </div>
+            <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize', cursor: 'default' }}>
+              {plan}
+            </span>
           )}
-          {/* Upgrade button — shown for free and starter (not pro/enterprise) */}
+          {/* Upgrade button with downgrade tooltip on hover */}
           {(plan === 'free' || plan === 'starter') && (
-            <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-              {plan === 'starter' ? '⚡ Upgrade to Pro' : `⚡ ${t('common.upgrade')}`}
-            </Link>
+            <div style={{ position: 'relative' }} className="plan-badge-wrap">
+              <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap', display: 'block' }}>
+                {plan === 'starter' ? 'Upgrade to Pro' : t('common.upgrade')}
+              </Link>
+              {plan === 'starter' && (
+                <div className="plan-downgrade-tooltip">
+                  <Link to="/pricing">Downgrade plan</Link>
+                </div>
+              )}
+            </div>
           )}
           <LangSwitcher />
           <button className="btn-example" onClick={logout}>{t('common.signOut')}</button>
@@ -217,6 +218,9 @@ export function EditorPage() {
               {t('editor.downloadPdf')}
             </a>
           )}
+          <Link to="/settings" className="btn-download" style={{ gap: 4 }}>
+            {t('common.settings')}
+          </Link>
         </div>
       </div>
 
