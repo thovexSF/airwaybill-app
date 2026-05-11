@@ -172,11 +172,8 @@ export function EditorPage() {
           </span>
           <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.myAwbs')}</Link>
           <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.settings')}</Link>
-          {plan === 'free' ? (
-            <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none' }}>
-              {t('common.upgrade')}
-            </Link>
-          ) : (
+          {/* Plan badge — always shown for paid users, with downgrade tooltip */}
+          {plan !== 'free' && (
             <div style={{ position: 'relative' }} className="plan-badge-wrap">
               <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize', cursor: 'default' }}>
                 {plan}
@@ -185,6 +182,12 @@ export function EditorPage() {
                 <Link to="/pricing">Downgrade plan</Link>
               </div>
             </div>
+          )}
+          {/* Upgrade button — shown for free and starter (not pro/enterprise) */}
+          {(plan === 'free' || plan === 'starter') && (
+            <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              {plan === 'starter' ? '⚡ Upgrade to Pro' : `⚡ ${t('common.upgrade')}`}
+            </Link>
           )}
           <LangSwitcher />
           <button className="btn-example" onClick={logout}>{t('common.signOut')}</button>
