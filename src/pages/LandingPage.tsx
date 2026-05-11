@@ -60,7 +60,7 @@ const PLANS = [
     desc: 'For small freight forwarders',
     features: ['Unlimited AWBs', 'No watermark', 'Custom carrier logo', 'AWB check digit validation', '2 users', 'Email support'],
     cta: 'Start 14-day Trial',
-    ctaLink: '/signup?plan=starter',
+    ctaLink: '/pricing',
     highlight: false,
   },
   {
@@ -70,7 +70,7 @@ const PLANS = [
     desc: 'For active freight forwarders',
     features: ['Everything in Starter', 'HAWB + DGD + Manifest', 'Flight manifest export', '5 users', 'Priority support'],
     cta: 'Start 14-day Trial',
-    ctaLink: '/signup?plan=pro',
+    ctaLink: '/pricing',
     highlight: true,
   },
   {
