@@ -134,7 +134,7 @@ export function MyAWBsPage() {
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 1100, margin: '32px auto', padding: '0 24px' }}>
+      <div style={{ maxWidth: 1440, margin: '32px auto', padding: '0 24px' }}>
 
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>

@@ -127,13 +127,13 @@ function makeStyles(k: number) {
     chgValueCell:  { flex: 1, padding: P },
 
     // ---- Totals / Execution ----
-    totalsRow: { flexDirection: 'row', height: 18 * k },
+    totalsRow: { flexDirection: 'row', minHeight: 22 * k },
     totalCell: { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P },
-    ccRow:     { flexDirection: 'row', height: 18 * k },
-    ccCell:    { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2 },
-    execCell:  { flex: 2.2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P, flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
-    bottomRow: { flexDirection: 'row', height: 18 * k },
-    btmCell:   { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: 2 },
+    ccRow:     { flexDirection: 'row', minHeight: 34 * k },
+    ccCell:    { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P },
+    execCell:  { flex: 2.2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', paddingHorizontal: P, paddingVertical: 2, flexDirection: 'row', gap: 4 },
+    bottomRow: { flexDirection: 'row', minHeight: 22 * k },
+    btmCell:   { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P },
 
     // ---- Footer ----
     footer:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
@@ -536,13 +536,23 @@ export function AWBDocument({ data }: { data: AWBData }) {
             <Text style={s.txt}>{data.ccChargesInDestCurrency}</Text>
           </Cell>
           <View style={s.execCell}>
-            <Text style={s.txt}>{data.executedOnDate}</Text>
-            <View style={{ flex: 1, borderBottomWidth: 0.5, borderColor: '#000', borderStyle: 'solid' }}>
-              <Text style={[s.xlbl, { marginBottom: 1 }]}>Executed on (date)        at (place)</Text>
+            {/* Date sub-column */}
+            <View style={{ flex: 1, flexDirection: 'column', justifyContent: 'flex-end' }}>
+              <Text style={s.txt}>{data.executedOnDate}</Text>
+              <View style={{ borderBottomWidth: 0.5, borderColor: '#000', borderStyle: 'solid' }} />
+              <Text style={[s.xlbl, { marginTop: 1 }]}>Executed on (date)</Text>
             </View>
-            <Text style={s.txt}>{data.executedAtPlace}</Text>
-            <View style={{ flex: 1.5, borderBottomWidth: 0.5, borderColor: '#000', borderStyle: 'solid' }}>
-              <Text style={[s.xlbl, { marginBottom: 1 }]}>Signature of Issuing Carrier or its Agent</Text>
+            {/* Place sub-column */}
+            <View style={{ flex: 0.9, flexDirection: 'column', justifyContent: 'flex-end' }}>
+              <Text style={s.txt}>{data.executedAtPlace}</Text>
+              <View style={{ borderBottomWidth: 0.5, borderColor: '#000', borderStyle: 'solid' }} />
+              <Text style={[s.xlbl, { marginTop: 1 }]}>at (place)</Text>
+            </View>
+            {/* Carrier signature sub-column */}
+            <View style={{ flex: 1.8, flexDirection: 'column', justifyContent: 'flex-end' }}>
+              <View style={{ flex: 1 }} />
+              <View style={{ borderBottomWidth: 0.5, borderColor: '#000', borderStyle: 'solid' }} />
+              <Text style={[s.xlbl, { marginTop: 1 }]}>Signature of Issuing Carrier or its Agent</Text>
             </View>
           </View>
         </View>
