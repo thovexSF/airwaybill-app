@@ -37,8 +37,24 @@ export function EditorPage() {
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const [formWidth, setFormWidth] = useState(380)
+  const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dragRef = useRef(false)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
+
+  function onDragStart(e: React.MouseEvent) {
+    dragRef.current = true
+    const startX = e.clientX
+    const startW = formWidth
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return
+      setFormWidth(Math.max(280, Math.min(600, startW + ev.clientX - startX)))
+    }
+    const onUp = () => { dragRef.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
 
   // Auto-disable DRAFT watermark for paid plans
   useEffect(() => {
@@ -152,16 +168,22 @@ export function EditorPage() {
             {plan === 'free' && awbLimit !== null && (
               <span style={{ marginLeft: 6, opacity: 0.7 }}>· {awbUsedThisMonth}/{awbLimit} AWBs</span>
             )}
-            {plan !== 'free' && (
-              <span style={{ marginLeft: 6, opacity: 0.7, textTransform: 'capitalize' }}>· {plan}</span>
-            )}
           </span>
           <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.myAwbs')}</Link>
           <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.settings')}</Link>
-          {plan === 'free' && (
+          {plan === 'free' ? (
             <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none' }}>
               {t('common.upgrade')}
             </Link>
+          ) : (
+            <div style={{ position: 'relative' }} className="plan-badge-wrap">
+              <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize', cursor: 'default' }}>
+                {plan}
+              </span>
+              <div className="plan-downgrade-tooltip">
+                <Link to="/pricing">Downgrade plan</Link>
+              </div>
+            </div>
           )}
           <LangSwitcher />
           <button className="btn-example" onClick={logout}>{t('common.signOut')}</button>
@@ -203,9 +225,19 @@ export function EditorPage() {
       )}
 
       <div className="main">
-        <div className="form-panel-wrap">
-          <AWBFormPanel data={data} onChange={setData} />
+        <div className="form-panel-wrap" style={{ width: formWidth }}>
+          {/* Font size toolbar */}
+          <div className="form-font-toolbar">
+            <span style={{ fontSize: 10, color: '#888', marginRight: 4 }}>Text size:</span>
+            <button className={`btn-font-size ${fontSize === 'sm' ? 'active' : ''}`} onClick={() => setFontSize('sm')}>A−</button>
+            <button className={`btn-font-size ${fontSize === 'md' ? 'active' : ''}`} onClick={() => setFontSize('md')}>A</button>
+            <button className={`btn-font-size ${fontSize === 'lg' ? 'active' : ''}`} onClick={() => setFontSize('lg')}>A+</button>
+          </div>
+          <div className={`font-size-${fontSize}`}>
+            <AWBFormPanel data={data} onChange={setData} />
+          </div>
         </div>
+        <div className="resize-handle" onMouseDown={onDragStart} title="Drag to resize" />
         <div className="preview-panel">
           {/* Zoom controls */}
           <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#2a2a2a', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #444' }}>

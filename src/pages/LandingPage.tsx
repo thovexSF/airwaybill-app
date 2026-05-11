@@ -66,13 +66,13 @@ export function LandingPage() {
             {user ? (
               <>
                 <span style={{ fontSize: 13, color: '#666' }}>{orgName ?? user.email}</span>
-                <LangSwitcher />
+                <LangSwitcher variant="light" />
                 <Link to="/my-awbs" className="lp-btn-primary">{t('landing.nav.goToApp')}</Link>
               </>
             ) : (
               <>
                 <Link to="/editor" className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
-                <LangSwitcher />
+                <LangSwitcher variant="light" />
                 <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
               </>
             )}

@@ -265,28 +265,30 @@ export function AWBFormPanel({ data, onChange }: Props) {
       {/* RATE ITEMS */}
       <Section title="Rate Description">
         <div className="rate-table">
-          <div className="rate-header">
-            <span>Pcs</span><span>Gross Wt</span><span>Unit</span><span>Rate Class</span>
-            <span>Commodity</span><span>Chg. Wt</span><span>Rate</span><span>Total</span>
-            <span style={{ flex: 2 }}>Nature & Quantity</span><span></span>
-          </div>
-          {data.rateItems.map((item) => (
-            <div key={item.id} className="rate-row">
-              <input value={item.pieces} onChange={(e) => updateRateItem(item.id, 'pieces', e.target.value)} placeholder="1" />
-              <input value={item.grossWeight} onChange={(e) => updateRateItem(item.id, 'grossWeight', e.target.value)} placeholder="10" />
-              <select value={item.weightUnit} onChange={(e) => updateRateItem(item.id, 'weightUnit', e.target.value)}>
-                <option value="K">K</option>
-                <option value="L">L</option>
-              </select>
-              <input value={item.rateClass} onChange={(e) => updateRateItem(item.id, 'rateClass', e.target.value)} placeholder="M" />
-              <input value={item.commodityItemNo} onChange={(e) => updateRateItem(item.id, 'commodityItemNo', e.target.value)} />
-              <input value={item.chargeableWeight} onChange={(e) => updateRateItem(item.id, 'chargeableWeight', e.target.value)} placeholder="10" />
-              <input value={item.rateCharge} onChange={(e) => updateRateItem(item.id, 'rateCharge', e.target.value)} placeholder="400.00" />
-              <input value={item.total} onChange={(e) => updateRateItem(item.id, 'total', e.target.value)} placeholder="400.00" />
-              <input style={{ flex: 2 }} value={item.natureAndQuantity} onChange={(e) => updateRateItem(item.id, 'natureAndQuantity', e.target.value)} placeholder="BANK NOTES / 30x30x50cm" />
-              <button className="btn-remove" onClick={() => removeRateItem(item.id)}>×</button>
+          <div className="rate-inner">
+            <div className="rate-header">
+              <span>Pcs</span><span>Gross Wt</span><span>Unit</span><span>Rate Class</span>
+              <span>Commodity</span><span>Chg. Wt</span><span>Rate</span><span>Total</span>
+              <span className="col-nature">Nature &amp; Quantity</span><span style={{ width: 20, flexShrink: 0 }}></span>
             </div>
-          ))}
+            {data.rateItems.map((item) => (
+              <div key={item.id} className="rate-row">
+                <input value={item.pieces} onChange={(e) => updateRateItem(item.id, 'pieces', e.target.value)} placeholder="1" />
+                <input value={item.grossWeight} onChange={(e) => updateRateItem(item.id, 'grossWeight', e.target.value)} placeholder="10" />
+                <select className="col-unit" value={item.weightUnit} onChange={(e) => updateRateItem(item.id, 'weightUnit', e.target.value)}>
+                  <option value="K">K</option>
+                  <option value="L">L</option>
+                </select>
+                <input value={item.rateClass} onChange={(e) => updateRateItem(item.id, 'rateClass', e.target.value)} placeholder="M" />
+                <input value={item.commodityItemNo} onChange={(e) => updateRateItem(item.id, 'commodityItemNo', e.target.value)} />
+                <input value={item.chargeableWeight} onChange={(e) => updateRateItem(item.id, 'chargeableWeight', e.target.value)} placeholder="10" />
+                <input value={item.rateCharge} onChange={(e) => updateRateItem(item.id, 'rateCharge', e.target.value)} placeholder="400.00" />
+                <input value={item.total} onChange={(e) => updateRateItem(item.id, 'total', e.target.value)} placeholder="400.00" />
+                <input className="col-nature" value={item.natureAndQuantity} onChange={(e) => updateRateItem(item.id, 'natureAndQuantity', e.target.value)} placeholder="BANK NOTES / 30x30x50cm" />
+                <button className="btn-remove" onClick={() => removeRateItem(item.id)}>×</button>
+              </div>
+            ))}
+          </div>
           <button className="btn-add" onClick={addRateItem}>+ Add Row</button>
         </div>
       </Section>
