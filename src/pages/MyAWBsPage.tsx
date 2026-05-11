@@ -122,12 +122,26 @@ export function MyAWBsPage() {
           <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textDecoration: 'none' }}>{t('common.home')}</Link>
           <Link to="/" style={{ fontWeight: 800, fontSize: 16, color: '#fff', textDecoration: 'none' }}>✈ AIRWAYBILL APP</Link>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
-            {orgName ?? user?.email}
-            {plan !== 'free' && <span style={{ marginLeft: 6, opacity: 0.7, textTransform: 'capitalize' }}>· {plan}</span>}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{orgName ?? user?.email}</span>
           <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.settings')}</Link>
+          {/* Plan badge with downgrade tooltip */}
+          {plan !== 'free' && (
+            <div style={{ position: 'relative' }} className="plan-badge-wrap">
+              <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize', cursor: 'default' }}>
+                {plan}
+              </span>
+              <div className="plan-downgrade-tooltip">
+                <Link to="/pricing">Downgrade plan</Link>
+              </div>
+            </div>
+          )}
+          {/* Upgrade button for free / starter */}
+          {(plan === 'free' || plan === 'starter') && (
+            <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              {plan === 'starter' ? '⚡ Upgrade to Pro' : `⚡ ${t('common.upgrade')}`}
+            </Link>
+          )}
           <LangSwitcher />
           <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}>{t('common.signOut')}</button>
         </div>
