@@ -1,0 +1,187 @@
+const es = {
+  // Common
+  common: {
+    home: '← Inicio',
+    signOut: 'Salir',
+    settings: '⚙ Config',
+    myAwbs: 'Mis AWBs',
+    loading: 'Cargando...',
+    save: 'Guardar',
+    saving: 'Guardando...',
+    error: 'Error',
+    cancel: 'Cancelar',
+    upgrade: '⚡ Mejorar plan',
+  },
+
+  // Landing
+  landing: {
+    nav: { features: 'Funciones', pricing: 'Precios', howItWorks: 'Cómo funciona', signIn: 'Iniciar sesión', getStarted: 'Empezar gratis', goToApp: 'Ir a la App →' },
+    hero: {
+      badge: 'Generador de Air Waybill con formato IATA',
+      title: 'Genera Air Waybills en segundos',
+      subtitle: 'Documentos AWB profesionales en formato IATA — directamente en tu navegador. Sin instalación.',
+      cta: 'Pruébalo ahora — es gratis →',
+      demo: 'Ver demo',
+    },
+    features: {
+      label: 'Funciones',
+      title: 'Todo lo que necesitas para documentación de carga aérea',
+      sub: 'Diseñado para agentes de carga, operadores logísticos y aerolíneas.',
+    },
+    steps: {
+      label: 'Cómo funciona',
+      title: 'Del formulario al PDF en tres pasos',
+      cta: 'Ver cómo funciona',
+    },
+    pricing: {
+      label: 'Precios',
+      title: 'Precios simples y transparentes',
+      sub: 'Empieza gratis. Mejora cuando estés listo.',
+      trial: '14 días de prueba · Cancela cuando quieras · Pagos procesados por Paddle',
+    },
+    finalCta: {
+      title: '¿Listo para modernizar tu documentación de carga aérea?',
+      sub: 'Únete a los agentes de carga del mundo que migraron del software de escritorio a Airwaybill App.',
+      cta: 'Empieza gratis — sin tarjeta de crédito →',
+    },
+    footer: {
+      product: 'Producto',
+      company: 'Empresa',
+      legal: 'Legal',
+      about: 'Nosotros',
+      contact: 'Contacto',
+      privacy: 'Política de privacidad',
+      terms: 'Términos de servicio',
+      refunds: 'Política de reembolso',
+      copyright: '© 2025 Thovex Software Factory. Todos los derechos reservados.',
+    },
+  },
+
+  // Auth
+  auth: {
+    login: {
+      sub: 'Inicia sesión para acceder al editor y a tus documentos.',
+      google: 'Continuar con Google',
+      github: 'Continuar con GitHub',
+      orEmail: 'o con email',
+      email: 'Email',
+      password: 'Contraseña',
+      submit: 'Iniciar sesión',
+      submitting: 'Entrando...',
+      forgotPassword: '¿Olvidaste tu contraseña?',
+      noAccount: '¿No tienes cuenta?',
+      createAccount: 'Crear cuenta gratis',
+    },
+    signup: {
+      sub: 'Crea tu cuenta de empresa y empieza a generar AWBs.',
+      google: 'Registrarse con Google',
+      github: 'Registrarse con GitHub',
+      orEmail: 'o con email',
+      company: 'Empresa',
+      companyPlaceholder: 'Ej: Cargo Andes SpA',
+      email: 'Email',
+      password: 'Contraseña',
+      submit: 'Crear cuenta',
+      submitting: 'Creando cuenta...',
+      hasAccount: '¿Ya tienes cuenta?',
+      signIn: 'Iniciar sesión',
+    },
+    forgotPassword: {
+      title: 'Recuperar contraseña',
+      sub: 'Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña.',
+      email: 'Email',
+      submit: 'Enviar enlace',
+      submitting: 'Enviando...',
+      sent: 'Revisa tu email para el enlace de recuperación.',
+      backToLogin: '← Volver al inicio de sesión',
+    },
+    resetPassword: {
+      title: 'Nueva contraseña',
+      sub: 'Ingresa tu nueva contraseña.',
+      newPassword: 'Nueva contraseña',
+      submit: 'Actualizar contraseña',
+      submitting: 'Actualizando...',
+      success: 'Contraseña actualizada. Redirigiendo...',
+    },
+  },
+
+  // Editor
+  editor: {
+    sub: 'Generador de Air Waybill — Formato IATA',
+    example: 'Ejemplo',
+    clear: 'Limpiar',
+    saveDoc: 'Guardar',
+    saving: 'Guardando...',
+    saved: 'Guardado ✓',
+    saveError: 'Error al guardar',
+    generating: 'Generando...',
+    downloadPdf: '⬇ Descargar PDF',
+    limitBanner: 'Has alcanzado el límite de 10 AWBs del plan Free este mes.',
+    upgradeNow: 'Actualizar a Starter →',
+    limitReached: 'Límite del plan Free (10/mes)',
+    previewLoading: 'Generando vista previa…',
+    updating: 'Actualizando…',
+    zoomReset: 'Reset',
+  },
+
+  // My AWBs
+  myAwbs: {
+    title: 'Mis Air Waybills',
+    newAwb: '+ Nuevo AWB',
+    empty: {
+      title: 'No tienes AWBs guardados aún.',
+      sub: 'Crea tu primer Air Waybill para comenzar.',
+      cta: '+ Crear AWB',
+    },
+    updated: 'Actualizado',
+    open: 'Abrir',
+    delete: 'Eliminar',
+    confirmDelete: '¿Eliminar este AWB?',
+    deleteError: 'Error al eliminar: ',
+  },
+
+  // Pricing
+  pricing: {
+    title: 'Planes y Precios',
+    currentPlan: 'Plan actual',
+    manage: 'Gestionar suscripción →',
+    sub: 'Empieza gratis. Mejora cuando estés listo.',
+    current: 'ACTUAL',
+    included: 'Incluido en tu plan',
+    upgrade: 'Actualizar a',
+    trial: '14 días de prueba · Cancela cuando quieras · Pagos procesados por',
+    opening: 'Abriendo checkout...',
+  },
+
+  // Settings
+  settings: {
+    title: 'Configuración de empresa',
+    sub: 'Estos datos se pre-llenarán automáticamente en cada AWB nuevo que crees.',
+    shipper: 'Shipper (Remitente)',
+    shipperName: 'Nombre y Dirección',
+    shipperAccount: 'Número de cuenta',
+    carrier: 'Carrier (Aerolínea)',
+    carrierName: 'Nombre del carrier',
+    carrierAddress: 'Dirección del carrier',
+    agent: 'Agente emisor',
+    issuingAgent: 'Issuing Carrier\'s Agent',
+    departureAirport: 'Aeropuerto de salida',
+    awbPrefix: 'Prefijo AWB (3 dígitos)',
+    saveChanges: 'Guardar cambios',
+    subscription: 'Suscripción',
+    currentPlan: 'Plan actual',
+    upgradePlan: '⚡ Mejorar plan',
+    cancelSub: 'Cancelar suscripción',
+    cancelContact: 'Para cancelar, escribe a support@airwaybill.app',
+    loading: 'Cargando...',
+  },
+
+  // Billing success
+  billing: {
+    title: '¡Pago exitoso!',
+    sub: 'Tu plan ha sido activado. Puede tomar unos segundos en reflejarse.',
+    goToEditor: 'Ir a la App →',
+  },
+} as const
+
+export default es

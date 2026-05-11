@@ -1,9 +1,11 @@
 import React, { FormEvent, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import './AuthPage.css'
 
 export function ResetPasswordPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -53,11 +55,11 @@ export function ResetPasswordPage() {
         <Link to="/" style={{ textDecoration: 'none' }}>
           <div className="auth-logo">✈ AIRWAYBILL APP</div>
         </Link>
-        <p className="auth-sub">Ingresa tu nueva contraseña.</p>
+        <p className="auth-sub">{t('auth.resetPassword.sub')}</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-field">
-            <label>Nueva contraseña</label>
+            <label>{t('auth.resetPassword.newPassword')}</label>
             <input
               type="password"
               value={password}
@@ -68,7 +70,7 @@ export function ResetPasswordPage() {
             />
           </div>
           <div className="auth-field">
-            <label>Confirmar contraseña</label>
+            <label>{t('auth.resetPassword.newPassword')}</label>
             <input
               type="password"
               value={confirm}
@@ -79,7 +81,7 @@ export function ResetPasswordPage() {
           </div>
           {error && <div className="auth-error">{error}</div>}
           <button type="submit" className="auth-submit" disabled={loading}>
-            {loading ? 'Guardando...' : 'Cambiar contraseña'}
+            {loading ? t('auth.resetPassword.submitting') : t('auth.resetPassword.submit')}
           </button>
         </form>
       </div>

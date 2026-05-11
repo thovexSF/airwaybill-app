@@ -1,8 +1,10 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { PLANS } from '../data/plans'
 import './LandingPage.css'
+import { LangSwitcher } from '../components/LangSwitcher'
 
 const FEATURES = [
   {
@@ -45,6 +47,7 @@ const STEPS = [
 
 
 export function LandingPage() {
+  const { t } = useTranslation()
   const { user, orgName } = useAuth()
 
   return (
@@ -55,20 +58,22 @@ export function LandingPage() {
         <div className="lp-nav-inner">
           <div className="lp-logo">✈ AIRWAYBILL <span>APP</span></div>
           <div className="lp-nav-links">
-            <a href="#features">Features</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#how">How it works</a>
+            <a href="#features">{t('landing.nav.features')}</a>
+            <a href="#pricing">{t('landing.nav.pricing')}</a>
+            <a href="#how">{t('landing.nav.howItWorks')}</a>
           </div>
           <div className="lp-nav-actions">
             {user ? (
               <>
                 <span style={{ fontSize: 13, color: '#666' }}>{orgName ?? user.email}</span>
-                <Link to="/my-awbs" className="lp-btn-primary">Go to App →</Link>
+                <LangSwitcher />
+                <Link to="/my-awbs" className="lp-btn-primary">{t('landing.nav.goToApp')}</Link>
               </>
             ) : (
               <>
-                <Link to="/editor" className="lp-btn-ghost">Try Demo</Link>
-                <Link to="/signup" className="lp-btn-primary">Get Started Free</Link>
+                <Link to="/editor" className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
+                <LangSwitcher />
+                <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
               </>
             )}
           </div>
@@ -78,20 +83,18 @@ export function LandingPage() {
       {/* ── HERO ── */}
       <section className="lp-hero">
         <div className="lp-hero-inner">
-          <div className="lp-badge">✦ IATA-Compliant · Cloud-Based · Instant PDF</div>
+          <div className="lp-badge">{t('landing.hero.badge')}</div>
           <h1 className="lp-headline">
-            The Air Waybill Editor<br />
-            <span>Built for Modern Freight</span>
+            {t('landing.hero.title')}
           </h1>
           <p className="lp-subheadline">
-            Create, edit, and download professional AWBs in seconds — directly in your browser.
-            No software. No per-copy fees. Just fast, accurate air freight documentation.
+            {t('landing.hero.subtitle')}
           </p>
           <div className="lp-hero-ctas">
             <Link to="/editor" className="lp-cta-primary">
-              Try it free →
+              {t('landing.hero.cta')}
             </Link>
-            <a href="#how" className="lp-cta-ghost">See how it works</a>
+            <a href="#how" className="lp-cta-ghost">{t('landing.steps.cta')}</a>
           </div>
           <p className="lp-hero-note">No credit card required · 10 free AWBs/month</p>
         </div>
@@ -136,9 +139,9 @@ export function LandingPage() {
       {/* ── FEATURES ── */}
       <section className="lp-features" id="features">
         <div className="lp-section-inner">
-          <div className="lp-section-label">Features</div>
-          <h2 className="lp-section-title">Everything your AWB workflow needs</h2>
-          <p className="lp-section-sub">Modern tools for a document that's been stuck in the 1990s.</p>
+          <div className="lp-section-label">{t('landing.features.label')}</div>
+          <h2 className="lp-section-title">{t('landing.features.title')}</h2>
+          <p className="lp-section-sub">{t('landing.features.sub')}</p>
           <div className="lp-features-grid">
             {FEATURES.map(f => (
               <div key={f.title} className="lp-feature-card">
@@ -154,8 +157,8 @@ export function LandingPage() {
       {/* ── HOW IT WORKS ── */}
       <section className="lp-how" id="how">
         <div className="lp-section-inner">
-          <div className="lp-section-label">How it works</div>
-          <h2 className="lp-section-title">From blank form to PDF in under 2 minutes</h2>
+          <div className="lp-section-label">{t('landing.steps.label')}</div>
+          <h2 className="lp-section-title">{t('landing.steps.title')}</h2>
           <div className="lp-steps">
             {STEPS.map(step => (
               <div key={step.num} className="lp-step">
@@ -166,7 +169,7 @@ export function LandingPage() {
             ))}
           </div>
           <div className="lp-how-cta">
-            <Link to="/editor" className="lp-cta-primary">Try it now — it's free →</Link>
+            <Link to="/editor" className="lp-cta-primary">{t('landing.steps.cta')}</Link>
           </div>
         </div>
       </section>
@@ -174,9 +177,9 @@ export function LandingPage() {
       {/* ── PRICING ── */}
       <section className="lp-pricing" id="pricing">
         <div className="lp-section-inner">
-          <div className="lp-section-label">Pricing</div>
-          <h2 className="lp-section-title">Simple, transparent pricing</h2>
-          <p className="lp-section-sub">Start free. Upgrade when you're ready.</p>
+          <div className="lp-section-label">{t('landing.pricing.label')}</div>
+          <h2 className="lp-section-title">{t('landing.pricing.title')}</h2>
+          <p className="lp-section-sub">{t('landing.pricing.sub')}</p>
           <div className="lp-plans">
             {PLANS.map(plan => (
               <div key={plan.name} className={`lp-plan ${plan.highlight ? 'lp-plan-highlight' : ''}`}>
@@ -207,10 +210,10 @@ export function LandingPage() {
       {/* ── FINAL CTA ── */}
       <section className="lp-final-cta">
         <div className="lp-section-inner" style={{ textAlign: 'center' }}>
-          <h2>Ready to modernize your air freight documentation?</h2>
-          <p>Join freight forwarders worldwide who've switched from desktop software to Airwaybill App.</p>
+          <h2>{t('landing.finalCta.title')}</h2>
+          <p>{t('landing.finalCta.sub')}</p>
           <Link to="/editor" className="lp-cta-primary lp-cta-lg">
-            Start for free — no credit card →
+            {t('landing.finalCta.cta')}
           </Link>
         </div>
       </section>
@@ -224,26 +227,26 @@ export function LandingPage() {
           </div>
           <div className="lp-footer-links">
             <div>
-              <strong>Product</strong>
-              <a href="#features">Features</a>
-              <a href="#pricing">Pricing</a>
+              <strong>{t('landing.footer.product')}</strong>
+              <a href="#features">{t('landing.nav.features')}</a>
+              <a href="#pricing">{t('landing.nav.pricing')}</a>
               <Link to="/editor">Editor</Link>
             </div>
             <div>
-              <strong>Company</strong>
-              <a href="#">About</a>
-              <a href="#">Contact</a>
+              <strong>{t('landing.footer.company')}</strong>
+              <a href="#">{t('landing.footer.about')}</a>
+              <a href="#">{t('landing.footer.contact')}</a>
             </div>
             <div>
-              <strong>Legal</strong>
-              <Link to="/privacy">Privacy Policy</Link>
-              <Link to="/terms">Terms of Service</Link>
-              <Link to="/refunds">Refund Policy</Link>
+              <strong>{t('landing.footer.legal')}</strong>
+              <Link to="/privacy">{t('landing.footer.privacy')}</Link>
+              <Link to="/terms">{t('landing.footer.terms')}</Link>
+              <Link to="/refunds">{t('landing.footer.refunds')}</Link>
             </div>
           </div>
         </div>
         <div className="lp-footer-bottom">
-          <span>© 2025 Airwaybill App · All rights reserved</span>
+          <span>{t('landing.footer.copyright')}</span>
           <span>Built for IATA Resolution 600a compliance</span>
         </div>
       </footer>

@@ -13,8 +13,10 @@
     "@paddle/paddle-js": "^1.6.4",
     "@react-pdf/renderer": "^3.4.4",
     "@supabase/supabase-js": "^2.105.1",
+    "i18next": "^26.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-i18next": "^17.0.7",
     "react-pdf": "^10.4.1",
     "react-router-dom": "^7.14.2"
   },

@@ -1,0 +1,187 @@
+const en = {
+  // Common
+  common: {
+    home: '← Home',
+    signOut: 'Sign out',
+    settings: '⚙ Settings',
+    myAwbs: 'My AWBs',
+    loading: 'Loading...',
+    save: 'Save',
+    saving: 'Saving...',
+    error: 'Error',
+    cancel: 'Cancel',
+    upgrade: '⚡ Upgrade',
+  },
+
+  // Landing
+  landing: {
+    nav: { features: 'Features', pricing: 'Pricing', howItWorks: 'How it works', signIn: 'Sign in', getStarted: 'Get Started Free', goToApp: 'Go to App →' },
+    hero: {
+      badge: 'IATA-Compliant Air Waybill Generator',
+      title: 'Generate Air Waybills in seconds',
+      subtitle: 'Professional AWB documents in IATA format — directly in your browser. No software to install.',
+      cta: 'Try it now — it\'s free →',
+      demo: 'Try Demo',
+    },
+    features: {
+      label: 'Features',
+      title: 'Everything you need for air freight documentation',
+      sub: 'Built for freight forwarders, cargo agents, and logistics teams.',
+    },
+    steps: {
+      label: 'How it works',
+      title: 'From form to PDF in three steps',
+      cta: 'See how it works',
+    },
+    pricing: {
+      label: 'Pricing',
+      title: 'Simple, transparent pricing',
+      sub: 'Start free. Upgrade when you\'re ready.',
+      trial: '14-day free trial · Cancel anytime · Payments processed by Paddle',
+    },
+    finalCta: {
+      title: 'Ready to modernize your air freight documentation?',
+      sub: 'Join freight forwarders worldwide who\'ve switched from desktop software to Airwaybill App.',
+      cta: 'Start for free — no credit card →',
+    },
+    footer: {
+      product: 'Product',
+      company: 'Company',
+      legal: 'Legal',
+      about: 'About',
+      contact: 'Contact',
+      privacy: 'Privacy Policy',
+      terms: 'Terms of Service',
+      refunds: 'Refund Policy',
+      copyright: '© 2025 Thovex Software Factory. All rights reserved.',
+    },
+  },
+
+  // Auth
+  auth: {
+    login: {
+      sub: 'Sign in to access the editor and your documents.',
+      google: 'Continue with Google',
+      github: 'Continue with GitHub',
+      orEmail: 'or with email',
+      email: 'Email',
+      password: 'Password',
+      submit: 'Sign in',
+      submitting: 'Signing in...',
+      forgotPassword: 'Forgot your password?',
+      noAccount: 'Don\'t have an account?',
+      createAccount: 'Create free account',
+    },
+    signup: {
+      sub: 'Create your company account and start generating AWBs.',
+      google: 'Sign up with Google',
+      github: 'Sign up with GitHub',
+      orEmail: 'or with email',
+      company: 'Company',
+      companyPlaceholder: 'e.g. Cargo Andes LLC',
+      email: 'Email',
+      password: 'Password',
+      submit: 'Create account',
+      submitting: 'Creating account...',
+      hasAccount: 'Already have an account?',
+      signIn: 'Sign in',
+    },
+    forgotPassword: {
+      title: 'Reset your password',
+      sub: 'Enter your email and we\'ll send you a reset link.',
+      email: 'Email',
+      submit: 'Send reset link',
+      submitting: 'Sending...',
+      sent: 'Check your email for the reset link.',
+      backToLogin: '← Back to sign in',
+    },
+    resetPassword: {
+      title: 'New password',
+      sub: 'Enter your new password below.',
+      newPassword: 'New password',
+      submit: 'Update password',
+      submitting: 'Updating...',
+      success: 'Password updated. Redirecting...',
+    },
+  },
+
+  // Editor
+  editor: {
+    sub: 'Air Waybill Generator — IATA Format',
+    example: 'Example',
+    clear: 'Clear',
+    saveDoc: 'Save',
+    saving: 'Saving...',
+    saved: 'Saved ✓',
+    saveError: 'Save error',
+    generating: 'Generating...',
+    downloadPdf: '⬇ Download PDF',
+    limitBanner: 'You\'ve reached the 10 AWB limit for the Free plan this month.',
+    upgradeNow: 'Upgrade to Starter →',
+    limitReached: 'Free plan limit (10/month)',
+    previewLoading: 'Generating preview…',
+    updating: 'Updating…',
+    zoomReset: 'Reset',
+  },
+
+  // My AWBs
+  myAwbs: {
+    title: 'My Air Waybills',
+    newAwb: '+ New AWB',
+    empty: {
+      title: 'No AWBs saved yet.',
+      sub: 'Create your first Air Waybill to get started.',
+      cta: '+ Create AWB',
+    },
+    updated: 'Updated',
+    open: 'Open',
+    delete: 'Delete',
+    confirmDelete: 'Delete this AWB?',
+    deleteError: 'Error deleting: ',
+  },
+
+  // Pricing
+  pricing: {
+    title: 'Plans & Pricing',
+    currentPlan: 'Current plan',
+    manage: 'Manage subscription →',
+    sub: 'Start free. Upgrade when you\'re ready.',
+    current: 'CURRENT',
+    included: 'Included in your plan',
+    upgrade: 'Upgrade to',
+    trial: '14-day free trial · Cancel anytime · Payments processed by',
+    opening: 'Opening checkout...',
+  },
+
+  // Settings
+  settings: {
+    title: 'Company Settings',
+    sub: 'These values will be pre-filled automatically on each new AWB you create.',
+    shipper: 'Shipper',
+    shipperName: 'Name and Address',
+    shipperAccount: 'Account Number',
+    carrier: 'Carrier (Airline)',
+    carrierName: 'Carrier Name',
+    carrierAddress: 'Carrier Address',
+    agent: 'Issuing Agent',
+    issuingAgent: 'Issuing Carrier\'s Agent',
+    departureAirport: 'Airport of Departure',
+    awbPrefix: 'AWB Prefix (3 digits)',
+    saveChanges: 'Save changes',
+    subscription: 'Subscription',
+    currentPlan: 'Current plan',
+    upgradePlan: '⚡ Upgrade plan',
+    cancelSub: 'Cancel subscription',
+    cancelContact: 'To cancel, contact support@airwaybill.app',
+    loading: 'Loading...',
+  },
+
+  // Billing success
+  billing: {
+    title: '¡Payment successful!',
+    sub: 'Your plan has been activated. It may take a few seconds to reflect.',
+    goToEditor: 'Go to App →',
+  },
+} as const
+
+export default en

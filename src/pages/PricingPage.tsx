@@ -1,11 +1,14 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
 import { openCheckout } from '../lib/paddleService'
 import { PLANS, PRICE_IDS } from '../data/plans'
+import { LangSwitcher } from '../components/LangSwitcher'
 
 export function PricingPage() {
+  const { t } = useTranslation()
   const { user, logout, orgName } = useAuth()
   const { plan: currentPlan, orgId } = usePlan()
   const navigate = useNavigate()
@@ -38,25 +41,26 @@ export function PricingPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {user && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>{orgName ?? user.email}</span>}
           {user && <Link to="/editor" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>Editor</Link>}
-          {user && <Link to="/settings" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>Settings</Link>}
+          {user && <Link to="/settings" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>{t('common.settings')}</Link>}
+          <LangSwitcher />
           {user
-            ? <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}>Sign out</button>
-            : <Link to="/login" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>Sign in</Link>
+            ? <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}>{t('common.signOut')}</button>
+            : <Link to="/login" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>{t('auth.login.submit')}</Link>
           }
         </div>
       </div>
 
       <div style={{ maxWidth: 960, margin: '48px auto', padding: '0 24px' }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>Plans & Pricing</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>{t('pricing.title')}</h1>
         {user ? (
           <p style={{ textAlign: 'center', color: '#666', marginBottom: 40 }}>
-            Current plan: <strong style={{ textTransform: 'capitalize', color: '#8b0000' }}>{currentPlan}</strong>
+            {t('pricing.currentPlan')}: <strong style={{ textTransform: 'capitalize', color: '#8b0000' }}>{currentPlan}</strong>
             {currentPlan !== 'free' && (
-              <> · <Link to="/settings" style={{ color: '#8b0000', fontSize: 13 }}>Manage subscription →</Link></>
+              <> · <Link to="/settings" style={{ color: '#8b0000', fontSize: 13 }}>{t('pricing.manage')}</Link></>
             )}
           </p>
         ) : (
-          <p style={{ textAlign: 'center', color: '#666', marginBottom: 40 }}>Start free. Upgrade when you're ready.</p>
+          <p style={{ textAlign: 'center', color: '#666', marginBottom: 40 }}>{t('pricing.sub')}</p>
         )}
 
         {error && (
@@ -101,9 +105,9 @@ export function PricingPage() {
                 </ul>
 
                 {isCurrent ? (
-                  <div style={{ textAlign: 'center', padding: '9px 0', fontSize: 13, fontWeight: 700, color: '#2a7a2a' }}>✓ Current plan</div>
+                  <div style={{ textAlign: 'center', padding: '9px 0', fontSize: 13, fontWeight: 700, color: '#2a7a2a' }}>✓ {t('pricing.current')}</div>
                 ) : isLower ? (
-                  <div style={{ textAlign: 'center', fontSize: 12, color: '#aaa' }}>Included in your plan</div>
+                  <div style={{ textAlign: 'center', fontSize: 12, color: '#aaa' }}>{t('pricing.included')}</div>
                 ) : p.ctaLink ? (
                   <Link
                     to={p.ctaLink}
@@ -127,7 +131,7 @@ export function PricingPage() {
                       fontWeight: 700, fontSize: 14,
                     }}
                   >
-                    {loading === p.id ? 'Opening checkout...' : user ? `Upgrade to ${p.name}` : p.cta}
+                    {loading === p.id ? t('pricing.opening') : user ? `${t('pricing.upgrade')} ${p.name}` : p.cta}
                   </button>
                 ) : null}
               </div>
@@ -136,7 +140,7 @@ export function PricingPage() {
         </div>
 
         <p style={{ textAlign: 'center', marginTop: 32, fontSize: 13, color: '#888' }}>
-          14-day free trial · Cancel anytime · Payments processed by{' '}
+          {t('pricing.trial')}{' '}
           <a href="https://paddle.com" target="_blank" rel="noopener noreferrer" style={{ color: '#888' }}>Paddle</a>
         </p>
       </div>

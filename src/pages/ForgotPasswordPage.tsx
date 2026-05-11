@@ -1,9 +1,11 @@
 import React, { FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import './AuthPage.css'
 
 export function ForgotPasswordPage() {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -27,24 +29,20 @@ export function ForgotPasswordPage() {
         <Link to="/" style={{ textDecoration: 'none' }}>
           <div className="auth-logo">✈ AIRWAYBILL APP</div>
         </Link>
-        <p className="auth-sub">Ingresa tu email y te enviaremos un link para restablecer tu contraseña.</p>
+        <p className="auth-sub">{t('auth.forgotPassword.sub')}</p>
 
         {sent ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>📧</div>
-            <p style={{ fontWeight: 700, marginBottom: 8 }}>Revisa tu correo</p>
-            <p style={{ color: '#666', fontSize: 14 }}>
-              Enviamos un link a <strong>{email}</strong>.<br />
-              Puede tardar unos minutos.
-            </p>
+            <p style={{ fontWeight: 700, marginBottom: 8 }}>{t('auth.forgotPassword.sent')}</p>
             <Link to="/login" style={{ display: 'inline-block', marginTop: 20, color: '#8b0000', fontWeight: 600, fontSize: 14 }}>
-              ← Volver al login
+              {t('auth.forgotPassword.backToLogin')}
             </Link>
           </div>
         ) : (
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="auth-field">
-              <label>Email</label>
+              <label>{t('auth.forgotPassword.email')}</label>
               <input
                 type="email"
                 value={email}
@@ -56,10 +54,10 @@ export function ForgotPasswordPage() {
             </div>
             {error && <div className="auth-error">{error}</div>}
             <button type="submit" className="auth-submit" disabled={loading}>
-              {loading ? 'Enviando...' : 'Enviar link de recuperación'}
+              {loading ? t('auth.forgotPassword.submitting') : t('auth.forgotPassword.submit')}
             </button>
             <p className="auth-switch">
-              <Link to="/login">← Volver al login</Link>
+              <Link to="/login">{t('auth.forgotPassword.backToLogin')}</Link>
             </p>
           </form>
         )}

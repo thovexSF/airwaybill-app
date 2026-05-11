@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -12,6 +13,7 @@ import { useAuth } from '../auth/AuthContext'
 import { saveAWB, getAWB } from '../lib/awbService'
 import { usePlan } from '../lib/usePlan'
 import { supabase } from '../lib/supabase'
+import { LangSwitcher } from '../components/LangSwitcher'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -19,6 +21,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString()
 
 export function EditorPage() {
+  const { t } = useTranslation()
   const { user, logout, orgName } = useAuth()
   const { plan, orgId, canCreateAWB, awbUsedThisMonth, awbLimit } = usePlan()
   const navigate = useNavigate()
@@ -110,7 +113,7 @@ export function EditorPage() {
     if (!currentId && orgId) {
       const { data: result } = await supabase.rpc('increment_awb_usage', { p_org_id: orgId })
       if (result === 'limit_reached') {
-        setSaveMsg('Límite del plan Free (10/mes)')
+        setSaveMsg(t('editor.limitReached'))
         setTimeout(() => setSaveMsg(null), 4000)
         return
       }
@@ -121,10 +124,10 @@ export function EditorPage() {
       const doc = await saveAWB(data, currentId ?? undefined)
       setCurrentId(doc.id)
       navigate(`/editor?id=${doc.id}`, { replace: true })
-      setSaveMsg('Guardado ✓')
+      setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
     } catch {
-      setSaveMsg('Error al guardar')
+      setSaveMsg(t('editor.saveError'))
     }
     setSaving(false)
   }
@@ -137,10 +140,10 @@ export function EditorPage() {
       {/* Row 1 — Brand + account */}
       <div className="topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>← Home</Link>
+          <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{t('common.home')}</Link>
           <div>
             <Link to="/" style={{ color: '#fff', textDecoration: 'none' }} className="topbar-logo">✈ AIRWAYBILL APP</Link>
-            <div className="topbar-sub">Air Waybill Generator — IATA Format</div>
+            <div className="topbar-sub">{t('editor.sub')}</div>
           </div>
         </div>
         <div className="topbar-actions">
@@ -153,38 +156,39 @@ export function EditorPage() {
               <span style={{ marginLeft: 6, opacity: 0.7, textTransform: 'capitalize' }}>· {plan}</span>
             )}
           </span>
-          <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>My AWBs</Link>
-          <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>⚙ Config</Link>
+          <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.myAwbs')}</Link>
+          <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.settings')}</Link>
           {plan === 'free' && (
             <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none' }}>
-              ⚡ Upgrade
+              {t('common.upgrade')}
             </Link>
           )}
-          <button className="btn-example" onClick={logout}>Salir</button>
+          <LangSwitcher />
+          <button className="btn-example" onClick={logout}>{t('common.signOut')}</button>
         </div>
       </div>
 
       {/* Row 2 — Document actions */}
       <div style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button className="btn-example" onClick={() => setData(exampleAWB)}>Ejemplo</button>
-          <button className="btn-example" onClick={() => { setData(defaultAWBData); setCurrentId(null) }}>Limpiar</button>
+          <button className="btn-example" onClick={() => setData(exampleAWB)}>{t('editor.example')}</button>
+          <button className="btn-example" onClick={() => { setData(defaultAWBData); setCurrentId(null) }}>{t('editor.clear')}</button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Generando…</span>}
+          {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
           {saveMsg && <span style={{ color: saveMsg.includes('Error') ? '#ffaaaa' : 'rgba(255,255,255,0.8)', fontSize: 12 }}>{saveMsg}</span>}
           <button
             className="btn-example"
             onClick={handleSave}
             disabled={saving || atLimit}
             style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700, opacity: atLimit ? 0.5 : 1 }}
-            title={atLimit ? 'Límite mensual alcanzado — actualiza tu plan' : undefined}
+            title={atLimit ? t('editor.limitReached') : undefined}
           >
-            {saving ? 'Guardando…' : 'Guardar'}
+            {saving ? t('editor.saving') : t('editor.saveDoc')}
           </button>
           {pdfUrl && (
             <a className="btn-download" href={pdfUrl} download={`AWB_${awbFull}.pdf`}>
-              ⬇ Descargar PDF
+              {t('editor.downloadPdf')}
             </a>
           )}
         </div>
@@ -193,8 +197,8 @@ export function EditorPage() {
       {/* Free plan limit banner */}
       {atLimit && (
         <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>Has alcanzado el límite de 10 AWBs del plan Free este mes.</span>
-          <Link to="/pricing" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none' }}>Actualizar a Starter →</Link>
+          <span>{t('editor.limitBanner')}</span>
+          <Link to="/pricing" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none' }}>{t('editor.upgradeNow')}</Link>
         </div>
       )}
 
@@ -208,8 +212,8 @@ export function EditorPage() {
             <button onClick={() => setZoom(z => Math.max(z - 0.1, 0.4))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>−</button>
             <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
             <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>+</button>
-            <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>Reset</button>
-            {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 8 }}>Actualizando…</span>}
+            <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>{t('editor.zoomReset')}</button>
+            {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 8 }}>{t('editor.updating')}</span>}
           </div>
           {pdfBlob ? (
             <div style={{ overflow: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -230,7 +234,7 @@ export function EditorPage() {
               </Document>
             </div>
           ) : (
-            <div className="preview-loading">Generando vista previa…</div>
+            <div className="preview-loading">{t('editor.previewLoading')}</div>
           )}
         </div>
       </div>

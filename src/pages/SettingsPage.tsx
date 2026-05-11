@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
 import { usePlan } from '../lib/usePlan'
+import { LangSwitcher } from '../components/LangSwitcher'
 
 type OrgDefaults = {
   shipper_name_and_address: string
@@ -25,6 +27,7 @@ const EMPTY: OrgDefaults = {
 }
 
 export function SettingsPage() {
+  const { t } = useTranslation()
   const { user, logout, orgName } = useAuth()
   const { orgId, plan } = usePlan()
   const [form, setForm] = useState<OrgDefaults>(EMPTY)
@@ -65,7 +68,7 @@ export function SettingsPage() {
       .from('organization_defaults')
       .upsert({ ...form, organization_id: orgId }, { onConflict: 'organization_id' })
     setSaving(false)
-    setMsg(error ? 'Error al guardar' : 'Guardado ✓')
+    setMsg(error ? t('common.error') : t('editor.saved'))
     setTimeout(() => setMsg(null), 3000)
   }
 
@@ -101,44 +104,45 @@ export function SettingsPage() {
       {/* Topbar */}
       <div style={{ background: '#8b0000', color: '#fff', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textDecoration: 'none' }}>← Home</Link>
+          <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textDecoration: 'none' }}>{t('common.home')}</Link>
           <Link to="/" style={{ fontWeight: 800, fontSize: 16, color: '#fff', textDecoration: 'none' }}>✈ AIRWAYBILL APP</Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>{orgName ?? user?.email}</span>
           <Link to="/editor" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>Editor</Link>
-          <Link to="/my-awbs" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>Mis AWBs</Link>
-          <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}>Salir</button>
+          <Link to="/my-awbs" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>{t('common.myAwbs')}</Link>
+          <LangSwitcher />
+          <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}>{t('common.signOut')}</button>
         </div>
       </div>
 
       <div style={{ maxWidth: 680, margin: '40px auto', padding: '0 24px' }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>Configuración de empresa</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{t('settings.title')}</h1>
         <p style={{ color: '#666', fontSize: 14, marginBottom: 32 }}>
-          Estos datos se pre-llenarán automáticamente en cada AWB nuevo que crees.
+          {t('settings.sub')}
         </p>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>Cargando...</div>
+          <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>{t('settings.loading')}</div>
         ) : (
           <form onSubmit={handleSave}>
             <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginBottom: 20, border: '1px solid #e8dcdc' }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>Shipper (Remitente)</h2>
-              {field('Nombre y Dirección', 'shipper_name_and_address', 'Empresa S.A.\nAv. Principal 123\nSantiago, Chile', true)}
-              {field('Número de cuenta', 'shipper_account_number', 'Ej: 12345678')}
+              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>{t('settings.shipper')}</h2>
+              {field(t('settings.shipperName'), 'shipper_name_and_address', 'Empresa S.A.\nAv. Principal 123\nSantiago, Chile', true)}
+              {field(t('settings.shipperAccount'), 'shipper_account_number', 'Ej: 12345678')}
             </div>
 
             <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginBottom: 20, border: '1px solid #e8dcdc' }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>Carrier (Aerolínea)</h2>
-              {field('Nombre del carrier', 'carrier_name', 'Ej: LATAM CARGO')}
-              {field('Dirección del carrier', 'carrier_address', 'Ej: Av. Presidente Riesco 5711, Santiago')}
+              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>{t('settings.carrier')}</h2>
+              {field(t('settings.carrierName'), 'carrier_name', 'Ej: LATAM CARGO')}
+              {field(t('settings.carrierAddress'), 'carrier_address', 'Ej: Av. Presidente Riesco 5711, Santiago')}
             </div>
 
             <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginBottom: 20, border: '1px solid #e8dcdc' }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>Agente emisor</h2>
-              {field('Issuing Carrier\'s Agent', 'issuing_carrier_agent', 'Ej: B2B Express S.A. RUT: 99.515.150-2')}
-              {field('Aeropuerto de salida', 'airport_of_departure', 'Ej: SANTIAGO DE CHILE (SCL/ZRH)')}
-              {field('Prefijo AWB (3 dígitos)', 'awb_prefix', 'Ej: 014')}
+              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>{t('settings.agent')}</h2>
+              {field(t('settings.issuingAgent'), 'issuing_carrier_agent', 'Ej: B2B Express S.A. RUT: 99.515.150-2')}
+              {field(t('settings.departureAirport'), 'airport_of_departure', 'Ej: SANTIAGO DE CHILE (SCL/ZRH)')}
+              {field(t('settings.awbPrefix'), 'awb_prefix', 'Ej: 014')}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -147,7 +151,7 @@ export function SettingsPage() {
                 disabled={saving}
                 style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
               >
-                {saving ? 'Guardando...' : 'Guardar cambios'}
+                {saving ? t('common.saving') : t('settings.saveChanges')}
               </button>
               {msg && (
                 <span style={{ fontSize: 14, color: msg.includes('Error') ? '#c00' : '#2a7a2a', fontWeight: 600 }}>
@@ -160,10 +164,10 @@ export function SettingsPage() {
 
         {/* Subscription section */}
         <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginTop: 32, border: '1px solid #e8dcdc' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>Suscripción</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>{t('settings.subscription')}</h2>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 13, color: '#666' }}>Plan actual</div>
+              <div style={{ fontSize: 13, color: '#666' }}>{t('settings.currentPlan')}</div>
               <div style={{ fontSize: 18, fontWeight: 800, textTransform: 'capitalize', color: '#222' }}>{plan}</div>
             </div>
             {plan === 'free' ? (
@@ -171,7 +175,7 @@ export function SettingsPage() {
                 href="/pricing"
                 style={{ background: '#8b0000', color: '#fff', padding: '9px 20px', borderRadius: 8, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
               >
-                ⚡ Upgrade plan
+                {t('settings.upgradePlan')}
               </a>
             ) : cancelUrl ? (
               <a
@@ -180,10 +184,10 @@ export function SettingsPage() {
                 rel="noopener noreferrer"
                 style={{ background: '#fff', color: '#666', padding: '9px 20px', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none', border: '1px solid #ddd' }}
               >
-                Cancel subscription
+                {t('settings.cancelSub')}
               </a>
             ) : (
-              <span style={{ fontSize: 12, color: '#aaa' }}>To cancel, contact support@airwaybill.app</span>
+              <span style={{ fontSize: 12, color: '#aaa' }}>{t('settings.cancelContact')}</span>
             )}
           </div>
         </div>
