@@ -11,7 +11,6 @@ Deno.serve(async (req) => {
   const body = await req.text()
   const secret = Deno.env.get('PADDLE_WEBHOOK_SECRET') ?? ''
 
-  // Simple HMAC-SHA256 verification
   const encoder = new TextEncoder()
   const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'])
   const parts = Object.fromEntries(sig.split(';').map(p => p.split('=')))
@@ -37,7 +36,11 @@ Deno.serve(async (req) => {
       plan: active ? plan : 'free',
       stripe_subscription_id: sub.id,
       plan_expires_at: active ? sub.current_billing_period?.ends_at : null,
+      paddle_customer_id: sub.customer_id ?? null,
+      paddle_cancel_url: sub.management_urls?.cancel ?? null,
     }).eq('id', orgId)
+
+    console.log(`Plan updated: org=${orgId} plan=${active ? plan : 'free'} status=${sub.status}`)
   }
 
   if (type === 'subscription.canceled') {
@@ -47,7 +50,9 @@ Deno.serve(async (req) => {
         plan: 'free',
         stripe_subscription_id: null,
         plan_expires_at: null,
+        paddle_cancel_url: null,
       }).eq('id', orgId)
+      console.log(`Subscription canceled: org=${orgId}`)
     }
   }
 

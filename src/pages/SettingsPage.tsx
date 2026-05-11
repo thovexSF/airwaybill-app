@@ -31,6 +31,7 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [cancelUrl, setCancelUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (!orgId) return
@@ -42,6 +43,16 @@ export function SettingsPage() {
       .then(({ data }) => {
         if (data) setForm(data)
         setLoading(false)
+      })
+
+    // Load cancel URL if on paid plan
+    supabase
+      .from('organizations')
+      .select('paddle_cancel_url')
+      .eq('id', orgId)
+      .single()
+      .then(({ data }) => {
+        if (data?.paddle_cancel_url) setCancelUrl(data.paddle_cancel_url)
       })
   }, [orgId])
 
@@ -146,6 +157,36 @@ export function SettingsPage() {
             </div>
           </form>
         )}
+
+        {/* Subscription section */}
+        <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginTop: 32, border: '1px solid #e8dcdc' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>Suscripción</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 13, color: '#666' }}>Plan actual</div>
+              <div style={{ fontSize: 18, fontWeight: 800, textTransform: 'capitalize', color: '#222' }}>{plan}</div>
+            </div>
+            {plan === 'free' ? (
+              <a
+                href="/pricing"
+                style={{ background: '#8b0000', color: '#fff', padding: '9px 20px', borderRadius: 8, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
+              >
+                ⚡ Upgrade plan
+              </a>
+            ) : cancelUrl ? (
+              <a
+                href={cancelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ background: '#fff', color: '#666', padding: '9px 20px', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none', border: '1px solid #ddd' }}
+              >
+                Cancel subscription
+              </a>
+            ) : (
+              <span style={{ fontSize: 12, color: '#aaa' }}>To cancel, contact support@airwaybill.app</span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

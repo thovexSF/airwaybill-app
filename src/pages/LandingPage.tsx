@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { PLANS } from '../data/plans'
 import './LandingPage.css'
 
 const FEATURES = [
@@ -42,48 +43,6 @@ const STEPS = [
   { num: '03', title: 'Download & send', desc: 'Export a print-ready PDF. Share directly with airlines, agents, or customs.' },
 ]
 
-const PLANS = [
-  {
-    name: 'Free',
-    price: '$0',
-    period: 'forever',
-    desc: 'Get started at no cost',
-    features: ['10 AWBs per month', 'PDF download', 'DRAFT watermark', 'Basic AWB form', '1 user'],
-    cta: 'Get Started Free',
-    ctaLink: '/signup',
-    highlight: false,
-  },
-  {
-    name: 'Starter',
-    price: '$15',
-    period: 'per month',
-    desc: 'For small freight forwarders',
-    features: ['Unlimited AWBs', 'No watermark', 'Custom carrier logo', 'AWB check digit validation', '2 users', 'Email support'],
-    cta: 'Start 14-day Trial',
-    ctaLink: '/pricing',
-    highlight: false,
-  },
-  {
-    name: 'Pro',
-    price: '$29',
-    period: 'per month',
-    desc: 'For active freight forwarders',
-    features: ['Everything in Starter', 'HAWB + DGD + Manifest', 'Flight manifest export', '5 users', 'Priority support'],
-    cta: 'Start 14-day Trial',
-    ctaLink: '/pricing',
-    highlight: true,
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    desc: 'For airlines & large agencies',
-    features: ['Everything in Pro', 'Unlimited users', 'API access', 'Cargo-IMP / CUSCAR export', 'Custom domain', 'SSO / SAML', 'Dedicated support'],
-    cta: 'Contact Sales',
-    ctaLink: '/contact',
-    highlight: false,
-  },
-]
 
 export function LandingPage() {
   const { user, orgName } = useAuth()
@@ -224,17 +183,17 @@ export function LandingPage() {
                 {plan.highlight && <div className="lp-plan-badge">Most Popular</div>}
                 <div className="lp-plan-name">{plan.name}</div>
                 <div className="lp-plan-price">
-                  {plan.price}
+                  {plan.priceDisplay}
                   {plan.period && <span>/{plan.period}</span>}
                 </div>
-                <div className="lp-plan-desc">{plan.desc}</div>
+                <div className="lp-plan-desc">{plan.description}</div>
                 <ul className="lp-plan-features">
                   {plan.features.map(f => (
                     <li key={f}><span>✓</span> {f}</li>
                   ))}
                 </ul>
                 <Link
-                  to={plan.ctaLink}
+                  to={plan.ctaLink ?? '/pricing'}
                   className={`lp-plan-cta ${plan.highlight ? 'lp-plan-cta-primary' : 'lp-plan-cta-ghost'}`}
                 >
                   {plan.cta}

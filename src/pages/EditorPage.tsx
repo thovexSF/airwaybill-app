@@ -143,6 +143,11 @@ export function EditorPage() {
           {generating && <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>Generando...</span>}
           <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>Mis AWBs</Link>
           <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>⚙ Config</Link>
+          {plan === 'free' && (
+            <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none' }}>
+              ⚡ Upgrade
+            </Link>
+          )}
           <button className="btn-example" onClick={() => setData(exampleAWB)}>Ejemplo</button>
           <button className="btn-example" onClick={() => { setData(defaultAWBData); setCurrentId(null) }}>Limpiar</button>
           <button
