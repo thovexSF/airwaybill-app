@@ -6,14 +6,19 @@ const RED = '#8B0000'
 
 // ── Dynamic scale: shrinks everything proportionally to fit A4 ──
 function getScale(data: AWBData): number {
-  const shipperLines  = (data.shipperNameAndAddress  || '').split('\n').length
+  const shipperLines   = (data.shipperNameAndAddress  || '').split('\n').length
   const consigneeLines = (data.consigneeNameAndAddress || '').split('\n').length
-  const handlingLines = Math.ceil(((data.handlingInformation || '').length) / 55)
-  const rateExtra     = Math.max(0, (data.rateItems    || []).length - 3)
-  const chargeExtra   = Math.max(0, (data.otherCharges || []).length - 3)
+  const handlingLines  = Math.ceil(((data.handlingInformation || '').length) / 55)
+  const rateExtra      = Math.max(0, (data.rateItems    || []).length - 3)
+  const chargeExtra    = Math.max(0, (data.otherCharges || []).length - 3)
+
+  // Extra pressure for very long lines (e.g. long email/phone in address fields)
+  const maxShipperLine  = Math.max(...(data.shipperNameAndAddress  || '').split('\n').map(l => l.length))
+  const maxConsLine     = Math.max(...(data.consigneeNameAndAddress || '').split('\n').map(l => l.length))
+  const longLineExtra   = Math.max(0, maxShipperLine - 28) / 10 + Math.max(0, maxConsLine - 28) / 10
 
   const pressure = shipperLines + consigneeLines + handlingLines
-                 + rateExtra * 2 + chargeExtra * 1.5
+                 + rateExtra * 2 + chargeExtra * 1.5 + longLineExtra
 
   if (pressure <= 6)  return 1.00
   if (pressure <= 9)  return 0.93
@@ -55,23 +60,23 @@ function makeStyles(k: number) {
 
     // ---- Section 1: Shipper / Not Negotiable ----
     sec1:        { flexDirection: 'row', minHeight: 76 * k },
-    shipperCol:  { flex: 1.1, flexDirection: 'column' },
+    shipperCol:  { flex: 1.35, flexDirection: 'column' },
     shipperName: { flex: 1, borderWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P },
     shipperAcct: { minHeight: 22 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P },
-    notNegCell:  { flex: 2, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P4 },
+    notNegCell:  { flex: 1.8, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P4 },
     awbTitle:    { fontSize: 17 * k, fontFamily: 'Helvetica-Bold', color: RED },
     copiesTxt:   { fontSize: XS, color: RED, fontFamily: 'Helvetica-Bold', marginTop: 3 * k },
 
     // ---- Section 2: Consignee / Conditions ----
     sec2:           { flexDirection: 'row', minHeight: 66 * k },
-    consigneeCol:   { flex: 1.1, flexDirection: 'column' },
+    consigneeCol:   { flex: 1.35, flexDirection: 'column' },
     consigneeName:  { flex: 1, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P },
     consigneeAcct:  { minHeight: 22 * k, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P },
-    conditionsCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P },
+    conditionsCell: { flex: 1.8, borderTopWidth: 0, borderBottomWidth: 0.5, borderRightWidth: 0.5, borderLeftWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P },
     condTxt:        { fontSize: XS, lineHeight: 1.5 },
 
     // ---- Section 3: Agent / Accounting ----
-    agentCell:      { flex: 1.4, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P, minHeight: 34 * k },
+    agentCell:      { flex: 1.5, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0, borderColor: RED, borderStyle: 'solid', padding: P, minHeight: 34 * k },
     accountingCell: { flex: 2, borderTopWidth: 0, borderBottomWidth: 0.5, borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: RED, borderStyle: 'solid', padding: P, minHeight: 34 * k },
 
     // ---- Section 4: IATA / AccountNo ----
@@ -172,8 +177,10 @@ function Cell({ label, children, style, s }: { label?: string; children?: React.
   )
 }
 
-export function AWBDocument({ data }: { data: AWBData }) {
-  const scale = getScale(data)
+const USER_SCALE_MAP: Record<'sm' | 'md' | 'lg', number> = { sm: 0.82, md: 0.91, lg: 1.0 }
+
+export function AWBDocument({ data, userScale = 'lg' }: { data: AWBData; userScale?: 'sm' | 'md' | 'lg' }) {
+  const scale = getScale(data) * USER_SCALE_MAP[userScale]
   const s = makeStyles(scale)
   const LBL = s._lbl as number
   const TXT = s._txt as number

@@ -39,6 +39,7 @@ export function EditorPage() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [formWidth, setFormWidth] = useState(380)
   const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md')
+  const [pdfScale, setPdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
@@ -108,14 +109,14 @@ export function EditorPage() {
   // Debounced PDF regeneration
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => regenerate(data), 400)
+    timerRef.current = setTimeout(() => regenerate(data, pdfScale), 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data])
+  }, [data, pdfScale])
 
-  async function regenerate(d: AWBData) {
+  async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
     setGenerating(true)
     try {
-      const blob = await pdf(<AWBDocument data={d} />).toBlob()
+      const blob = await pdf(<AWBDocument data={d} userScale={scale} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
@@ -239,13 +240,26 @@ export function EditorPage() {
         </div>
         <div className="resize-handle" onMouseDown={onDragStart} title="Drag to resize" />
         <div className="preview-panel">
-          {/* Zoom controls */}
+          {/* Zoom + PDF text size controls */}
           <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#2a2a2a', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #444' }}>
+            {/* View zoom */}
             <button onClick={() => setZoom(z => Math.max(z - 0.1, 0.4))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>−</button>
             <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
             <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>+</button>
             <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>{t('editor.zoomReset')}</button>
-            {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 8 }}>{t('editor.updating')}</span>}
+            {/* Divider */}
+            <div style={{ width: 1, height: 18, background: '#555' }} />
+            {/* PDF text size */}
+            <span style={{ color: '#888', fontSize: 10 }}>Doc:</span>
+            {(['sm', 'md', 'lg'] as const).map(s => (
+              <button key={s} onClick={() => setPdfScale(s)} style={{
+                background: pdfScale === s ? '#8b0000' : '#333', border: 'none',
+                color: pdfScale === s ? '#fff' : '#aaa',
+                padding: '0 7px', height: 26, borderRadius: 4, cursor: 'pointer',
+                fontSize: s === 'sm' ? 10 : s === 'md' ? 12 : 14, fontWeight: 700,
+              }}>A</button>
+            ))}
+            {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 4 }}>{t('editor.updating')}</span>}
           </div>
           {pdfBlob ? (
             <div style={{ overflow: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
