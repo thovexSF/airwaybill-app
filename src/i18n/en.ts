@@ -37,7 +37,7 @@ const en = {
       label: 'Pricing',
       title: 'Simple, transparent pricing',
       sub: 'Start free. Upgrade when you\'re ready.',
-      trial: '14-day free trial · Cancel anytime · Payments processed by Paddle',
+      trial: '7-day free trial · Cancel anytime · Payments processed by Paddle',
     },
     finalCta: {
       title: 'Ready to modernize your air freight documentation?',
@@ -165,7 +165,7 @@ const en = {
     current: 'CURRENT',
     included: 'Included in your plan',
     upgrade: 'Upgrade to',
-    trial: '14-day free trial · Cancel anytime · Payments processed by',
+    trial: '7-day free trial · Cancel anytime · Payments processed by',
     opening: 'Opening checkout...',
   },
 

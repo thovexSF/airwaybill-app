@@ -32,7 +32,7 @@ export const PLANS: PlanConfig[] = [
     description: 'For small freight forwarders',
     features: ['Unlimited AWBs', 'No watermark', 'Custom carrier logo', 'AWB check digit validation', '2 users', 'Email support'],
     highlight: false,
-    cta: 'Start 14-day Trial',
+    cta: 'Start 7-day Trial',
   },
   {
     id: 'pro',
@@ -42,7 +42,7 @@ export const PLANS: PlanConfig[] = [
     description: 'For active freight forwarders',
     features: ['Everything in Starter', 'HAWB + DGD + Manifest', 'Flight manifest export', '5 users', 'Priority support'],
     highlight: true,
-    cta: 'Start 14-day Trial',
+    cta: 'Start 7-day Trial',
   },
   {
     id: 'enterprise',

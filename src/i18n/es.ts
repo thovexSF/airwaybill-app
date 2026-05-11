@@ -37,7 +37,7 @@ const es = {
       label: 'Precios',
       title: 'Precios simples y transparentes',
       sub: 'Empieza gratis. Mejora cuando estés listo.',
-      trial: '14 días de prueba · Cancela cuando quieras · Pagos procesados por Paddle',
+      trial: '7 días de prueba · Cancela cuando quieras · Pagos procesados por Paddle',
     },
     finalCta: {
       title: '¿Listo para modernizar tu documentación de carga aérea?',
@@ -165,7 +165,7 @@ const es = {
     current: 'ACTUAL',
     included: 'Incluido en tu plan',
     upgrade: 'Actualizar a',
-    trial: '14 días de prueba · Cancela cuando quieras · Pagos procesados por',
+    trial: '7 días de prueba · Cancela cuando quieras · Pagos procesados por',
     opening: 'Abriendo checkout...',
   },
 
