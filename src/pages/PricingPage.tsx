@@ -100,7 +100,7 @@ export function PricingPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 960, margin: '48px auto', padding: '0 24px' }}>
+      <div style={{ maxWidth: 1160, margin: '48px auto', padding: '0 24px' }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>{t('pricing.title')}</h1>
         {user ? (
           <p style={{ textAlign: 'center', color: '#666', marginBottom: 40 }}>
@@ -121,7 +121,7 @@ export function PricingPage() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
           {PLANS.map((p, i) => {
             const isCurrent = user && currentPlan === p.id
             const isUpgrade = user && i > currentIndex
@@ -135,6 +135,7 @@ export function PricingPage() {
                 border: isCurrent ? '2px solid #2a7a2a' : p.highlight ? '2px solid #8b0000' : '1px solid #e8dcdc',
                 borderRadius: 12, padding: 28, position: 'relative',
                 boxShadow: p.highlight ? '0 4px 16px rgba(139,0,0,0.1)' : '0 1px 4px rgba(0,0,0,0.05)',
+                display: 'flex', flexDirection: 'column',
               }}>
                 {p.highlight && !isCurrent && (
                   <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#8b0000', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 12px', borderRadius: 20, whiteSpace: 'nowrap' }}>
@@ -149,9 +150,9 @@ export function PricingPage() {
 
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#888', letterSpacing: 1 }}>{p.name}</div>
                 <div style={{ fontSize: 34, fontWeight: 800, margin: '8px 0 2px' }}>{p.priceDisplay}</div>
-                {p.period && <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>/{p.period}</div>}
-                <div style={{ fontSize: 12, color: '#999', marginBottom: 20 }}>{p.description}</div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: 13, color: '#888', marginBottom: 4, minHeight: 20 }}>{p.period ? `/${p.period}` : ''}</div>
+                <div style={{ fontSize: 12, color: '#999', marginBottom: 20, minHeight: 32 }}>{p.description}</div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                   {p.features.map(f => (
                     <li key={f} style={{ fontSize: 13, display: 'flex', gap: 8 }}>
                       <span style={{ color: isCurrent ? '#2a7a2a' : '#8b0000', fontWeight: 700, flexShrink: 0 }}>✓</span> {f}
