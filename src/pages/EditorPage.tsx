@@ -122,6 +122,7 @@ export function EditorPage() {
 
   return (
     <div className="app">
+      {/* Row 1 — Brand + account */}
       <div className="topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>← Home</Link>
@@ -140,7 +141,6 @@ export function EditorPage() {
               <span style={{ marginLeft: 6, opacity: 0.7, textTransform: 'capitalize' }}>· {plan}</span>
             )}
           </span>
-          {generating && <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>Generando...</span>}
           <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>Mis AWBs</Link>
           <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>⚙ Config</Link>
           {plan === 'free' && (
@@ -148,8 +148,19 @@ export function EditorPage() {
               ⚡ Upgrade
             </Link>
           )}
+          <button className="btn-example" onClick={logout}>Salir</button>
+        </div>
+      </div>
+
+      {/* Row 2 — Document actions */}
+      <div style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button className="btn-example" onClick={() => setData(exampleAWB)}>Ejemplo</button>
           <button className="btn-example" onClick={() => { setData(defaultAWBData); setCurrentId(null) }}>Limpiar</button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Generando…</span>}
+          {saveMsg && <span style={{ color: saveMsg.includes('Error') ? '#ffaaaa' : 'rgba(255,255,255,0.8)', fontSize: 12 }}>{saveMsg}</span>}
           <button
             className="btn-example"
             onClick={handleSave}
@@ -157,9 +168,8 @@ export function EditorPage() {
             style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700, opacity: atLimit ? 0.5 : 1 }}
             title={atLimit ? 'Límite mensual alcanzado — actualiza tu plan' : undefined}
           >
-            {saving ? 'Guardando...' : saveMsg ?? 'Guardar'}
+            {saving ? 'Guardando…' : 'Guardar'}
           </button>
-          <button className="btn-example" onClick={logout}>Salir</button>
           {pdfUrl && (
             <a className="btn-download" href={pdfUrl} download={`AWB_${awbFull}.pdf`}>
               ⬇ Descargar PDF
