@@ -6,6 +6,7 @@ import { usePlan } from '../lib/usePlan'
 import { openCheckout } from '../lib/paddleService'
 import { PLANS, PRICE_IDS } from '../data/plans'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { supabase } from '../lib/supabase'
 
 export function PricingPage() {
   const { t } = useTranslation()
@@ -14,6 +15,10 @@ export function PricingPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
+
+  const planOrder = ['free', 'starter', 'pro', 'enterprise']
+  const currentIndex = planOrder.indexOf(currentPlan)
 
   async function handleUpgrade(planId: string, priceId: string) {
     if (!user || !orgId) { navigate('/signup'); return }
@@ -27,8 +32,53 @@ export function PricingPage() {
     setLoading(null)
   }
 
-  const planOrder = ['free', 'starter', 'pro', 'enterprise']
-  const currentIndex = planOrder.indexOf(currentPlan)
+  async function callUpdatePlan(action: 'cancel' | 'change', priceId?: string) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) throw new Error('Not authenticated')
+
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-plan`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, priceId }),
+      }
+    )
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error ?? 'Error updating plan')
+    return data
+  }
+
+  async function handleDowngrade(planId: string, priceId?: string) {
+    if (!confirm(`Are you sure you want to downgrade to ${planId}? This will take effect immediately.`)) return
+    setLoading(planId)
+    setError(null)
+    setSuccessMsg(null)
+    try {
+      await callUpdatePlan('change', priceId)
+      setSuccessMsg(`Plan changed to ${planId}. Your account will update shortly.`)
+      setTimeout(() => setSuccessMsg(null), 6000)
+    } catch (e: any) {
+      setError(e.message)
+    }
+    setLoading(null)
+  }
+
+  async function handleCancel() {
+    if (!confirm('Are you sure you want to cancel your subscription? You will keep access until the end of your current billing period.')) return
+    setLoading('free')
+    setError(null)
+    setSuccessMsg(null)
+    try {
+      await callUpdatePlan('cancel')
+      setSuccessMsg('Subscription cancelled. You will keep access until the end of your billing period.')
+      setTimeout(() => setSuccessMsg(null), 8000)
+    } catch (e: any) {
+      setError(e.message)
+    }
+    setLoading(null)
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f4f4f4', fontFamily: 'Segoe UI, system-ui, sans-serif' }}>
@@ -55,9 +105,6 @@ export function PricingPage() {
         {user ? (
           <p style={{ textAlign: 'center', color: '#666', marginBottom: 40 }}>
             {t('pricing.currentPlan')}: <strong style={{ textTransform: 'capitalize', color: '#8b0000' }}>{currentPlan}</strong>
-            {currentPlan !== 'free' && (
-              <> · <Link to="/settings" style={{ color: '#8b0000', fontSize: 13 }}>{t('pricing.manage')}</Link></>
-            )}
           </p>
         ) : (
           <p style={{ textAlign: 'center', color: '#666', marginBottom: 40 }}>{t('pricing.sub')}</p>
@@ -65,33 +112,41 @@ export function PricingPage() {
 
         {error && (
           <div style={{ background: '#ffe8e8', border: '1px solid #f5b6b6', borderRadius: 8, padding: '10px 16px', marginBottom: 24, color: '#8b0000', fontSize: 13 }}>
-            {error}
+            ⚠ {error}
+          </div>
+        )}
+        {successMsg && (
+          <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: 8, padding: '10px 16px', marginBottom: 24, color: '#2a7a2a', fontSize: 13 }}>
+            ✓ {successMsg}
           </div>
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 20 }}>
           {PLANS.map((p, i) => {
             const isCurrent = user && currentPlan === p.id
-            const isLower = user && i < currentIndex
+            const isUpgrade = user && i > currentIndex
+            const isDowngrade = user && i < currentIndex && currentPlan !== 'free'
+            const isFreeCancel = user && p.id === 'free' && currentPlan !== 'free'
             const priceId = PRICE_IDS[p.id]
 
             return (
               <div key={p.id} style={{
                 background: '#fff',
-                border: p.highlight ? '2px solid #8b0000' : '1px solid #e8dcdc',
+                border: isCurrent ? '2px solid #2a7a2a' : p.highlight ? '2px solid #8b0000' : '1px solid #e8dcdc',
                 borderRadius: 12, padding: 28, position: 'relative',
                 boxShadow: p.highlight ? '0 4px 16px rgba(139,0,0,0.1)' : '0 1px 4px rgba(0,0,0,0.05)',
               }}>
-                {p.highlight && (
+                {p.highlight && !isCurrent && (
                   <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#8b0000', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 12px', borderRadius: 20, whiteSpace: 'nowrap' }}>
                     MOST POPULAR
                   </div>
                 )}
                 {isCurrent && (
-                  <div style={{ position: 'absolute', top: 12, right: 12, background: '#e8f5e9', color: '#2a7a2a', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>
-                    CURRENT
+                  <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#2a7a2a', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 12px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                    ✓ YOUR PLAN
                   </div>
                 )}
+
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#888', letterSpacing: 1 }}>{p.name}</div>
                 <div style={{ fontSize: 34, fontWeight: 800, margin: '8px 0 2px' }}>{p.priceDisplay}</div>
                 {p.period && <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>/{p.period}</div>}
@@ -99,40 +154,61 @@ export function PricingPage() {
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {p.features.map(f => (
                     <li key={f} style={{ fontSize: 13, display: 'flex', gap: 8 }}>
-                      <span style={{ color: '#8b0000', fontWeight: 700, flexShrink: 0 }}>✓</span> {f}
+                      <span style={{ color: isCurrent ? '#2a7a2a' : '#8b0000', fontWeight: 700, flexShrink: 0 }}>✓</span> {f}
                     </li>
                   ))}
                 </ul>
 
+                {/* ── CTA button logic ── */}
                 {isCurrent ? (
-                  <div style={{ textAlign: 'center', padding: '9px 0', fontSize: 13, fontWeight: 700, color: '#2a7a2a' }}>✓ {t('pricing.current')}</div>
-                ) : isLower ? (
-                  <div style={{ textAlign: 'center', fontSize: 12, color: '#aaa' }}>{t('pricing.included')}</div>
-                ) : p.ctaLink ? (
-                  <Link
-                    to={p.ctaLink}
-                    style={{
-                      display: 'block', textAlign: 'center', padding: '10px 0', borderRadius: 8,
-                      background: p.highlight ? '#8b0000' : '#f4f0f0',
-                      color: p.highlight ? '#fff' : '#333',
-                      fontWeight: 700, fontSize: 14, textDecoration: 'none',
-                    }}
+                  <div style={{ textAlign: 'center', padding: '10px 0', fontSize: 13, fontWeight: 700, color: '#2a7a2a', background: '#f0faf0', borderRadius: 8 }}>
+                    ✓ Current plan
+                  </div>
+
+                ) : isFreeCancel ? (
+                  // Free card when user is on paid plan → Cancel subscription
+                  <button
+                    onClick={handleCancel}
+                    disabled={loading === 'free'}
+                    style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: '1px solid #ddd', cursor: 'pointer', background: '#fff', color: '#888', fontWeight: 600, fontSize: 13 }}
                   >
+                    {loading === 'free' ? 'Processing…' : 'Cancel subscription'}
+                  </button>
+
+                ) : isDowngrade && priceId ? (
+                  // Lower paid plan → Downgrade button
+                  <button
+                    onClick={() => handleDowngrade(p.id, priceId)}
+                    disabled={loading === p.id}
+                    style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: '1px solid #ddd', cursor: 'pointer', background: '#fff', color: '#555', fontWeight: 600, fontSize: 13 }}
+                  >
+                    {loading === p.id ? 'Processing…' : `Downgrade to ${p.name}`}
+                  </button>
+
+                ) : isUpgrade && p.ctaLink ? (
+                  <Link to={p.ctaLink} style={{ display: 'block', textAlign: 'center', padding: '10px 0', borderRadius: 8, background: '#f4f0f0', color: '#333', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
                     {p.cta}
                   </Link>
-                ) : priceId ? (
+
+                ) : isUpgrade && priceId ? (
                   <button
                     onClick={() => handleUpgrade(p.id, priceId)}
                     disabled={loading === p.id}
-                    style={{
-                      width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
-                      background: p.highlight ? '#8b0000' : '#f4f0f0',
-                      color: p.highlight ? '#fff' : '#333',
-                      fontWeight: 700, fontSize: 14,
-                    }}
+                    style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer', background: p.highlight ? '#8b0000' : '#f4f0f0', color: p.highlight ? '#fff' : '#333', fontWeight: 700, fontSize: 14 }}
                   >
-                    {loading === p.id ? t('pricing.opening') : user ? `${t('pricing.upgrade')} ${p.name}` : p.cta}
+                    {loading === p.id ? t('pricing.opening') : `Upgrade to ${p.name}`}
                   </button>
+
+                ) : !user && p.ctaLink ? (
+                  <Link to={p.ctaLink} style={{ display: 'block', textAlign: 'center', padding: '10px 0', borderRadius: 8, background: p.highlight ? '#8b0000' : '#f4f0f0', color: p.highlight ? '#fff' : '#333', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+                    {p.cta}
+                  </Link>
+
+                ) : !user && priceId ? (
+                  <Link to="/signup" style={{ display: 'block', textAlign: 'center', padding: '10px 0', borderRadius: 8, background: p.highlight ? '#8b0000' : '#f4f0f0', color: p.highlight ? '#fff' : '#333', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+                    {p.cta}
+                  </Link>
+
                 ) : null}
               </div>
             )
