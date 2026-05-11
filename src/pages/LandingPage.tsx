@@ -53,11 +53,6 @@ export function LandingPage() {
   return (
     <div className="lp">
 
-      {/* EN/ES fixed top-right */}
-      <div style={{ position: 'fixed', top: 12, right: 16, zIndex: 200 }}>
-        <LangSwitcher variant="light" />
-      </div>
-
       {/* ── NAV ── */}
       <nav className="lp-nav">
         <div className="lp-nav-inner">
@@ -70,9 +65,9 @@ export function LandingPage() {
           <div className="lp-nav-actions">
             {user ? (
               <>
-                <span style={{ fontSize: 13, color: '#666' }}>{orgName ?? user.email}</span>
                 <Link to="/my-awbs" className="lp-btn-primary">{t('landing.nav.goToApp')}</Link>
-                <button onClick={logout} style={{ background: 'none', border: 'none', fontSize: 13, color: '#666', cursor: 'pointer', padding: '6px 0' }}>{t('common.signOut')}</button>
+                <span style={{ fontSize: 13, color: '#555' }}>{orgName ?? user.email}</span>
+                <button onClick={logout} style={{ background: 'none', border: 'none', fontSize: 13, color: '#333', fontWeight: 700, cursor: 'pointer', padding: '6px 0' }}>{t('common.signOut')}</button>
               </>
             ) : (
               <>
@@ -80,6 +75,7 @@ export function LandingPage() {
                 <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
               </>
             )}
+            <LangSwitcher variant="light" />
           </div>
         </div>
       </nav>
