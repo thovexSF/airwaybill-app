@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { usePlan } from '../lib/usePlan'
 import { listAWBs, deleteAWB, AWBDocument } from '../lib/awbService'
 
 export function MyAWBsPage() {
-  const { user, logout } = useAuth()
+  const { user, logout, orgName } = useAuth()
+  const { plan } = usePlan()
   const navigate = useNavigate()
   const [docs, setDocs] = useState<AWBDocument[]>([])
   const [loading, setLoading] = useState(true)
@@ -19,19 +21,19 @@ export function MyAWBsPage() {
   }, [])
 
   async function handleDelete(id: string) {
-    if (!confirm('¿Eliminar este AWB?')) return
+    if (!confirm('Delete this AWB?')) return
     setDeleting(id)
     try {
       await deleteAWB(id)
       setDocs(prev => prev.filter(d => d.id !== id))
     } catch (e: any) {
-      alert('Error al eliminar: ' + e.message)
+      alert('Error deleting: ' + e.message)
     }
     setDeleting(null)
   }
 
   const fmt = (iso: string) =>
-    new Date(iso).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })
+    new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
 
   return (
     <div style={{ minHeight: '100vh', background: '#f4f4f4', fontFamily: 'Segoe UI, system-ui, sans-serif' }}>
@@ -42,25 +44,37 @@ export function MyAWBsPage() {
           <Link to="/" style={{ fontWeight: 800, fontSize: 16, color: '#fff', textDecoration: 'none' }}>✈ AIRWAYBILL APP</Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{user?.email}</span>
-          <Link to="/editor" style={{ color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none', background: 'rgba(255,255,255,0.15)', padding: '5px 14px', borderRadius: 6 }}>+ Nuevo AWB</Link>
-          <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}>Salir</button>
+          <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
+            {orgName ?? user?.email}
+            {plan !== 'free' && <span style={{ marginLeft: 6, opacity: 0.7, textTransform: 'capitalize' }}>· {plan}</span>}
+          </span>
+          <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>⚙ Settings</Link>
+          <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}>Sign out</button>
         </div>
       </div>
 
       {/* Content */}
       <div style={{ maxWidth: 860, margin: '32px auto', padding: '0 24px' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: '#222', marginBottom: 20 }}>Mis Air Waybills</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#222', margin: 0 }}>My Air Waybills</h1>
+          <Link
+            to="/editor"
+            style={{ background: '#8b0000', color: '#fff', padding: '9px 20px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}
+          >
+            + New AWB
+          </Link>
+        </div>
 
-        {loading && <p style={{ color: '#666' }}>Cargando...</p>}
+        {loading && <p style={{ color: '#666' }}>Loading...</p>}
         {error && <p style={{ color: '#8b0000' }}>Error: {error}</p>}
 
         {!loading && !error && docs.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 0', color: '#888' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✈</div>
-            <p>No tienes AWBs guardados aún.</p>
-            <Link to="/editor" style={{ display: 'inline-block', marginTop: 16, background: '#8b0000', color: '#fff', padding: '10px 24px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
-              Crear primer AWB
+            <p style={{ marginBottom: 4 }}>No AWBs saved yet.</p>
+            <p style={{ fontSize: 13, marginBottom: 20 }}>Create your first Air Waybill to get started.</p>
+            <Link to="/editor" style={{ background: '#8b0000', color: '#fff', padding: '11px 28px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
+              + Create AWB
             </Link>
           </div>
         )}
@@ -78,7 +92,7 @@ export function MyAWBsPage() {
                       {d.shipperNameAndAddress?.split('\n')[0] || 'Shipper —'} → {d.consigneeNameAndAddress?.split('\n')[0] || 'Consignee —'}
                     </div>
                     <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                      Actualizado: {fmt(doc.updated_at)} · <span style={{ textTransform: 'uppercase', color: doc.status === 'final' ? '#2a7a2a' : '#888' }}>{doc.status}</span>
+                      Updated: {fmt(doc.updated_at)} · <span style={{ textTransform: 'uppercase', color: doc.status === 'final' ? '#2a7a2a' : '#888' }}>{doc.status}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -86,14 +100,14 @@ export function MyAWBsPage() {
                       onClick={() => navigate(`/editor?id=${doc.id}`)}
                       style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
                     >
-                      Abrir
+                      Open
                     </button>
                     <button
                       onClick={() => handleDelete(doc.id)}
                       disabled={deleting === doc.id}
                       style={{ background: '#fff', color: '#c00', border: '1px solid #f5b6b6', borderRadius: 6, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}
                     >
-                      {deleting === doc.id ? '...' : 'Eliminar'}
+                      {deleting === doc.id ? '...' : 'Delete'}
                     </button>
                   </div>
                 </div>

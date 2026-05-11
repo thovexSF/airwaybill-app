@@ -63,7 +63,7 @@ export function LandingPage() {
             {user ? (
               <>
                 <span style={{ fontSize: 13, color: '#666' }}>{orgName ?? user.email}</span>
-                <Link to="/editor" className="lp-btn-primary">Ir al Editor →</Link>
+                <Link to="/my-awbs" className="lp-btn-primary">Go to App →</Link>
               </>
             ) : (
               <>
