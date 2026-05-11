@@ -185,7 +185,7 @@ export function EditorPage() {
               </Link>
               {plan === 'starter' && (
                 <div className="plan-downgrade-tooltip">
-                  <Link to="/pricing">Downgrade plan</Link>
+                  <Link to="/pricing">or Downgrade</Link>
                 </div>
               )}
             </div>

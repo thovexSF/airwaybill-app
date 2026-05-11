@@ -10,7 +10,7 @@ const en = {
     saving: 'Saving...',
     error: 'Error',
     cancel: 'Cancel',
-    upgrade: '⚡ Upgrade',
+    upgrade: 'Upgrade',
   },
 
   // Landing

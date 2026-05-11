@@ -10,7 +10,7 @@ const es = {
     saving: 'Guardando...',
     error: 'Error',
     cancel: 'Cancelar',
-    upgrade: '⚡ Mejorar plan',
+    upgrade: 'Mejorar plan',
   },
 
   // Landing
