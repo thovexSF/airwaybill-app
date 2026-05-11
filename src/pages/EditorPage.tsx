@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { pdf } from '@react-pdf/renderer'
+import { Document, Page, pdfjs } from 'react-pdf'
+import 'react-pdf/dist/Page/AnnotationLayer.css'
+import 'react-pdf/dist/Page/TextLayer.css'
 import { AWBFormPanel } from '../components/AWBFormPanel'
 import { AWBDocument } from '../pdf/AWBDocument'
 import { AWBData, defaultAWBData } from '../types/awb'
@@ -9,6 +12,11 @@ import { useAuth } from '../auth/AuthContext'
 import { saveAWB, getAWB } from '../lib/awbService'
 import { usePlan } from '../lib/usePlan'
 import { supabase } from '../lib/supabase'
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString()
 
 export function EditorPage() {
   const { user, logout, orgName } = useAuth()
@@ -20,6 +28,9 @@ export function EditorPage() {
   const [data, setData] = useState<AWBData>(defaultAWBData)
   const [currentId, setCurrentId] = useState<string | null>(docId)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
+  const [numPages, setNumPages] = useState<number>(1)
+  const [zoom, setZoom] = useState<number>(1.0)
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
@@ -86,6 +97,7 @@ export function EditorPage() {
     setGenerating(true)
     try {
       const blob = await pdf(<AWBDocument data={d} />).toBlob()
+      setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
       console.error('PDF generation error:', e)
@@ -191,8 +203,32 @@ export function EditorPage() {
           <AWBFormPanel data={data} onChange={setData} />
         </div>
         <div className="preview-panel">
-          {pdfUrl ? (
-            <iframe src={pdfUrl} title="AWB Preview" />
+          {/* Zoom controls */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#2a2a2a', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #444' }}>
+            <button onClick={() => setZoom(z => Math.max(z - 0.1, 0.4))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>−</button>
+            <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
+            <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>+</button>
+            <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>Reset</button>
+            {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 8 }}>Actualizando…</span>}
+          </div>
+          {pdfBlob ? (
+            <div style={{ overflow: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <Document
+                file={pdfBlob}
+                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                loading={null}
+              >
+                {Array.from({ length: numPages }, (_, i) => (
+                  <Page
+                    key={i + 1}
+                    pageNumber={i + 1}
+                    scale={zoom}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                  />
+                ))}
+              </Document>
+            </div>
           ) : (
             <div className="preview-loading">Generando vista previa…</div>
           )}
