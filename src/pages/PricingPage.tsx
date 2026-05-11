@@ -33,20 +33,10 @@ export function PricingPage() {
   }
 
   async function callUpdatePlan(action: 'cancel' | 'change', priceId?: string) {
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token
-    if (!token) throw new Error('Not authenticated')
-
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-plan`,
-      {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, priceId }),
-      }
-    )
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error ?? 'Error updating plan')
+    const { data, error } = await supabase.functions.invoke('update-plan', {
+      body: { action, priceId },
+    })
+    if (error) throw new Error(error.message ?? 'Error updating plan')
     return data
   }
 
