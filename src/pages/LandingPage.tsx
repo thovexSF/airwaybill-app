@@ -48,10 +48,15 @@ const STEPS = [
 
 export function LandingPage() {
   const { t } = useTranslation()
-  const { user, orgName } = useAuth()
+  const { user, orgName, logout } = useAuth()
 
   return (
     <div className="lp">
+
+      {/* EN/ES fixed top-right */}
+      <div style={{ position: 'fixed', top: 12, right: 16, zIndex: 200 }}>
+        <LangSwitcher variant="light" />
+      </div>
 
       {/* ── NAV ── */}
       <nav className="lp-nav">
@@ -66,13 +71,12 @@ export function LandingPage() {
             {user ? (
               <>
                 <span style={{ fontSize: 13, color: '#666' }}>{orgName ?? user.email}</span>
-                <LangSwitcher variant="light" />
                 <Link to="/my-awbs" className="lp-btn-primary">{t('landing.nav.goToApp')}</Link>
+                <button onClick={logout} style={{ background: 'none', border: 'none', fontSize: 13, color: '#666', cursor: 'pointer', padding: '6px 0' }}>{t('common.signOut')}</button>
               </>
             ) : (
               <>
                 <Link to="/editor" className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
-                <LangSwitcher variant="light" />
                 <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
               </>
             )}
