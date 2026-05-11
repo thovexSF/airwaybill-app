@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
 
     await supabase.from('organizations').update({
       plan: active ? plan : 'free',
-      stripe_subscription_id: sub.id,
       plan_expires_at: active ? sub.current_billing_period?.ends_at : null,
+      paddle_subscription_id: sub.id,
       paddle_customer_id: sub.customer_id ?? null,
       paddle_cancel_url: sub.management_urls?.cancel ?? null,
     }).eq('id', orgId)
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     if (orgId) {
       await supabase.from('organizations').update({
         plan: 'free',
-        stripe_subscription_id: null,
+        paddle_subscription_id: null,
         plan_expires_at: null,
         paddle_cancel_url: null,
       }).eq('id', orgId)
