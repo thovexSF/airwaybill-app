@@ -186,23 +186,41 @@ export function AWBDocument({ data, userScale = 'lg' }: { data: AWBData; userSca
   const TXT = s._txt as number
   const XS  = s._xs  as number
 
-  const awbFull = data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : ''
+  const isHawb = data.docType === 'hawb'
+  const awbFull = isHawb
+    ? (data.hawbNumber || '')
+    : (data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : '')
 
   return (
     <Document>
       <Page size="A4" style={s.page}>
         {data.isDraft && <Text style={s.watermark}>DRAFT</Text>}
 
-        {/* ── AWB NUMBER HEADER ── */}
+        {/* ── AWB / HAWB NUMBER HEADER ── */}
         <View style={s.headerRow}>
-          <View style={s.row}>
-            <View style={s.prefixBox}>
-              <Text style={s.awbNumLg}>{data.awbPrefix}</Text>
+          {isHawb ? (
+            <View style={s.row}>
+              <View style={[s.prefixBox, { width: 'auto', paddingHorizontal: 6, minWidth: 60 * scale }]}>
+                <Text style={{ fontSize: 5.5 * scale, color: RED }}>HAWB No.</Text>
+                <Text style={s.awbNumLg}>{data.hawbNumber}</Text>
+              </View>
+              {data.mawbReference ? (
+                <View style={[s.serialBox, { minWidth: 100 * scale }]}>
+                  <Text style={{ fontSize: 5.5 * scale, color: RED }}>MAWB Ref.</Text>
+                  <Text style={s.awbNumLg}>{data.mawbReference}</Text>
+                </View>
+              ) : null}
             </View>
-            <View style={s.serialBox}>
-              <Text style={s.awbNumLg}>{data.awbSerial}</Text>
+          ) : (
+            <View style={s.row}>
+              <View style={s.prefixBox}>
+                <Text style={s.awbNumLg}>{data.awbPrefix}</Text>
+              </View>
+              <View style={s.serialBox}>
+                <Text style={s.awbNumLg}>{data.awbSerial}</Text>
+              </View>
             </View>
-          </View>
+          )}
           <Text style={s.awbNumFull}>{awbFull}</Text>
         </View>
 
@@ -222,9 +240,9 @@ export function AWBDocument({ data, userScale = 'lg' }: { data: AWBData; userSca
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 7 * scale }}>Not Negotiable</Text>
-                <Text style={s.awbTitle}>Air Waybill</Text>
+                <Text style={s.awbTitle}>{isHawb ? 'House Air Waybill' : 'Air Waybill'}</Text>
                 <View style={{ flexDirection: 'row', marginTop: 3 * scale }}>
-                  <Text style={[s.lbl, { marginRight: 3 }]}>Issued by</Text>
+                  <Text style={[s.lbl, { marginRight: 3 }]}>{isHawb ? 'Issued by Agent' : 'Issued by'}</Text>
                   <Text style={{ fontSize: TXT }}>{data.carrierName}</Text>
                 </View>
                 {data.carrierAddress ? (
@@ -236,7 +254,9 @@ export function AWBDocument({ data, userScale = 'lg' }: { data: AWBData; userSca
               ) : null}
             </View>
             <Text style={s.copiesTxt}>
-              Copies 1, 2 and 3 of this Air Waybill are originals and have the same validity.
+              {isHawb
+                ? 'Copies 1, 2 and 3 of this House Air Waybill are originals and have the same validity.'
+                : 'Copies 1, 2 and 3 of this Air Waybill are originals and have the same validity.'}
             </Text>
           </View>
         </View>

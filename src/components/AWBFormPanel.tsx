@@ -83,36 +83,45 @@ export function AWBFormPanel({ data, onChange }: Props) {
     onChange({ ...data, otherCharges: data.otherCharges.filter((c) => c.id !== id) })
   }
 
+  const isHawb = data.docType === 'hawb'
+
   return (
     <div className="form-panel">
 
-      {/* AWB NUMBER */}
-      <Section title="AWB Number">
-        <Row>
-          <Field label="Prefix (airline code)" value={data.awbPrefix} onChange={set('awbPrefix')} placeholder="014" />
-          <div className="field">
-            <label>Serial Number</label>
-            <input
-              value={data.awbSerial}
-              onChange={(e) => set('awbSerial')(e.target.value)}
-              placeholder="57318306"
-              style={{ borderColor: data.awbSerial.length === 8 ? (validateAWBSerial(data.awbSerial) ? '#2a7a2a' : '#c00') : undefined }}
-            />
-            {data.awbSerial.length >= 7 && data.awbSerial.length < 8 && (
-              <span style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
-                Check digit: <strong>{computeCheckDigit(data.awbSerial)}</strong>
-              </span>
-            )}
-            {data.awbSerial.length === 8 && !validateAWBSerial(data.awbSerial) && (
-              <span style={{ fontSize: 11, color: '#c00', marginTop: 2 }}>
-                ✗ Check digit inválido (esperado: {computeCheckDigit(data.awbSerial.slice(0, 7))})
-              </span>
-            )}
-            {data.awbSerial.length === 8 && validateAWBSerial(data.awbSerial) && (
-              <span style={{ fontSize: 11, color: '#2a7a2a', marginTop: 2 }}>✓ Válido</span>
-            )}
-          </div>
-        </Row>
+      {/* AWB / HAWB NUMBER */}
+      <Section title={isHawb ? 'HAWB Number' : 'AWB Number'}>
+        {isHawb ? (
+          <>
+            <Field label="HAWB Number" value={data.hawbNumber ?? ''} onChange={set('hawbNumber')} placeholder="HB-2024-001" />
+            <Field label="MAWB Reference (Master AWB)" value={data.mawbReference ?? ''} onChange={set('mawbReference')} placeholder="014-57318306" />
+          </>
+        ) : (
+          <Row>
+            <Field label="Prefix (airline code)" value={data.awbPrefix} onChange={set('awbPrefix')} placeholder="014" />
+            <div className="field">
+              <label>Serial Number</label>
+              <input
+                value={data.awbSerial}
+                onChange={(e) => set('awbSerial')(e.target.value)}
+                placeholder="57318306"
+                style={{ borderColor: data.awbSerial.length === 8 ? (validateAWBSerial(data.awbSerial) ? '#2a7a2a' : '#c00') : undefined }}
+              />
+              {data.awbSerial.length >= 7 && data.awbSerial.length < 8 && (
+                <span style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
+                  Check digit: <strong>{computeCheckDigit(data.awbSerial)}</strong>
+                </span>
+              )}
+              {data.awbSerial.length === 8 && !validateAWBSerial(data.awbSerial) && (
+                <span style={{ fontSize: 11, color: '#c00', marginTop: 2 }}>
+                  ✗ Check digit inválido (esperado: {computeCheckDigit(data.awbSerial.slice(0, 7))})
+                </span>
+              )}
+              {data.awbSerial.length === 8 && validateAWBSerial(data.awbSerial) && (
+                <span style={{ fontSize: 11, color: '#2a7a2a', marginTop: 2 }}>✓ Válido</span>
+              )}
+            </div>
+          </Row>
+        )}
         <Row>
           <div className="field">
             <label>Draft watermark</label>
@@ -125,12 +134,23 @@ export function AWBFormPanel({ data, onChange }: Props) {
             <label>Copy</label>
             <select value={data.copyNumber} onChange={(e) => {
               const n = parseInt(e.target.value) as 1 | 2 | 3
-              const labels = ['Original 1 (for Issuing Carrier)', 'Original 2 (for Consignee)', 'Original 3 (for Shipper)']
-              onChange({ ...data, copyNumber: n, copyLabel: labels[n - 1] })
+              const hawbLabels = ['Original 1 (for Consignee)', 'Original 2 (for Issuing Agent)', 'Original 3 (for Shipper)']
+              const awbLabels  = ['Original 1 (for Issuing Carrier)', 'Original 2 (for Consignee)', 'Original 3 (for Shipper)']
+              onChange({ ...data, copyNumber: n, copyLabel: (isHawb ? hawbLabels : awbLabels)[n - 1] })
             }}>
-              <option value={1}>Original 1 (for Issuing Carrier)</option>
-              <option value={2}>Original 2 (for Consignee)</option>
-              <option value={3}>Original 3 (for Shipper)</option>
+              {isHawb ? (
+                <>
+                  <option value={1}>Original 1 (for Consignee)</option>
+                  <option value={2}>Original 2 (for Issuing Agent)</option>
+                  <option value={3}>Original 3 (for Shipper)</option>
+                </>
+              ) : (
+                <>
+                  <option value={1}>Original 1 (for Issuing Carrier)</option>
+                  <option value={2}>Original 2 (for Consignee)</option>
+                  <option value={3}>Original 3 (for Shipper)</option>
+                </>
+              )}
             </select>
           </div>
         </Row>

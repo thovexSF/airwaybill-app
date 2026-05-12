@@ -27,8 +27,12 @@ export function EditorPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const docId = searchParams.get('id')
+  const docTypeParam = searchParams.get('docType') as 'awb' | 'hawb' | null
 
-  const [data, setData] = useState<AWBData>(defaultAWBData)
+  const initialData: AWBData = docTypeParam === 'hawb'
+    ? { ...defaultAWBData, docType: 'hawb', isDraft: true, copyNumber: 1, copyLabel: 'Original 1 (for Consignee)' }
+    : defaultAWBData
+  const [data, setData] = useState<AWBData>(initialData)
   const [currentId, setCurrentId] = useState<string | null>(docId)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
@@ -150,8 +154,12 @@ export function EditorPage() {
     setSaving(false)
   }
 
-  const awbFull = data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : 'AWB'
+  const isHawb = data.docType === 'hawb'
+  const awbFull = isHawb
+    ? (data.hawbNumber || 'HAWB')
+    : (data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : 'AWB')
   const atLimit = plan === 'free' && !canCreateAWB && !currentId
+  const hawbBlocked = isHawb && plan !== 'pro' && plan !== 'enterprise'
 
   return (
     <div className="app">
@@ -207,14 +215,14 @@ export function EditorPage() {
           <button
             className="btn-example"
             onClick={handleSave}
-            disabled={saving || atLimit}
-            style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700, opacity: atLimit ? 0.5 : 1 }}
-            title={atLimit ? t('editor.limitReached') : undefined}
+            disabled={saving || atLimit || hawbBlocked}
+            style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700, opacity: (atLimit || hawbBlocked) ? 0.5 : 1 }}
+            title={hawbBlocked ? 'Upgrade to Pro to save HAWBs' : atLimit ? t('editor.limitReached') : undefined}
           >
             {saving ? t('editor.saving') : t('editor.saveDoc')}
           </button>
           {pdfUrl && (
-            <a className="btn-download" href={pdfUrl} download={`AWB_${awbFull}.pdf`} onClick={() => {
+            <a className="btn-download" href={pdfUrl} download={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}.pdf`} onClick={() => {
               (window as any).clarity?.('event', 'awb_downloaded')
               supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
             }}>
@@ -232,6 +240,14 @@ export function EditorPage() {
         <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{t('editor.limitBanner')}</span>
           <Link to="/pricing" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none' }}>{t('editor.upgradeNow')}</Link>
+        </div>
+      )}
+
+      {/* HAWB Pro gate banner */}
+      {hawbBlocked && (
+        <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>House Air Waybills require a <strong>Pro</strong> plan.</span>
+          <Link to="/pricing" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none' }}>Upgrade to Pro →</Link>
         </div>
       )}
 
