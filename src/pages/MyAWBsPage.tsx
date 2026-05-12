@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
 import { listAWBs, deleteAWB, AWBDocument } from '../lib/awbService'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { ImportModal } from '../components/ImportModal'
 
 type ViewMode = 'cards' | 'table'
 type StatusFilter = 'all' | 'final' | 'draft'
@@ -18,6 +19,7 @@ export function MyAWBsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [showImport, setShowImport] = useState(false)
   const [view, setView] = useState<ViewMode>('cards')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -198,6 +200,12 @@ export function MyAWBsPage() {
                 ↓ {t('myAwbs.exportCsv')}
               </button>
             )}
+            <button
+              onClick={() => setShowImport(true)}
+              style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600, border: '1px solid #ddd', borderRadius: 6, background: '#fff', color: '#333', cursor: 'pointer' }}
+            >
+              ↑ Import Excel
+            </button>
             {isPro && (
               <>
                 <Link
@@ -412,6 +420,16 @@ export function MyAWBsPage() {
           </div>
         )}
       </div>
+
+      {showImport && (
+        <ImportModal
+          onClose={() => setShowImport(false)}
+          onDone={() => {
+            setShowImport(false)
+            listAWBs().then(setDocs).catch(() => {})
+          }}
+        />
+      )}
     </div>
   )
 }
