@@ -60,7 +60,7 @@ export function ManifestPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
 
-  const blocked = plan !== 'pro' && plan !== 'enterprise'
+  const blocked = false
 
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
@@ -181,14 +181,6 @@ export function ManifestPage() {
         )}
       </div>
 
-      {/* Pro gate banner */}
-      {blocked && (
-        <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>Flight Manifests require a <strong>Pro</strong> plan.</span>
-          <Link to="/pricing" style={{ fontWeight: 700, color: '#1a3a5c', textDecoration: 'none' }}>Upgrade to Pro →</Link>
-        </div>
-      )}
-
       <div className="main">
         {/* Form panel */}
         <div className="form-panel-wrap" style={{ width: formWidth }}>
@@ -263,6 +255,18 @@ export function ManifestPage() {
               </div>
             </Section>
 
+          </div>
+          {/* Mobile-only: sticky download bar */}
+          <div className="mobile-pdf-strip">
+            {pdfUrl
+              ? <a className="btn-download" href={pdfUrl}
+                  download={`Manifest_${data.flightNumber || 'document'}_${data.flightDate || ''}.pdf`}
+                  style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}
+                  onClick={() => (window as any).clarity?.('event', 'manifest_downloaded')}>
+                  ↓ Download Manifest PDF
+                </a>
+              : <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>
+            }
           </div>
         </div>
 

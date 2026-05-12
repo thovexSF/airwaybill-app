@@ -159,7 +159,7 @@ export function EditorPage() {
     ? (data.hawbNumber || 'HAWB')
     : (data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : 'AWB')
   const atLimit = plan === 'free' && !canCreateAWB && !currentId
-  const hawbBlocked = isHawb && plan !== 'pro' && plan !== 'enterprise'
+  const hawbBlocked = false
 
   return (
     <div className="app">
@@ -204,7 +204,7 @@ export function EditorPage() {
       </div>
 
       {/* Row 2 — Document actions */}
-      <div style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button className="btn-example" onClick={() => setData(exampleAWB)}>{t('editor.example')}</button>
           <button className="btn-example" onClick={() => { setData(defaultAWBData); setCurrentId(null) }}>{t('editor.clear')}</button>
@@ -243,14 +243,6 @@ export function EditorPage() {
         </div>
       )}
 
-      {/* HAWB Pro gate banner */}
-      {hawbBlocked && (
-        <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>House Air Waybills require a <strong>Pro</strong> plan.</span>
-          <Link to="/pricing" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none' }}>Upgrade to Pro →</Link>
-        </div>
-      )}
-
       <div className="main">
         <div className="form-panel-wrap" style={{ width: formWidth }}>
           {/* Font size toolbar */}
@@ -262,6 +254,21 @@ export function EditorPage() {
           </div>
           <div className={`font-size-${fontSize}`}>
             <AWBFormPanel data={data} onChange={setData} />
+          </div>
+          {/* Mobile-only: sticky download bar */}
+          <div className="mobile-pdf-strip">
+            {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, flex: 1 }}>{t('editor.generating')}</span>}
+            {pdfUrl && (
+              <a className="btn-download" href={pdfUrl} download={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}.pdf`}
+                style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}
+                onClick={() => {
+                  (window as any).clarity?.('event', 'awb_downloaded')
+                  supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
+                }}>
+                ↓ {t('editor.downloadPdf')}
+              </a>
+            )}
+            {!pdfUrl && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>}
           </div>
         </div>
         <div className="resize-handle" onMouseDown={onDragStart} title="Drag to resize" />

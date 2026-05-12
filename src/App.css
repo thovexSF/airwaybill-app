@@ -200,3 +200,47 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
   flex: 1; display: flex; align-items: center; justify-content: center;
   color: #ccc; font-size: 14px;
 }
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+  /* App becomes scrollable instead of locked viewport */
+  .app { height: auto !important; overflow: visible !important; }
+  .main { flex-direction: column; overflow: visible !important; height: auto !important; }
+
+  /* Form panel takes full width */
+  .form-panel-wrap {
+    width: 100% !important; max-width: 100% !important;
+    min-width: unset !important; border-right: none !important;
+    overflow-y: visible !important; max-height: none !important;
+  }
+
+  /* Hide PDF preview and resize handle on mobile */
+  .preview-panel { display: none !important; }
+  .resize-handle { display: none !important; }
+
+  /* Topbar: hide secondary info, keep logo + sign out */
+  .topbar { padding: 0 12px !important; }
+  .topbar-logo { font-size: 15px !important; }
+  .topbar-sub { display: none; }
+  .topbar-actions { gap: 6px !important; }
+  .topbar-actions > span:first-child { display: none; } /* hide email */
+
+  /* Action bar: scrollable row */
+  .action-bar { padding: 0 10px !important; overflow-x: auto; }
+  .action-bar > div { flex-shrink: 0; }
+
+  /* Form sections: full width inputs */
+  .field-row { flex-direction: column !important; }
+  .rate-table { padding: 6px 8px !important; }
+
+  /* Mobile download strip at bottom of form */
+  .mobile-pdf-strip {
+    display: flex !important;
+    position: sticky; bottom: 0; z-index: 20;
+    background: #6b0000; border-top: 1px solid rgba(255,255,255,0.15);
+    padding: 10px 16px; gap: 8px; align-items: center;
+  }
+}
+
+/* Hidden on desktop, shown on mobile */
+.mobile-pdf-strip { display: none; }
