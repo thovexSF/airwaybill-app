@@ -107,6 +107,11 @@ export interface AWBData {
   copyNumber: 1 | 2 | 3
   copyLabel: string
   carrierLogoUrl?: string  // base64 or https URL
+
+  // HAWB-specific (only set when docType === 'hawb')
+  docType?: 'awb' | 'hawb'
+  hawbNumber?: string
+  mawbReference?: string
 }
 
 export const defaultAWBData: AWBData = {
@@ -179,4 +184,7 @@ export const defaultAWBData: AWBData = {
   isDraft: true,
   copyNumber: 1,
   copyLabel: 'Original 1 (for Issuing Carrier)',
+  docType: 'awb',
+  hawbNumber: '',
+  mawbReference: '',
 }
