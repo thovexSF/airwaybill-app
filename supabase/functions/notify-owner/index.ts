@@ -32,9 +32,9 @@ serve(async (req) => {
       body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: lines.join('\n'), parse_mode: 'HTML' }),
     })
 
-    return new Response('ok', { headers: CORS, status: 200 })
+    return new Response(JSON.stringify({ ok: true }), { headers: CORS, status: 200 })
   } catch (err) {
     console.error('notify-owner error:', err)
-    return new Response('error', { headers: CORS, status: 200 })
+    return new Response(JSON.stringify({ ok: false }), { headers: CORS, status: 200 })
   }
 })
