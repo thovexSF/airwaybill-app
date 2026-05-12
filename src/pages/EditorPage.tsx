@@ -143,6 +143,7 @@ export function EditorPage() {
       navigate(`/editor?id=${doc.id}`, { replace: true })
       setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
+      ;(window as any).clarity?.('event', 'awb_saved')
     } catch {
       setSaveMsg(t('editor.saveError'))
     }
@@ -213,7 +214,10 @@ export function EditorPage() {
             {saving ? t('editor.saving') : t('editor.saveDoc')}
           </button>
           {pdfUrl && (
-            <a className="btn-download" href={pdfUrl} download={`AWB_${awbFull}.pdf`}>
+            <a className="btn-download" href={pdfUrl} download={`AWB_${awbFull}.pdf`} onClick={() => {
+              (window as any).clarity?.('event', 'awb_downloaded')
+              supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
+            }}>
               {t('editor.downloadPdf')}
             </a>
           )}
