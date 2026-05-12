@@ -46,27 +46,32 @@ export function MyAWBsPage() {
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
 
-  // Derived row data
   function rowOf(doc: AWBDocument) {
     const d = doc.data as any
-    const isHawb = d.docType === 'hawb'
-    const isDgd  = d.docType === 'dgd'
+    const isHawb     = d.docType === 'hawb'
+    const isDgd      = d.docType === 'dgd'
+    const isManifest = d.docType === 'manifest'
     const awbNum = isDgd
       ? (d.awbNo || 'DGD')
-      : isHawb
-        ? (d.hawbNumber || '—')
-        : (d.awbPrefix && d.awbSerial ? `${d.awbPrefix}-${d.awbSerial}` : '—')
+      : isManifest
+        ? (d.flightNumber ? `${d.flightNumber} ${d.flightDate || ''}`.trim() : 'Manifest')
+        : isHawb
+          ? (d.hawbNumber || '—')
+          : (d.awbPrefix && d.awbSerial ? `${d.awbPrefix}-${d.awbSerial}` : '—')
     const shipper = d.shipperNameAndAddress?.split('\n')[0] || '—'
     const consignee = d.consigneeNameAndAddress?.split('\n')[0] || '—'
-    const origin = d.airportOfDeparture || ''
-    const dest = d.airportOfDestination || ''
+    const origin = d.airportOfDeparture || d.originStation || ''
+    const dest = d.airportOfDestination || d.destinationStation || ''
     const route = origin && dest ? `${origin} → ${dest}` : origin || dest || '—'
     const weight = d.rateItems?.reduce((s: number, r: any) => s + (parseFloat(r.chargeableWeight) || 0), 0) || 0
-    const editPath = isDgd ? `/dgd?id=${doc.id}` : `/editor?id=${doc.id}`
-    return { awbNum, shipper, consignee, route, weight, status: doc.status, isHawb, isDgd, editPath }
+    const editPath = isDgd
+      ? `/dgd?id=${doc.id}`
+      : isManifest
+        ? `/manifest?id=${doc.id}`
+        : `/editor?id=${doc.id}`
+    return { awbNum, shipper, consignee, route, weight, status: doc.status, isHawb, isDgd, isManifest, editPath }
   }
 
-  // Filtered + sorted list
   const filtered = useMemo(() => {
     let list = docs
     if (statusFilter !== 'all') list = list.filter(d => d.status === statusFilter)
@@ -121,6 +126,15 @@ export function MyAWBsPage() {
   const SortIcon = ({ col }: { col: typeof sortCol }) =>
     sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'
 
+  const isPro = plan === 'pro' || plan === 'enterprise'
+
+  function DocBadge({ r }: { r: ReturnType<typeof rowOf> }) {
+    if (r.isDgd)      return <span style={{ background: '#7a3a00', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>DGD</span>
+    if (r.isHawb)     return <span style={{ background: '#1a3a5c', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>HAWB</span>
+    if (r.isManifest) return <span style={{ background: '#1a5c3a', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>MANIFEST</span>
+    return null
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f4f4f4', fontFamily: 'Segoe UI, system-ui, sans-serif' }}>
       {/* Topbar */}
@@ -132,13 +146,11 @@ export function MyAWBsPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{orgName ?? user?.email}</span>
           <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.settings')}</Link>
-          {/* Plan badge — simple label */}
           {plan !== 'free' && (
             <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize', cursor: 'default' }}>
               {plan}
             </span>
           )}
-          {/* Upgrade button with downgrade tooltip on hover */}
           {(plan === 'free' || plan === 'starter') && (
             <div style={{ position: 'relative' }} className="plan-badge-wrap">
               <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap', display: 'block' }}>
@@ -162,7 +174,7 @@ export function MyAWBsPage() {
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#222', margin: 0 }}>{t('myAwbs.title')}</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {/* View toggle */}
             <div style={{ display: 'flex', border: '1px solid #ddd', borderRadius: 6, overflow: 'hidden' }}>
               <button
@@ -178,7 +190,6 @@ export function MyAWBsPage() {
                 ⊞ {t('myAwbs.viewTable')}
               </button>
             </div>
-            {/* Export CSV */}
             {docs.length > 0 && (
               <button
                 onClick={exportCsv}
@@ -187,22 +198,14 @@ export function MyAWBsPage() {
                 ↓ {t('myAwbs.exportCsv')}
               </button>
             )}
-<<<<<<< HEAD
-            {/* New HAWB (Pro only) */}
-            {(plan === 'pro' || plan === 'enterprise') && (
-              <Link
-                to="/editor?docType=hawb"
-                style={{ background: '#444', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
-              >
-                + New HAWB
-              </Link>
-            )}
-=======
-<<<<<<< Updated upstream
-=======
-            {/* New DGD + New HAWB (Pro only) */}
-            {(plan === 'pro' || plan === 'enterprise') && (
+            {isPro && (
               <>
+                <Link
+                  to="/manifest"
+                  style={{ background: '#1a5c3a', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
+                >
+                  + New Manifest
+                </Link>
                 <Link
                   to="/dgd"
                   style={{ background: '#7a3a00', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
@@ -217,9 +220,6 @@ export function MyAWBsPage() {
                 </Link>
               </>
             )}
->>>>>>> Stashed changes
->>>>>>> cfc3b31 (feat: Dangerous Goods Declaration (DGD) for Pro plan)
-            {/* New AWB */}
             <Link
               to="/editor"
               style={{ background: '#8b0000', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
@@ -291,25 +291,10 @@ export function MyAWBsPage() {
               return (
                 <div key={doc.id} style={{ background: '#fff', border: '1px solid #e8dcdc', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-<<<<<<< HEAD
                     <div style={{ fontWeight: 700, fontSize: 15, color: '#222', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {r.isHawb
-                        ? <><span style={{ background: '#1a3a5c', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>HAWB</span> {r.awbNum}</>
-                        : <>AWB {r.awbNum}</>}
+                      <DocBadge r={r} />
+                      {r.isManifest ? r.awbNum : (r.isDgd || r.isHawb) ? r.awbNum : <>AWB {r.awbNum}</>}
                     </div>
-=======
-<<<<<<< Updated upstream
-                    <div style={{ fontWeight: 700, fontSize: 15, color: '#222' }}>AWB {r.awbNum}</div>
-=======
-                    <div style={{ fontWeight: 700, fontSize: 15, color: '#222', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {r.isDgd
-                        ? <><span style={{ background: '#7a3a00', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>DGD</span> {r.awbNum}</>
-                        : r.isHawb
-                          ? <><span style={{ background: '#1a3a5c', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>HAWB</span> {r.awbNum}</>
-                          : <>AWB {r.awbNum}</>}
-                    </div>
->>>>>>> Stashed changes
->>>>>>> cfc3b31 (feat: Dangerous Goods Declaration (DGD) for Pro plan)
                     <div style={{ fontSize: 12, color: '#888', marginTop: 3 }}>
                       {r.shipper} → {r.consignee}
                     </div>
@@ -377,22 +362,12 @@ export function MyAWBsPage() {
                         onMouseEnter={e => (e.currentTarget.style.background = '#fff5f5')}
                         onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#fafafa')}
                       >
-<<<<<<< HEAD
                         <td style={{ padding: '10px 14px', fontWeight: 700, color: '#222', whiteSpace: 'nowrap' }}>
-                          {r.isHawb && <span style={{ background: '#1a3a5c', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, marginRight: 6 }}>HAWB</span>}
-                          {r.awbNum}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <DocBadge r={r} />
+                            {r.awbNum}
+                          </div>
                         </td>
-=======
-<<<<<<< Updated upstream
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#222', whiteSpace: 'nowrap' }}>{r.awbNum}</td>
-=======
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#222', whiteSpace: 'nowrap' }}>
-                          {r.isDgd && <span style={{ background: '#7a3a00', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, marginRight: 6 }}>DGD</span>}
-                          {r.isHawb && <span style={{ background: '#1a3a5c', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, marginRight: 6 }}>HAWB</span>}
-                          {r.awbNum}
-                        </td>
->>>>>>> Stashed changes
->>>>>>> cfc3b31 (feat: Dangerous Goods Declaration (DGD) for Pro plan)
                         <td style={{ padding: '10px 14px', color: '#444', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.shipper}</td>
                         <td style={{ padding: '10px 14px', color: '#444', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.consignee}</td>
                         <td style={{ padding: '10px 14px', color: '#666', whiteSpace: 'nowrap' }}>{r.route}</td>
@@ -432,7 +407,7 @@ export function MyAWBsPage() {
               </table>
             </div>
             <div style={{ padding: '10px 16px', fontSize: 12, color: '#888', borderTop: '1px solid #f0f0f0', background: '#fafafa' }}>
-              {filtered.length} AWB{filtered.length !== 1 ? 's' : ''} {filtered.length !== docs.length ? `(${docs.length} total)` : ''}
+              {filtered.length} {filtered.length !== 1 ? 'documents' : 'document'} {filtered.length !== docs.length ? `(${docs.length} total)` : ''}
             </div>
           </div>
         )}
