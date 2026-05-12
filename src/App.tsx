@@ -14,6 +14,7 @@ import { TermsPage } from './pages/TermsPage'
 import { PrivacyPage } from './pages/PrivacyPage'
 import { RefundsPage } from './pages/RefundsPage'
 import { DGDPage } from './pages/DGDPage'
+import { ManifestPage } from './pages/ManifestPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 
 export default function App() {
@@ -42,6 +43,14 @@ export default function App() {
           element={(
             <ProtectedRoute>
               <DGDPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/manifest"
+          element={(
+            <ProtectedRoute>
+              <ManifestPage />
             </ProtectedRoute>
           )}
         />
