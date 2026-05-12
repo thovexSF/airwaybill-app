@@ -136,19 +136,12 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
 .plan-downgrade-tooltip {
   display: none;
   position: absolute; top: calc(100% + 6px); right: 0;
-  background: #fff; border: 1px solid #ddd; border-radius: 6px;
-  padding: 6px 12px; white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 12px;
-  z-index: 100;
+  background: rgba(0,0,0,0.45); border-radius: 4px;
+  padding: 4px 10px; white-space: nowrap;
+  font-size: 11px; z-index: 100;
 }
-.plan-downgrade-tooltip::before {
-  content: ''; position: absolute; top: -5px; right: 12px;
-  width: 8px; height: 8px; background: #fff;
-  border-left: 1px solid #ddd; border-top: 1px solid #ddd;
-  transform: rotate(45deg);
-}
-.plan-downgrade-tooltip a { color: #8b0000; text-decoration: none; font-weight: 600; }
-.plan-downgrade-tooltip a:hover { text-decoration: underline; }
+.plan-downgrade-tooltip a { color: rgba(255,255,255,0.6); text-decoration: none; font-weight: 400; }
+.plan-downgrade-tooltip a:hover { color: rgba(255,255,255,0.9); }
 .plan-badge-wrap:hover .plan-downgrade-tooltip { display: block; }
 
 /* ── Rate table ── */
