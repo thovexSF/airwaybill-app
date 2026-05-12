@@ -34,6 +34,7 @@ export function PricingPage() {
     setLoading(planId)
     setError(null)
     try {
+      ;(window as any).clarity?.('event', 'checkout_opened')
       await openCheckout({ priceId, email: user.email!, orgId })
     } catch (e: any) {
       setError(e.message)
@@ -64,6 +65,7 @@ export function PricingPage() {
     setSuccessMsg(null)
     try {
       await callUpdatePlan('change', priceId)
+      ;(window as any).clarity?.('event', 'plan_downgraded')
       setSuccessMsg(`Plan changed to ${planId}. Your account will update shortly.`)
       setTimeout(() => setSuccessMsg(null), 6000)
     } catch (e: any) {
@@ -79,6 +81,7 @@ export function PricingPage() {
     setSuccessMsg(null)
     try {
       await callUpdatePlan('cancel')
+      ;(window as any).clarity?.('event', 'subscription_cancelled')
       setSuccessMsg('Subscription cancelled. You will keep access until the end of your billing period.')
       setTimeout(() => setSuccessMsg(null), 8000)
     } catch (e: any) {

@@ -7,6 +7,10 @@ export function BillingSuccessPage() {
   const [params] = useSearchParams()
   const sessionId = params.get('session_id')
 
+  useEffect(() => {
+    ;(window as any).clarity?.('event', 'subscription_completed')
+  }, [])
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui', gap: 16, background: '#f4f4f4' }}>
       <div style={{ fontSize: 52 }}>✅</div>
