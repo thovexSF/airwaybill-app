@@ -125,22 +125,24 @@ export function MyAWBsPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{orgName ?? user?.email}</span>
           <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.settings')}</Link>
-          {/* Plan badge with downgrade tooltip */}
+          {/* Plan badge — simple label */}
           {plan !== 'free' && (
-            <div style={{ position: 'relative' }} className="plan-badge-wrap">
-              <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize', cursor: 'default' }}>
-                {plan}
-              </span>
-              <div className="plan-downgrade-tooltip">
-                <Link to="/pricing">Downgrade plan</Link>
-              </div>
-            </div>
+            <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize', cursor: 'default' }}>
+              {plan}
+            </span>
           )}
-          {/* Upgrade button for free / starter */}
+          {/* Upgrade button with downgrade tooltip on hover */}
           {(plan === 'free' || plan === 'starter') && (
-            <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-              {plan === 'starter' ? '⚡ Upgrade to Pro' : `⚡ ${t('common.upgrade')}`}
-            </Link>
+            <div style={{ position: 'relative' }} className="plan-badge-wrap">
+              <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap', display: 'block' }}>
+                {plan === 'starter' ? 'Upgrade to Pro' : t('common.upgrade')}
+              </Link>
+              {plan === 'starter' && (
+                <div className="plan-downgrade-tooltip">
+                  <Link to="/pricing">or Downgrade</Link>
+                </div>
+              )}
+            </div>
           )}
           <LangSwitcher />
           <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}>{t('common.signOut')}</button>
