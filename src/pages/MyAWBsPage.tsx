@@ -48,15 +48,22 @@ export function MyAWBsPage() {
 
   // Derived row data
   function rowOf(doc: AWBDocument) {
-    const d = doc.data
-    const awbNum = d.awbPrefix && d.awbSerial ? `${d.awbPrefix}-${d.awbSerial}` : '—'
+    const d = doc.data as any
+    const isHawb = d.docType === 'hawb'
+    const isDgd  = d.docType === 'dgd'
+    const awbNum = isDgd
+      ? (d.awbNo || 'DGD')
+      : isHawb
+        ? (d.hawbNumber || '—')
+        : (d.awbPrefix && d.awbSerial ? `${d.awbPrefix}-${d.awbSerial}` : '—')
     const shipper = d.shipperNameAndAddress?.split('\n')[0] || '—'
     const consignee = d.consigneeNameAndAddress?.split('\n')[0] || '—'
     const origin = d.airportOfDeparture || ''
     const dest = d.airportOfDestination || ''
     const route = origin && dest ? `${origin} → ${dest}` : origin || dest || '—'
-    const weight = d.rateItems?.reduce((s, r) => s + (parseFloat(r.chargeableWeight) || 0), 0) || 0
-    return { awbNum, shipper, consignee, route, weight, status: doc.status }
+    const weight = d.rateItems?.reduce((s: number, r: any) => s + (parseFloat(r.chargeableWeight) || 0), 0) || 0
+    const editPath = isDgd ? `/dgd?id=${doc.id}` : `/editor?id=${doc.id}`
+    return { awbNum, shipper, consignee, route, weight, status: doc.status, isHawb, isDgd, editPath }
   }
 
   // Filtered + sorted list
@@ -180,6 +187,26 @@ export function MyAWBsPage() {
                 ↓ {t('myAwbs.exportCsv')}
               </button>
             )}
+<<<<<<< Updated upstream
+=======
+            {/* New DGD + New HAWB (Pro only) */}
+            {(plan === 'pro' || plan === 'enterprise') && (
+              <>
+                <Link
+                  to="/dgd"
+                  style={{ background: '#7a3a00', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
+                >
+                  + New DGD
+                </Link>
+                <Link
+                  to="/editor?docType=hawb"
+                  style={{ background: '#1a3a5c', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
+                >
+                  + New HAWB
+                </Link>
+              </>
+            )}
+>>>>>>> Stashed changes
             {/* New AWB */}
             <Link
               to="/editor"
@@ -252,7 +279,17 @@ export function MyAWBsPage() {
               return (
                 <div key={doc.id} style={{ background: '#fff', border: '1px solid #e8dcdc', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                   <div style={{ flex: 1 }}>
+<<<<<<< Updated upstream
                     <div style={{ fontWeight: 700, fontSize: 15, color: '#222' }}>AWB {r.awbNum}</div>
+=======
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#222', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {r.isDgd
+                        ? <><span style={{ background: '#7a3a00', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>DGD</span> {r.awbNum}</>
+                        : r.isHawb
+                          ? <><span style={{ background: '#1a3a5c', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>HAWB</span> {r.awbNum}</>
+                          : <>AWB {r.awbNum}</>}
+                    </div>
+>>>>>>> Stashed changes
                     <div style={{ fontSize: 12, color: '#888', marginTop: 3 }}>
                       {r.shipper} → {r.consignee}
                     </div>
@@ -264,7 +301,7 @@ export function MyAWBsPage() {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
-                      onClick={() => navigate(`/editor?id=${doc.id}`)}
+                      onClick={() => navigate(r.editPath)}
                       style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
                     >
                       {t('myAwbs.open')}
@@ -320,7 +357,15 @@ export function MyAWBsPage() {
                         onMouseEnter={e => (e.currentTarget.style.background = '#fff5f5')}
                         onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#fafafa')}
                       >
+<<<<<<< Updated upstream
                         <td style={{ padding: '10px 14px', fontWeight: 700, color: '#222', whiteSpace: 'nowrap' }}>{r.awbNum}</td>
+=======
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#222', whiteSpace: 'nowrap' }}>
+                          {r.isDgd && <span style={{ background: '#7a3a00', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, marginRight: 6 }}>DGD</span>}
+                          {r.isHawb && <span style={{ background: '#1a3a5c', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, marginRight: 6 }}>HAWB</span>}
+                          {r.awbNum}
+                        </td>
+>>>>>>> Stashed changes
                         <td style={{ padding: '10px 14px', color: '#444', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.shipper}</td>
                         <td style={{ padding: '10px 14px', color: '#444', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.consignee}</td>
                         <td style={{ padding: '10px 14px', color: '#666', whiteSpace: 'nowrap' }}>{r.route}</td>
@@ -339,7 +384,7 @@ export function MyAWBsPage() {
                         <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                           <div style={{ display: 'flex', gap: 6 }}>
                             <button
-                              onClick={() => navigate(`/editor?id=${doc.id}`)}
+                              onClick={() => navigate(r.editPath)}
                               style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 5, padding: '5px 12px', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
                             >
                               {t('myAwbs.open')}

@@ -13,6 +13,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { TermsPage } from './pages/TermsPage'
 import { PrivacyPage } from './pages/PrivacyPage'
 import { RefundsPage } from './pages/RefundsPage'
+import { DGDPage } from './pages/DGDPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 
 export default function App() {
@@ -33,6 +34,14 @@ export default function App() {
           element={(
             <ProtectedRoute>
               <MyAWBsPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/dgd"
+          element={(
+            <ProtectedRoute>
+              <DGDPage />
             </ProtectedRoute>
           )}
         />
