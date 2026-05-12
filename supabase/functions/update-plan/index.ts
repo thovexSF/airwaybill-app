@@ -66,7 +66,25 @@ serve(async (req) => {
 
     let paddleRes: Response
 
-    if (action === 'cancel') {
+    if (action === 'get') {
+      // Return subscription details (renewal date, cancellation date)
+      paddleRes = await fetch(`https://api.paddle.com/subscriptions/${subId}`, {
+        method: 'GET',
+        headers: paddleHeaders,
+      })
+      const result = await paddleRes.json()
+      if (!paddleRes.ok) {
+        const msg = result?.error?.detail ?? 'Paddle API error'
+        return new Response(JSON.stringify({ error: msg }), { status: 400, headers: CORS })
+      }
+      const sub = result.data
+      return new Response(JSON.stringify({
+        status: sub.status,                          // active | canceled | past_due | ...
+        nextBilledAt: sub.next_billed_at ?? null,    // renewal date
+        scheduledChange: sub.scheduled_change ?? null, // { action: 'cancel', effective_at: '...' }
+      }), { headers: CORS })
+
+    } else if (action === 'cancel') {
       paddleRes = await fetch(`https://api.paddle.com/subscriptions/${subId}/cancel`, {
         method: 'POST',
         headers: paddleHeaders,

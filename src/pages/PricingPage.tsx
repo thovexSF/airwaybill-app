@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
@@ -16,9 +16,18 @@ export function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [subInfo, setSubInfo] = useState<{ status: string; nextBilledAt: string | null; scheduledChange: { action: string; effective_at: string } | null } | null>(null)
 
   const planOrder = ['free', 'starter', 'pro', 'enterprise']
   const currentIndex = planOrder.indexOf(currentPlan)
+
+  // Fetch subscription details on load for paid plans
+  useEffect(() => {
+    if (!user || currentPlan === 'free') return
+    supabase.functions.invoke('update-plan', { body: { action: 'get' } })
+      .then(({ data }) => { if (data) setSubInfo(data) })
+      .catch(() => {})
+  }, [user, currentPlan])
 
   async function handleUpgrade(planId: string, priceId: string) {
     if (!user || !orgId) { navigate('/signup'); return }
@@ -101,9 +110,21 @@ export function PricingPage() {
       <div style={{ maxWidth: 1160, margin: '48px auto', padding: '0 24px' }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 8 }}>{t('pricing.title')}</h1>
         {user ? (
-          <p style={{ textAlign: 'center', color: '#666', marginBottom: 40 }}>
-            {t('pricing.currentPlan')}: <strong style={{ textTransform: 'capitalize', color: '#8b0000' }}>{currentPlan}</strong>
-          </p>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <p style={{ color: '#666' }}>
+              {t('pricing.currentPlan')}: <strong style={{ textTransform: 'capitalize', color: '#8b0000' }}>{currentPlan}</strong>
+            </p>
+            {subInfo && (
+              <p style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+                {subInfo.scheduledChange?.action === 'cancel'
+                  ? `⚠ Cancels on ${new Date(subInfo.scheduledChange.effective_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                  : subInfo.nextBilledAt
+                    ? `Renews on ${new Date(subInfo.nextBilledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                    : null
+                }
+              </p>
+            )}
+          </div>
         ) : (
           <p style={{ textAlign: 'center', color: '#666', marginBottom: 40 }}>{t('pricing.sub')}</p>
         )}
