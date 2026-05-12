@@ -170,17 +170,16 @@ export function EditorPage() {
               <span style={{ marginLeft: 6, opacity: 0.7 }}>· {awbUsedThisMonth}/{awbLimit} AWBs</span>
             )}
           </span>
-          <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.myAwbs')}</Link>
           {/* Plan badge — simple label for paid users */}
           {plan !== 'free' && (
             <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize', cursor: 'default' }}>
               {plan}
             </span>
           )}
-          {/* Upgrade button with downgrade tooltip on hover */}
+          {/* Upgrade — plain text link with downgrade tooltip */}
           {(plan === 'free' || plan === 'starter') && (
             <div style={{ position: 'relative' }} className="plan-badge-wrap">
-              <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap', display: 'block' }}>
+              <Link to="/pricing" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>
                 {plan === 'starter' ? 'Upgrade to Pro' : t('common.upgrade')}
               </Link>
               {plan === 'starter' && (
