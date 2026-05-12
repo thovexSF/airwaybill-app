@@ -1,14 +1,18 @@
 import React, { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../auth/AuthContext'
+import { supabase } from '../lib/supabase'
 
 export function BillingSuccessPage() {
   const { t } = useTranslation()
   const [params] = useSearchParams()
   const sessionId = params.get('session_id')
+  const { user } = useAuth()
 
   useEffect(() => {
     ;(window as any).clarity?.('event', 'subscription_completed')
+    supabase.functions.invoke('notify-owner', { body: { event: 'subscription_completed', data: { email: user?.email } } })
   }, [])
 
   return (
