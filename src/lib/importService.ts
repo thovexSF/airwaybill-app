@@ -148,7 +148,7 @@ function rowToAWBData(row: ImportPreviewRow): AWBData {
     airportOfDestination: row.destIata || row.destination,
     flightNumber: row.flightNo,
     flightDate: row.flightDt,
-    handlingInfo: row.notes,
+    handlingInformation: row.notes,
     rateItems: [rateItem],
     isDraft: false,
   }
