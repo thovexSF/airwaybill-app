@@ -222,12 +222,14 @@ export function AWBFormPanel({ data, onChange }: Props) {
       <Section title="Routing">
         <Field label="Airport of Departure" value={data.airportOfDeparture} onChange={set('airportOfDeparture')} placeholder="SANTIAGO DE CHILE (SCL/ZRH)" />
         <Row>
-          <Field label="To (1)"  style={{ flex: '0 0 56px' }} value={data.routeTo1} onChange={set('routeTo1')} placeholder="YYZ" />
-          <Field label="By (1)"  style={{ flex: '0 0 56px' }} value={data.routeBy1} onChange={set('routeBy1')} placeholder="AC" />
-          <Field label="To (2)"  style={{ flex: '0 0 56px' }} value={data.routeTo2} onChange={set('routeTo2')} placeholder="ZRH" />
-          <Field label="By (2)"  style={{ flex: '0 0 56px' }} value={data.routeBy2} onChange={set('routeBy2')} placeholder="AC" />
-          <Field label="To (3)"  style={{ flex: '0 0 56px' }} value={data.routeTo3} onChange={set('routeTo3')} />
-          <Field label="By (3)"  style={{ flex: '0 0 56px' }} value={data.routeBy3} onChange={set('routeBy3')} />
+          <Field label="To (1)" style={{ flex: '0 0 56px' }} value={data.routeTo1} onChange={set('routeTo1')} placeholder="YYZ" />
+          <Field label="By (1)" style={{ flex: '0 0 56px' }} value={data.routeBy1} onChange={set('routeBy1')} placeholder="AC" />
+          <Field label="To (2)" style={{ flex: '0 0 56px' }} value={data.routeTo2} onChange={set('routeTo2')} placeholder="ZRH" />
+          <Field label="By (2)" style={{ flex: '0 0 56px' }} value={data.routeBy2} onChange={set('routeBy2')} placeholder="AC" />
+        </Row>
+        <Row>
+          <Field label="To (3)" style={{ flex: '0 0 56px' }} value={data.routeTo3} onChange={set('routeTo3')} />
+          <Field label="By (3)" style={{ flex: '0 0 56px' }} value={data.routeBy3} onChange={set('routeBy3')} />
         </Row>
         <Row>
           <Field label="Airport of Destination" value={data.airportOfDestination} onChange={set('airportOfDestination')} placeholder="ZURICH" />
