@@ -6,6 +6,7 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { AWBFormPanel } from '../components/AWBFormPanel'
+import { AWBOverlay } from '../components/AWBOverlay'
 import { AWBDocument } from '../pdf/AWBDocument'
 import { AWBData, defaultAWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
@@ -41,25 +42,35 @@ export function EditorPage() {
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
-  const [formWidth, setFormWidth] = useState(380)
-  const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md')
-  const [pdfScale, setPdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
+  const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
+  const [overlayMode, setOverlayMode] = useState(() => window.innerWidth >= 900)
+  const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const dragRef = useRef(false)
+  const pageWrapRef = useRef<HTMLDivElement | null>(null)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
 
-  function onDragStart(e: React.MouseEvent) {
-    dragRef.current = true
-    const startX = e.clientX
-    const startW = formWidth
-    const onMove = (ev: MouseEvent) => {
-      if (!dragRef.current) return
-      setFormWidth(Math.max(280, Math.min(600, startW + ev.clientX - startX)))
+  // Narrow-viewport fallback: overlay editing is impractical on phone-sized screens
+  useEffect(() => {
+    const onResize = () => {
+      const wide = window.innerWidth >= 900
+      setIsWideViewport(wide)
+      if (!wide) setOverlayMode(false)
     }
-    const onUp = () => { dragRef.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-  }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  // Track the rendered PDF page width so the overlay can derive ptToPx and track zoom
+  useEffect(() => {
+    const el = pageWrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width
+      if (w) setPageWidthPx(w)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [overlayMode, pdfBlob])
 
   // Auto-disable DRAFT watermark for paid plans
   useEffect(() => {
@@ -113,14 +124,14 @@ export function EditorPage() {
   // Debounced PDF regeneration
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => regenerate(data, pdfScale), 400)
+    timerRef.current = setTimeout(() => regenerate(data), 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, pdfScale])
+  }, [data])
 
-  async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
+  async function regenerate(d: AWBData) {
     setGenerating(true)
     try {
-      const blob = await pdf(<AWBDocument data={d} userScale={scale} />).toBlob()
+      const blob = await pdf(<AWBDocument data={d} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
@@ -242,18 +253,62 @@ export function EditorPage() {
         </div>
       )}
 
-      <div className="main">
-        <div className="form-panel-wrap" style={{ width: formWidth }}>
-          {/* Font size toolbar */}
-          <div className="form-font-toolbar">
-            <span style={{ fontSize: 10, color: '#888', marginRight: 4 }}>Text size:</span>
-            <button className={`btn-font-size ${fontSize === 'sm' ? 'active' : ''}`} onClick={() => setFontSize('sm')}>A−</button>
-            <button className={`btn-font-size ${fontSize === 'md' ? 'active' : ''}`} onClick={() => setFontSize('md')}>A</button>
-            <button className={`btn-font-size ${fontSize === 'lg' ? 'active' : ''}`} onClick={() => setFontSize('lg')}>A+</button>
+      <div className="main main-single">
+        <div className="preview-panel preview-panel-full">
+          {/* Zoom + mode controls */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#2a2a2a', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #444' }}>
+            <button onClick={() => setZoom(z => Math.max(z - 0.1, 0.4))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>−</button>
+            <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
+            <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>+</button>
+            <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>{t('editor.zoomReset')}</button>
+            <div style={{ width: 1, height: 18, background: '#555' }} />
+            {isWideViewport && (
+              <button
+                onClick={() => setOverlayMode(m => !m)}
+                style={{ background: overlayMode ? '#8b0000' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
+              >
+                {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}
+              </button>
+            )}
+            {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 4 }}>{t('editor.updating')}</span>}
           </div>
-          <div className={`font-size-${fontSize}`}>
-            <AWBFormPanel data={data} onChange={setData} />
-          </div>
+
+          {pdfBlob ? (
+            <div style={{ overflow: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <Document
+                file={pdfBlob}
+                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                loading={null}
+              >
+                {Array.from({ length: numPages }, (_, i) => (
+                  i === 0 && overlayMode ? (
+                    <div key={i + 1} ref={pageWrapRef} style={{ position: 'relative' }}>
+                      <Page
+                        pageNumber={i + 1}
+                        scale={zoom * 1.5}
+                        renderTextLayer={false}
+                        renderAnnotationLayer={false}
+                      />
+                      {pageWidthPx > 0 && (
+                        <AWBOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />
+                      )}
+                    </div>
+                  ) : (
+                    <Page
+                      key={i + 1}
+                      pageNumber={i + 1}
+                      scale={zoom * 1.5}
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
+                    />
+                  )
+                ))}
+              </Document>
+            </div>
+          ) : (
+            <div className="preview-loading">{t('editor.previewLoading')}</div>
+          )}
+
           {/* Mobile-only: sticky download bar */}
           <div className="mobile-pdf-strip">
             {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, flex: 1 }}>{t('editor.generating')}</span>}
@@ -270,51 +325,12 @@ export function EditorPage() {
             {!pdfUrl && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>}
           </div>
         </div>
-        <div className="resize-handle" onMouseDown={onDragStart} title="Drag to resize" />
-        <div className="preview-panel">
-          {/* Zoom + PDF text size controls */}
-          <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#2a2a2a', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #444' }}>
-            {/* View zoom */}
-            <button onClick={() => setZoom(z => Math.max(z - 0.1, 0.4))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>−</button>
-            <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
-            <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>+</button>
-            <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>{t('editor.zoomReset')}</button>
-            {/* Divider */}
-            <div style={{ width: 1, height: 18, background: '#555' }} />
-            {/* PDF text size */}
-            <span style={{ color: '#888', fontSize: 10 }}>Doc:</span>
-            {(['sm', 'md', 'lg'] as const).map(s => (
-              <button key={s} onClick={() => setPdfScale(s)} style={{
-                background: pdfScale === s ? '#8b0000' : '#333', border: 'none',
-                color: pdfScale === s ? '#fff' : '#aaa',
-                padding: '0 7px', height: 26, borderRadius: 4, cursor: 'pointer',
-                fontSize: s === 'sm' ? 10 : s === 'md' ? 12 : 14, fontWeight: 700,
-              }}>A</button>
-            ))}
-            {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 4 }}>{t('editor.updating')}</span>}
+
+        {!overlayMode && (
+          <div className="form-panel-wrap form-panel-wrap-fallback">
+            <AWBFormPanel data={data} onChange={setData} />
           </div>
-          {pdfBlob ? (
-            <div style={{ overflow: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <Document
-                file={pdfBlob}
-                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                loading={null}
-              >
-                {Array.from({ length: numPages }, (_, i) => (
-                  <Page
-                    key={i + 1}
-                    pageNumber={i + 1}
-                    scale={zoom * 1.5}
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                  />
-                ))}
-              </Document>
-            </div>
-          ) : (
-            <div className="preview-loading">{t('editor.previewLoading')}</div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   )
