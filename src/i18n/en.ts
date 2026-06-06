@@ -110,6 +110,8 @@ const en = {
     sub: 'Air Waybill Generator — IATA Format',
     example: 'Example',
     clear: 'Clear',
+    clearConfirm: 'Clear all fields? This cannot be undone.',
+    exampleConfirm: 'Load example data? Your current fields will be replaced.',
     saveDoc: 'Save',
     saving: 'Saving...',
     saved: 'Saved ✓',

@@ -206,17 +206,16 @@ export function EditorPage() {
       {/* Row 2 — Document actions */}
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button className="btn-example" onClick={() => setData(exampleAWB)}>{t('editor.example')}</button>
-          <button className="btn-example" onClick={() => { setData(defaultAWBData); setCurrentId(null) }}>{t('editor.clear')}</button>
+          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.exampleConfirm'))) setData(exampleAWB) }}>{t('editor.example')}</button>
+          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { setData(defaultAWBData); setCurrentId(null) } }}>{t('editor.clear')}</button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
           {saveMsg && <span style={{ color: saveMsg.includes('Error') ? '#ffaaaa' : 'rgba(255,255,255,0.8)', fontSize: 12 }}>{saveMsg}</span>}
           <button
-            className="btn-example"
+            className="btn-save"
             onClick={handleSave}
             disabled={saving || atLimit || hawbBlocked}
-            style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700, opacity: (atLimit || hawbBlocked) ? 0.5 : 1 }}
             title={hawbBlocked ? 'Upgrade to Pro to save HAWBs' : atLimit ? t('editor.limitReached') : undefined}
           >
             {saving ? t('editor.saving') : t('editor.saveDoc')}
@@ -226,7 +225,7 @@ export function EditorPage() {
               (window as any).clarity?.('event', 'awb_downloaded')
               supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
             }}>
-              {t('editor.downloadPdf')}
+              ↓ {t('editor.downloadPdf')}
             </a>
           )}
           <Link to="/settings" className="btn-download" style={{ gap: 4 }}>

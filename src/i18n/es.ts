@@ -110,6 +110,8 @@ const es = {
     sub: 'Generador de Air Waybill — Formato IATA',
     example: 'Ejemplo',
     clear: 'Limpiar',
+    clearConfirm: '¿Limpiar todos los campos? Esta acción no se puede deshacer.',
+    exampleConfirm: '¿Cargar datos de ejemplo? Los campos actuales serán reemplazados.',
     saveDoc: 'Guardar',
     saving: 'Guardando...',
     saved: 'Guardado ✓',
