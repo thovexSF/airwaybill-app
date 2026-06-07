@@ -98,6 +98,7 @@ export function AWBFormPanel({ data, onChange }: Props) {
         ) : (
           <Row>
             <Field label="Prefix (airline code)" value={data.awbPrefix} onChange={set('awbPrefix')} placeholder="014" />
+            <Field label="Airport Code" value={data.awbAirportCode} onChange={set('awbAirportCode')} placeholder="SCL" />
             <div className="field">
               <label>Serial Number</label>
               <input
