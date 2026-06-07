@@ -88,7 +88,9 @@ const RATE_ROWS = 5 // fixed visible rows in the table (matches current pad-to-5
 const H_RATE_TOTALS = 16
 // Charges left column: 10 alternating label+value rows × 10pt each = 100pt
 const CHG_ROW_H = 10
-const H_CHARGES = 102 // 10 rows × 10pt + 2 margin
+// Right column needs: 10pt header + 6×10pt charge rows + 38pt cert + 18pt signature = 126pt
+// Left column needs: 10 rows × 10pt = 100pt → use 130pt for breathing room
+const H_CHARGES = 130
 const OTHER_CHARGE_ROWS = 6 // fixed visible rows for "Other Charges" mini-table
 const H_TOTALS = 22
 const H_CC = 34
@@ -333,40 +335,43 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
     const lx = chargesLeft.x
     const ly = chargesLeft.y
     const lw = chargesLeft.width
-    const halfW = lw / 2
+    // 3 sub-columns: PPD (left) | label (center) | COLL (right) — matching real IATA AWB format
+    const thirdW = lw / 3
 
-    // Row 0: "Prepaid Weight Charge" | "Collect" header
-    staticTexts.push({ key: 'chgLbl0a', x: lx + 2, y: ly, width: halfW - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Prepaid  Weight Charge' })
-    staticTexts.push({ key: 'chgLbl0b', x: lx + halfW + 2, y: ly, width: halfW - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Collect' })
-    // Row 1: values
-    push({ key: 'weightChargePPD',  x: lx + 2, y: ly + CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
-    push({ key: 'weightChargeCOLL', x: lx + halfW + 2, y: ly + CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    // Row 0 header: "Prepaid" | "Weight Charge" | "Collect"
+    staticTexts.push({ key: 'chgLbl0a', x: lx + 1, y: ly + 1, width: thirdW - 2, height: CHG_ROW_H - 2, fontSize: XS, lineHeight: 1.2, text: 'Prepaid' })
+    staticTexts.push({ key: 'chgLbl0b', x: lx + thirdW + 1, y: ly + 1, width: thirdW - 2, height: CHG_ROW_H - 2, fontSize: XS, lineHeight: 1.2, text: 'Weight Charge' })
+    staticTexts.push({ key: 'chgLbl0c', x: lx + 2 * thirdW + 1, y: ly + 1, width: thirdW - 2, height: CHG_ROW_H - 2, fontSize: XS, lineHeight: 1.2, text: 'Collect' })
+    // Row 1: PPD value | empty | COLL value
+    push({ key: 'weightChargePPD',  x: lx + 2, y: ly + CHG_ROW_H, width: thirdW - 4, height: CHG_ROW_H, fontSize: 8 })
+    push({ key: 'weightChargeCOLL', x: lx + 2 * thirdW + 2, y: ly + CHG_ROW_H, width: thirdW - 4, height: CHG_ROW_H, fontSize: 8 })
     // Row 2: "Valuation Charge" label (full width)
-    staticTexts.push({ key: 'chgLbl2', x: lx + 2, y: ly + 2 * CHG_ROW_H, width: lw - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Valuation Charge' })
+    staticTexts.push({ key: 'chgLbl2', x: lx + 2, y: ly + 2 * CHG_ROW_H + 1, width: lw - 4, height: CHG_ROW_H - 2, fontSize: XS, lineHeight: 1.2, text: 'Valuation Charge' })
     // Row 3: values
-    push({ key: 'valuationChargePPD',  x: lx + 2, y: ly + 3 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
-    push({ key: 'valuationChargeCOLL', x: lx + halfW + 2, y: ly + 3 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    push({ key: 'valuationChargePPD',  x: lx + 2, y: ly + 3 * CHG_ROW_H, width: thirdW - 4, height: CHG_ROW_H, fontSize: 8 })
+    push({ key: 'valuationChargeCOLL', x: lx + 2 * thirdW + 2, y: ly + 3 * CHG_ROW_H, width: thirdW - 4, height: CHG_ROW_H, fontSize: 8 })
     // Row 4: "Tax" label (full width)
-    staticTexts.push({ key: 'chgLbl4', x: lx + 2, y: ly + 4 * CHG_ROW_H, width: lw - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Tax' })
+    staticTexts.push({ key: 'chgLbl4', x: lx + 2, y: ly + 4 * CHG_ROW_H + 1, width: lw - 4, height: CHG_ROW_H - 2, fontSize: XS, lineHeight: 1.2, text: 'Tax' })
     // Row 5: values
-    push({ key: 'taxPPD',  x: lx + 2, y: ly + 5 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
-    push({ key: 'taxCOLL', x: lx + halfW + 2, y: ly + 5 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    push({ key: 'taxPPD',  x: lx + 2, y: ly + 5 * CHG_ROW_H, width: thirdW - 4, height: CHG_ROW_H, fontSize: 8 })
+    push({ key: 'taxCOLL', x: lx + 2 * thirdW + 2, y: ly + 5 * CHG_ROW_H, width: thirdW - 4, height: CHG_ROW_H, fontSize: 8 })
     // Row 6: "Total Other Charges Due Agent" (full width)
-    staticTexts.push({ key: 'chgLbl6', x: lx + 2, y: ly + 6 * CHG_ROW_H, width: lw - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Total Other Charges Due Agent' })
-    // Row 7: totalDueAgent value | empty
-    push({ key: 'totalOtherChargesDueAgent', x: lx + 2, y: ly + 7 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    staticTexts.push({ key: 'chgLbl6', x: lx + 2, y: ly + 6 * CHG_ROW_H + 1, width: lw - 4, height: CHG_ROW_H - 2, fontSize: XS, lineHeight: 1.2, text: 'Total Other Charges Due Agent' })
+    // Row 7: totalDueAgent in PPD (left) column
+    push({ key: 'totalOtherChargesDueAgent', x: lx + 2, y: ly + 7 * CHG_ROW_H, width: thirdW - 4, height: CHG_ROW_H, fontSize: 8 })
     // Row 8: "Total Other Charges Due Carrier" (full width)
-    staticTexts.push({ key: 'chgLbl8', x: lx + 2, y: ly + 8 * CHG_ROW_H, width: lw - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Total Other Charges Due Carrier' })
-    // Row 9: empty | totalDueCarrier value
-    push({ key: 'totalOtherChargesDueCarrier', x: lx + halfW + 2, y: ly + 9 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    staticTexts.push({ key: 'chgLbl8', x: lx + 2, y: ly + 8 * CHG_ROW_H + 1, width: lw - 4, height: CHG_ROW_H - 2, fontSize: XS, lineHeight: 1.2, text: 'Total Other Charges Due Carrier' })
+    // Row 9: totalDueCarrier in COLL (right) column
+    push({ key: 'totalOtherChargesDueCarrier', x: lx + 2 * thirdW + 2, y: ly + 9 * CHG_ROW_H, width: thirdW - 4, height: CHG_ROW_H, fontSize: 8 })
 
-    // Horizontal dividers for left column (between each label-value pair)
+    // Horizontal dividers for left column (between each row)
     for (let r = 1; r <= 9; r++) {
       boxes.push({ x: lx, y: ly + r * CHG_ROW_H, width: lw, height: 0, borderBottom: true })
     }
-    // Vertical divider in the value rows (between PPD and COLL sub-columns)
-    for (const r of [1, 3, 5, 7, 9]) {
-      boxes.push({ x: lx + halfW, y: ly + r * CHG_ROW_H, width: 0, height: CHG_ROW_H, borderRight: true })
+    // Vertical dividers: two dividers in value rows (at 1/3 and 2/3 width) + header row
+    for (const r of [0, 1, 3, 5, 7, 9]) {
+      boxes.push({ x: lx + thirdW, y: ly + r * CHG_ROW_H, width: 0, height: CHG_ROW_H, borderRight: true })
+      boxes.push({ x: lx + 2 * thirdW, y: ly + r * CHG_ROW_H, width: 0, height: CHG_ROW_H, borderRight: true })
     }
 
     // Other charges mini-table (right column)
@@ -378,8 +383,11 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
     for (let i = 0; i < OTHER_CHARGE_ROWS; i++) {
       const rowY = otherChargesTop + i * CHG_ROW_H
       const [descCell, amtCell] = hsplit(chargesRight.x, rowY, chargesRight.width, CHG_ROW_H, [2, 1])
-      push({ key: `otherCharges.${i}.description`, ...cellIn(descCell, 2), fontSize: TXT, rowTemplate: true })
-      push({ key: `otherCharges.${i}.amount`, ...cellIn(amtCell, 2), fontSize: TXT, align: 'right', rowTemplate: true })
+      // Use minimal padding so text (TXT=8.5pt) fits within 10pt row height
+      push({ key: `otherCharges.${i}.description`, x: descCell.x + 2, y: descCell.y + 1, width: descCell.width - 4, height: descCell.height - 1, fontSize: 7, rowTemplate: true })
+      push({ key: `otherCharges.${i}.amount`, x: amtCell.x + 1, y: amtCell.y + 1, width: amtCell.width - 3, height: amtCell.height - 1, fontSize: 7, align: 'right', rowTemplate: true })
+      // Horizontal divider below each row
+      boxes.push({ x: chargesRight.x, y: rowY + CHG_ROW_H, width: chargesRight.width, height: 0, borderBottom: true })
     }
     // Shipper cert + signature at bottom of right column
     const certY = chargesRight.y + H_CHARGES - 58
