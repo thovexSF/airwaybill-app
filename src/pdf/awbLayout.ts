@@ -74,18 +74,18 @@ function hsplitFixed(x: number, y: number, totalWidth: number, height: number, w
 
 // ── Row heights (frozen from AWBDocument minHeights / measured sizes at k=1.0) ──
 const H_HEADER = 22
-const H_SEC1 = 76
-const H_SEC2 = 66
-const H_AGENT = 34
-const H_IATA = 24
-const H_DEPARTURE = 24
-const H_ROUTING = 36
-const H_DEST = 30
-const H_HANDLING = 24
-const H_RATE_HEADER = 26
-const H_RATE_ROW = 18
+const H_SEC1 = 84   // shipper section — taller to match real AWB proportions
+const H_SEC2 = 72   // consignee section
+const H_AGENT = 36
+const H_IATA = 22
+const H_DEPARTURE = 22
+const H_ROUTING = 34
+const H_DEST = 28
+const H_HANDLING = 28
+const H_RATE_HEADER = 30
+const H_RATE_ROW = 38   // tall rows so nature/quantity text fits multi-line (matches real AWB ~40pt)
 const RATE_ROWS = 5 // fixed visible rows in the table (matches current pad-to-5 behavior)
-const H_RATE_TOTALS = 16
+const H_RATE_TOTALS = 20
 // Charges left column: 10 alternating label+value rows × 10pt each = 100pt
 const CHG_ROW_H = 10
 // Right column needs: 10pt header + 6×10pt charge rows + 38pt cert + 18pt signature = 126pt
@@ -309,7 +309,7 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
     push({ key: `rateItems.${i}.chargeableWeight`, ...cellIn(r[3]), fontSize: TXT, align: 'center', rowTemplate: true })
     push({ key: `rateItems.${i}.rateCharge`, ...cellIn(r[4]), fontSize: TXT, align: 'right', rowTemplate: true })
     push({ key: `rateItems.${i}.total`, ...cellIn(r[5]), fontSize: TXT, align: 'right', rowTemplate: true })
-    push({ key: `rateItems.${i}.natureAndQuantity`, ...cellIn(r[6]), fontSize: TXT, rowTemplate: true })
+    push({ key: `rateItems.${i}.natureAndQuantity`, ...cellIn(r[6]), fontSize: TXT, multiline: true, maxLines: 4, rowTemplate: true })
   }
   box({ x: CONTENT_X, y: rateTableTop + RATE_ROWS * H_RATE_ROW, width: CONTENT_WIDTH, height: H_RATE_TOTALS })
   y = rateTableTop + RATE_ROWS * H_RATE_ROW + H_RATE_TOTALS
