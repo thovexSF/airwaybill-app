@@ -86,7 +86,9 @@ const H_RATE_HEADER = 26
 const H_RATE_ROW = 18
 const RATE_ROWS = 5 // fixed visible rows in the table (matches current pad-to-5 behavior)
 const H_RATE_TOTALS = 16
-const H_CHARGES = 76
+// Charges left column: 10 alternating label+value rows × 10pt each = 100pt
+const CHG_ROW_H = 10
+const H_CHARGES = 102 // 10 rows × 10pt + 2 margin
 const OTHER_CHARGE_ROWS = 6 // fixed visible rows for "Other Charges" mini-table
 const H_TOTALS = 22
 const H_CC = 34
@@ -311,47 +313,78 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
   y = rateTableTop + RATE_ROWS * H_RATE_ROW + H_RATE_TOTALS
 
   // ── Charges section ──
+  // Left column: alternating label rows / value rows matching the original flex layout exactly.
+  // Row structure (each row = CHG_ROW_H = 10pt):
+  //   0: "Prepaid Weight Charge" (left half label) | "Collect" (right half static header)
+  //   1: [weightChargePPD value]  | [weightChargeCOLL value]
+  //   2: "Valuation Charge" label (full width)
+  //   3: [valuationChargePPD]     | [valuationChargeCOLL]
+  //   4: "Tax" label (full width)
+  //   5: [taxPPD]                 | [taxCOLL]
+  //   6: "Total Other Charges Due Agent" (full width)
+  //   7: [totalOtherChargesDueAgent] | [empty]
+  //   8: "Total Other Charges Due Carrier" (full width)
+  //   9: [empty]                  | [totalOtherChargesDueCarrier]
   {
     const [chargesLeft, chargesRight] = hsplit(CONTENT_X, y, CONTENT_WIDTH, H_CHARGES, [1, 2.2])
-    box(chargesLeft, { borderLeft: true })
+    box(chargesLeft, { borderLeft: true, borderBottom: true })
     box(chargesRight, fullBorder)
-    const chgRowH = 10
-    const leftFields: { key: FieldKey; row: number; col: 'label' | 'value' }[] = [
-      { key: 'weightChargePPD', row: 1, col: 'label' },
-      { key: 'weightChargeCOLL', row: 1, col: 'value' },
-      { key: 'valuationChargePPD', row: 3, col: 'label' },
-      { key: 'valuationChargeCOLL', row: 3, col: 'value' },
-      { key: 'taxPPD', row: 5, col: 'label' },
-      { key: 'taxCOLL', row: 5, col: 'value' },
-      { key: 'totalOtherChargesDueAgent', row: 7, col: 'label' },
-      { key: 'totalOtherChargesDueCarrier', row: 9, col: 'value' },
-    ]
-    const labels: Record<string, string> = {
-      weightChargePPD: 'Prepaid Weight Charge', weightChargeCOLL: 'Collect Weight Charge',
-      valuationChargePPD: 'Valuation Charge (Prepaid)', valuationChargeCOLL: 'Valuation Charge (Collect)',
-      taxPPD: 'Tax (Prepaid)', taxCOLL: 'Tax (Collect)',
-      totalOtherChargesDueAgent: 'Total Other Charges Due Agent', totalOtherChargesDueCarrier: 'Total Other Charges Due Carrier',
+
+    const lx = chargesLeft.x
+    const ly = chargesLeft.y
+    const lw = chargesLeft.width
+    const halfW = lw / 2
+
+    // Row 0: "Prepaid Weight Charge" | "Collect" header
+    staticTexts.push({ key: 'chgLbl0a', x: lx + 2, y: ly, width: halfW - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Prepaid  Weight Charge' })
+    staticTexts.push({ key: 'chgLbl0b', x: lx + halfW + 2, y: ly, width: halfW - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Collect' })
+    // Row 1: values
+    push({ key: 'weightChargePPD',  x: lx + 2, y: ly + CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    push({ key: 'weightChargeCOLL', x: lx + halfW + 2, y: ly + CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    // Row 2: "Valuation Charge" label (full width)
+    staticTexts.push({ key: 'chgLbl2', x: lx + 2, y: ly + 2 * CHG_ROW_H, width: lw - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Valuation Charge' })
+    // Row 3: values
+    push({ key: 'valuationChargePPD',  x: lx + 2, y: ly + 3 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    push({ key: 'valuationChargeCOLL', x: lx + halfW + 2, y: ly + 3 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    // Row 4: "Tax" label (full width)
+    staticTexts.push({ key: 'chgLbl4', x: lx + 2, y: ly + 4 * CHG_ROW_H, width: lw - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Tax' })
+    // Row 5: values
+    push({ key: 'taxPPD',  x: lx + 2, y: ly + 5 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    push({ key: 'taxCOLL', x: lx + halfW + 2, y: ly + 5 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    // Row 6: "Total Other Charges Due Agent" (full width)
+    staticTexts.push({ key: 'chgLbl6', x: lx + 2, y: ly + 6 * CHG_ROW_H, width: lw - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Total Other Charges Due Agent' })
+    // Row 7: totalDueAgent value | empty
+    push({ key: 'totalOtherChargesDueAgent', x: lx + 2, y: ly + 7 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+    // Row 8: "Total Other Charges Due Carrier" (full width)
+    staticTexts.push({ key: 'chgLbl8', x: lx + 2, y: ly + 8 * CHG_ROW_H, width: lw - 4, height: CHG_ROW_H, fontSize: XS, lineHeight: 1.2, text: 'Total Other Charges Due Carrier' })
+    // Row 9: empty | totalDueCarrier value
+    push({ key: 'totalOtherChargesDueCarrier', x: lx + halfW + 2, y: ly + 9 * CHG_ROW_H, width: halfW - 4, height: CHG_ROW_H, fontSize: TXT })
+
+    // Horizontal dividers for left column (between each label-value pair)
+    for (let r = 1; r <= 9; r++) {
+      boxes.push({ x: lx, y: ly + r * CHG_ROW_H, width: lw, height: 0, borderBottom: true })
     }
-    for (const f of leftFields) {
-      const [labelCell, valueCell] = hsplit(chargesLeft.x, chargesLeft.y + f.row * chgRowH, chargesLeft.width, chgRowH, [1, 1])
-      const cell = f.col === 'label' ? labelCell : valueCell
-      push({ key: f.key, ...cellIn(cell, 2), fontSize: TXT, label: labels[f.key as string] })
+    // Vertical divider in the value rows (between PPD and COLL sub-columns)
+    for (const r of [1, 3, 5, 7, 9]) {
+      boxes.push({ x: lx + halfW, y: ly + r * CHG_ROW_H, width: 0, height: CHG_ROW_H, borderRight: true })
     }
 
-    // Other charges mini-table
-    const otherChargesTop = chargesRight.y + 10
+    // Other charges mini-table (right column)
+    const otherChargesTop = chargesRight.y + CHG_ROW_H
     staticTexts.push({
-      key: 'otherChargesLabel', x: chargesRight.x + 2, y: chargesRight.y + 1, width: chargesRight.width - 4, height: 9,
-      fontSize: XS, lineHeight: 1.2, text: 'Other Charges',
+      key: 'otherChargesLabel', x: chargesRight.x + 2, y: chargesRight.y + 1,
+      width: chargesRight.width - 4, height: CHG_ROW_H - 1, fontSize: XS, lineHeight: 1.2, text: 'Other Charges',
     })
     for (let i = 0; i < OTHER_CHARGE_ROWS; i++) {
-      const rowY = otherChargesTop + i * chgRowH
-      const [descCell, amtCell] = hsplit(chargesRight.x, rowY, chargesRight.width, chgRowH, [2, 1])
+      const rowY = otherChargesTop + i * CHG_ROW_H
+      const [descCell, amtCell] = hsplit(chargesRight.x, rowY, chargesRight.width, CHG_ROW_H, [2, 1])
       push({ key: `otherCharges.${i}.description`, ...cellIn(descCell, 2), fontSize: TXT, rowTemplate: true })
       push({ key: `otherCharges.${i}.amount`, ...cellIn(amtCell, 2), fontSize: TXT, align: 'right', rowTemplate: true })
     }
+    // Shipper cert + signature at bottom of right column
+    const certY = chargesRight.y + H_CHARGES - 58
     staticTexts.push({
-      key: 'shipperCert', x: chargesRight.x + 4, y: chargesRight.y + H_CHARGES - 56, width: chargesRight.width - 8, height: 36,
+      key: 'shipperCert', x: chargesRight.x + 4, y: certY, width: chargesRight.width - 8, height: 38,
       fontSize: XS, lineHeight: 1.5, text: SHIPPER_CERT,
     })
     push({
