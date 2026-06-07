@@ -2,7 +2,7 @@ import React from 'react'
 import { Document, Page, View, Text, StyleSheet, Image } from '@react-pdf/renderer'
 import { AWBData } from '../types/awb'
 import {
-  AWB_BOXES, STATIC_TEXT_BLOCKS, PAGE_PADDING,
+  AWB_BOXES, STATIC_TEXT_BLOCKS, PAGE_PADDING, PAGE_WIDTH,
   FieldDef, BoxDef, getFieldDefs,
 } from './awbLayout'
 
@@ -148,6 +148,16 @@ export function AWBDocument({ data }: { data: AWBData; userScale?: 'sm' | 'md' |
           }
           return <Field key={i} def={def} value={fieldValue(data, def)} />
         })}
+
+        {/* Full AWB number displayed prominently on the right side of the header row */}
+        {awbFull ? (
+          <Text style={[styles.field, {
+            left: PAGE_PADDING + 46 + 40 + 120 + 4,
+            top: PAGE_PADDING + 3,
+            width: PAGE_WIDTH - PAGE_PADDING * 2 - 46 - 40 - 120 - 8,
+            fontSize: 13, fontFamily: 'Helvetica-Bold', textAlign: 'right',
+          }]}>{awbFull}</Text>
+        ) : null}
 
         {data.carrierLogoUrl && (
           <Image

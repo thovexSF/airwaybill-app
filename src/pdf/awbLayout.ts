@@ -114,14 +114,16 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
   const box = (r: Rect, borders: Partial<BoxDef> = fullBorder) => boxes.push({ ...r, ...borders })
   let y = PAGE_PADDING
 
-  // ── Header: AWB number (3 boxes: prefix | airport code | serial) ──
-  // Real IATA format: "045 | SCL | 21564944" left portion, title right portion
+  // ── Header: AWB number ──
+  // Real IATA format: [prefix][airport][serial] on left, [full number prominently] on right
   {
-    const r = hsplitFixed(CONTENT_X, y, CONTENT_WIDTH, H_HEADER, [50, 44, 120, 'auto'])
+    const r = hsplitFixed(CONTENT_X, y, CONTENT_WIDTH, H_HEADER, [46, 40, 120, 'auto'])
     box(r[0]); box(r[1]); box(r[2])
+    // r[3] = auto-width area on the right, no border, shows full AWB number prominently
     push({ key: 'awbPrefix',      ...rectIn(r[0], 3), fontSize: 12, align: 'center', label: 'Prefix' })
     push({ key: 'awbAirportCode', ...rectIn(r[1], 3), fontSize: 12, align: 'center', label: 'Airport' })
     push({ key: 'awbSerial',      ...rectIn(r[2], 3), fontSize: 12, align: 'left',   label: 'Serial' })
+    // Full AWB number on the right is rendered directly in AWBDocument (dynamic value)
     y += H_HEADER
   }
 
