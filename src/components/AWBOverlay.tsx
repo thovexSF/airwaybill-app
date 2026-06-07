@@ -99,13 +99,20 @@ export function AWBOverlay({ data, onChange, pageWidthPx }: { data: AWBData; onC
         const rowMatch = /^(rateItems|otherCharges)\.(\d+)\./.exec(key)
         const rowInfo = rowMatch ? { table: rowMatch[1] as 'rateItems' | 'otherCharges', index: Number(rowMatch[2]) } : null
 
+        // Label height: ~label font size (5.5pt * scale) + 2px gap, min 8px
+        const labelFontPx = Math.max(5.5 * ptToPx, 6)
+        const labelH = def.label ? labelFontPx + 2 : 0
+
         const commonStyle: React.CSSProperties = {
           position: 'absolute', pointerEvents: 'auto',
-          left: px.left, top: px.top, width: px.width, height: px.height,
+          left: px.left,
+          top: px.top + labelH,
+          width: px.width,
+          height: Math.max(px.height - labelH, 10),
           fontSize: px.fontSize, lineHeight: 1.15,
           fontFamily: 'Helvetica, Arial, sans-serif',
           textAlign: def.align ?? 'left',
-          border: 'none', outline: 'none', background: 'rgba(255,255,255,0.95)',
+          border: 'none', outline: 'none', background: 'rgba(255,255,255,0.9)',
           padding: 0, color: '#000', resize: 'none',
         }
 
@@ -113,29 +120,44 @@ export function AWBOverlay({ data, onChange, pageWidthPx }: { data: AWBData; onC
           onFocus: () => setFocusedRow(rowInfo),
         } : undefined
 
+        const labelEl = def.label ? (
+          <div key={`lbl-${i}`} style={{
+            position: 'absolute', pointerEvents: 'none',
+            left: px.left, top: px.top,
+            width: px.width, height: labelFontPx,
+            fontSize: labelFontPx, lineHeight: 1,
+            color: RED, fontFamily: 'Helvetica, Arial, sans-serif',
+            whiteSpace: 'nowrap', overflow: 'hidden',
+          }}>{def.label}</div>
+        ) : null
+
         if (def.multiline) {
           return (
-            <textarea
-              key={i}
-              value={value}
-              onChange={(e) => set(def, e.target.value)}
-              style={{ ...commonStyle, overflow: 'auto' }}
-              className="awb-overlay-field"
-              {...sharedHandlers}
-            />
+            <React.Fragment key={i}>
+              {labelEl}
+              <textarea
+                value={value}
+                onChange={(e) => set(def, e.target.value)}
+                style={{ ...commonStyle, overflow: 'auto' }}
+                className="awb-overlay-field"
+                {...sharedHandlers}
+              />
+            </React.Fragment>
           )
         }
 
         return (
-          <input
-            key={i}
-            type="text"
-            value={value}
-            onChange={(e) => set(def, e.target.value)}
-            style={commonStyle}
-            className="awb-overlay-field"
-            {...sharedHandlers}
-          />
+          <React.Fragment key={i}>
+            {labelEl}
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => set(def, e.target.value)}
+              style={commonStyle}
+              className="awb-overlay-field"
+              {...sharedHandlers}
+            />
+          </React.Fragment>
         )
       })}
 
