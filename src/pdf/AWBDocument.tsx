@@ -156,10 +156,6 @@ export function AWBDocument({ data }: { data: AWBData; userScale?: 'sm' | 'md' |
           />
         )}
 
-        <Text style={[styles.field, { left: PAGE_PADDING + 100, top: PAGE_PADDING + 5, fontSize: 12, fontFamily: 'Helvetica-Bold' }]}>
-          {awbFull}
-        </Text>
-
         <View style={styles.footer}>
           <Text style={styles.footerBrand}>AIRWAYBILL APP</Text>
           <View style={{ alignItems: 'center' }}>
