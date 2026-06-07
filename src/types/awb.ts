@@ -21,6 +21,7 @@ export interface OtherCharge {
 export interface AWBData {
   // Header
   awbPrefix: string
+  awbAirportCode: string  // 3-letter airport code shown between prefix and serial (e.g. "SCL")
   awbSerial: string
 
   // Carrier (shown in Not Negotiable box)
@@ -116,6 +117,7 @@ export interface AWBData {
 
 export const defaultAWBData: AWBData = {
   awbPrefix: '',
+  awbAirportCode: '',
   awbSerial: '',
   carrierName: '',
   carrierAddress: '',

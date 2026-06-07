@@ -3,6 +3,7 @@ import { AWBData } from '../types/awb'
 // Source: examples/AWB_014-57318306.draft.pdf
 export const exampleAWB: AWBData = {
   awbPrefix: '014',
+  awbAirportCode: 'SCL',
   awbSerial: '57318306',
 
   carrierName: 'AIR CANADA',

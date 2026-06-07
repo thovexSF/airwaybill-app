@@ -114,13 +114,14 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
   const box = (r: Rect, borders: Partial<BoxDef> = fullBorder) => boxes.push({ ...r, ...borders })
   let y = PAGE_PADDING
 
-  // ── Header: AWB number ──
+  // ── Header: AWB number (3 boxes: prefix | airport code | serial) ──
+  // Real IATA format: "045 | SCL | 21564944" left portion, title right portion
   {
-    const r = hsplitFixed(CONTENT_X, y, CONTENT_WIDTH, H_HEADER, [46, 130, 'auto'])
-    box(r[0])
-    box(r[1])
-    push({ key: 'awbPrefix', ...rectIn(r[0], 4), fontSize: 13, align: 'center', label: 'Prefix' })
-    push({ key: 'awbSerial', ...rectIn(r[1], 4), fontSize: 13, align: 'left', label: 'Serial' })
+    const r = hsplitFixed(CONTENT_X, y, CONTENT_WIDTH, H_HEADER, [50, 44, 120, 'auto'])
+    box(r[0]); box(r[1]); box(r[2])
+    push({ key: 'awbPrefix',      ...rectIn(r[0], 3), fontSize: 12, align: 'center', label: 'Prefix' })
+    push({ key: 'awbAirportCode', ...rectIn(r[1], 3), fontSize: 12, align: 'center', label: 'Airport' })
+    push({ key: 'awbSerial',      ...rectIn(r[2], 3), fontSize: 12, align: 'left',   label: 'Serial' })
     y += H_HEADER
   }
 
