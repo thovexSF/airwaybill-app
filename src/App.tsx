@@ -16,6 +16,7 @@ import { RefundsPage } from './pages/RefundsPage'
 import { DGDPage } from './pages/DGDPage'
 import { ManifestPage } from './pages/ManifestPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
+import { DevPreviewPage } from './pages/DevPreviewPage'
 
 export default function App() {
   return (
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/refunds" element={<RefundsPage />} />
+        {import.meta.env.DEV && <Route path="/dev-preview" element={<DevPreviewPage />} />}
       </Routes>
     </BrowserRouter>
   )

@@ -9,6 +9,14 @@ const RED = '#8B0000'
 
 const BOOLEAN_KEYS = new Set<string>(['wtValPPD', 'wtValCOLL', 'otherPPD', 'otherCOLL'])
 
+// Inject a global style so inputs show a red outline on focus without border clutter at rest
+if (typeof document !== 'undefined' && !document.getElementById('awb-overlay-style')) {
+  const s = document.createElement('style')
+  s.id = 'awb-overlay-style'
+  s.textContent = `.awb-overlay-field:focus { outline: 1.5px solid ${RED} !important; background: #fff !important; z-index: 2; }`
+  document.head.appendChild(s)
+}
+
 function fieldStringValue(data: AWBData, def: FieldDef): string {
   const key = def.key as string
   const rateMatch = /^rateItems\.(\d+)\.(.+)$/.exec(key)
@@ -97,7 +105,7 @@ export function AWBOverlay({ data, onChange, pageWidthPx }: { data: AWBData; onC
           fontSize: px.fontSize, lineHeight: 1.15,
           fontFamily: 'Helvetica, Arial, sans-serif',
           textAlign: def.align ?? 'left',
-          border: 'none', outline: 'none', background: 'rgba(255,255,0,0.08)',
+          border: 'none', outline: 'none', background: 'rgba(255,255,255,0.95)',
           padding: 0, color: '#000', resize: 'none',
         }
 
