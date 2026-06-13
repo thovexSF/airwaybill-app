@@ -9,7 +9,7 @@ import {
 const RED = '#8B0000'
 
 const styles = StyleSheet.create({
-  page: { padding: PAGE_PADDING, fontFamily: 'Helvetica', fontSize: 8.5, backgroundColor: '#fff' },
+  page: { padding: PAGE_PADDING, fontFamily: 'Helvetica', fontSize: 8, backgroundColor: '#fff' },
   box: { position: 'absolute', borderColor: RED, borderStyle: 'solid' },
   field: { position: 'absolute' },
   watermark: { position: 'absolute', top: 260, left: 70, fontSize: 100, color: 'rgba(180,0,0,0.07)', fontFamily: 'Helvetica-Bold', transform: 'rotate(-45deg)' },
@@ -136,7 +136,7 @@ export function AWBDocument({ data }: { data: AWBData; userScale?: 'sm' | 'md' |
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="LETTER" style={styles.page}>
         {data.isDraft && <Text style={styles.watermark}>DRAFT</Text>}
 
         {AWB_BOXES.map((b, i) => <Box key={i} b={b} />)}
@@ -149,30 +149,22 @@ export function AWBDocument({ data }: { data: AWBData; userScale?: 'sm' | 'md' |
           return <Field key={i} def={def} value={fieldValue(data, def)} />
         })}
 
-        {/* Full AWB number displayed prominently on the right side of the header row */}
+        {/* Full AWB number displayed prominently on the right side of the header bar */}
         {awbFull ? (
           <Text style={[styles.field, {
-            left: PAGE_PADDING + 46 + 40 + 120 + 4,
-            top: PAGE_PADDING + 3,
-            width: PAGE_WIDTH - PAGE_PADDING * 2 - 46 - 40 - 120 - 8,
-            fontSize: 13, fontFamily: 'Helvetica-Bold', textAlign: 'right',
+            left: 420, top: 16, width: 165,
+            fontSize: 11, fontFamily: 'Helvetica-Bold', textAlign: 'right',
           }]}>{awbFull}</Text>
         ) : null}
 
-        {data.carrierLogoUrl && (
-          <Image
-            src={data.carrierLogoUrl}
-            style={{ position: 'absolute', left: 545, top: PAGE_PADDING + 8, width: 38, height: 24, objectFit: 'contain' }}
-          />
-        )}
-
-        <View style={styles.footer}>
-          <Text style={styles.footerBrand}>AIRWAYBILL APP</Text>
-          <View style={{ alignItems: 'center' }}>
-            <Text style={styles.footerCopy}>{data.copyLabel}</Text>
-            <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: RED, marginTop: 1 }}>{awbFull}</Text>
-          </View>
+        {/* Copy label + repeated AWB number in the bottom-right cell (x 360–590, y 750–774) */}
+        <View style={{ position: 'absolute', left: 362, top: 752, width: 226, alignItems: 'center' }}>
+          <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: RED, textAlign: 'center' }}>{data.copyLabel}</Text>
+          {awbFull ? <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: RED, marginTop: 2 }}>{awbFull}</Text> : null}
         </View>
+
+        {/* App brand bottom-left */}
+        <Text style={{ position: 'absolute', left: 57, top: 778, fontSize: 6, color: '#666' }}>AIRWAYBILL APP</Text>
       </Page>
     </Document>
   )
