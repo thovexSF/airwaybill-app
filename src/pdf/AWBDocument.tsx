@@ -86,10 +86,18 @@ function Field({ def, value }: { def: FieldDef; value: string }) {
   )
 }
 
-function StaticText({ x, y, width, height, fontSize, lineHeight, text }: { x: number; y: number; width: number; height: number; fontSize: number; lineHeight: number; text: string }) {
+function StaticText({ x, y, width, height, fontSize, lineHeight, text, boldFrom }: { x: number; y: number; width: number; height: number; fontSize: number; lineHeight: number; text: string; boldFrom?: string }) {
+  const idx = boldFrom ? text.indexOf(boldFrom) : -1
   return (
     <Text style={[styles.field, { left: x, top: y, width, height, fontSize, lineHeight, overflow: 'hidden' }]}>
-      {text}
+      {idx >= 0 ? (
+        <>
+          {text.slice(0, idx)}
+          <Text style={{ fontFamily: 'Helvetica-Bold' }}>{text.slice(idx)}</Text>
+        </>
+      ) : (
+        text
+      )}
     </Text>
   )
 }

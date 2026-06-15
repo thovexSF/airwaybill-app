@@ -111,7 +111,7 @@ const TXT = 8
 const XS = 5
 
 export type BoxDef = Rect & { borderTop?: boolean; borderBottom?: boolean; borderLeft?: boolean; borderRight?: boolean }
-export type StaticTextDef = { key: string; x: number; y: number; width: number; height: number; fontSize: number; lineHeight: number; text: string }
+export type StaticTextDef = { key: string; x: number; y: number; width: number; height: number; fontSize: number; lineHeight: number; text: string; boldFrom?: string }
 
 const fullBorder = { borderTop: true, borderBottom: true, borderLeft: true, borderRight: true }
 
@@ -122,8 +122,8 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
   const push = (f: FieldDef) => fields.push(f)
   const box = (rect: Rect, borders: Partial<BoxDef> = fullBorder) => boxes.push({ ...rect, ...borders })
   let st = 0
-  const text = (x: number, y: number, width: number, height: number, fontSize: number, txt: string, lineHeight = 1.2) =>
-    staticTexts.push({ key: `s${st++}`, x, y, width, height, fontSize, lineHeight, text: txt })
+  const text = (x: number, y: number, width: number, height: number, fontSize: number, txt: string, lineHeight = 1.2, boldFrom?: string) =>
+    staticTexts.push({ key: `s${st++}`, x, y, width, height, fontSize, lineHeight, text: txt, boldFrom })
 
   // ── Header: AWB number bar (y 14–30) ──
   box(r(L, Y.top, X.rTo1, Y.awbBottom))                 // prefix
@@ -323,7 +323,8 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
       push({ key: `otherCharges.${i}.description`, x: ox + 4, y: ry, width: 150, height: rowH, fontSize: TXT, rowTemplate: true })
       push({ key: `otherCharges.${i}.amount`, x: R - 90, y: ry, width: 86, height: rowH, fontSize: TXT, align: 'right', rowTemplate: true })
     }
-    text(ox + 4, Y.chgRow3 + 2, R - ox - 8, Y.chgRow5 - Y.chgRow3 - 4, 4.6, SHIPPER_CERT, 1.32)
+    // IATA Res. 600a: the part from "insofar…" (dangerous goods) must be printed in bold.
+    text(ox + 4, Y.chgRow3 + 2, R - ox - 8, Y.chgRow5 - Y.chgRow3 - 4, 4.6, SHIPPER_CERT, 1.32, 'insofar')
     push({ key: 'signatureShipper', x: ox + 4, y: Y.chgRow5 + 4, width: R - ox - 8, height: 10, fontSize: TXT, align: 'center' })
     text(ox + 4, Y.chgBottom - 9, R - ox - 8, 8, 4.6, 'Signature of Shipper or his Agent')
   }
