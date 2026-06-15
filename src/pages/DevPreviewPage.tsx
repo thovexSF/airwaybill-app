@@ -90,9 +90,13 @@ export function DevPreviewPage() {
             <div ref={pageWrapRef} style={{ position: 'relative', display: 'inline-block', boxShadow: '0 4px 24px rgba(0,0,0,0.18)' }}>
               <Page
                 pageNumber={1}
-                width={595 * zoom}
+                width={612 * zoom}
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
+                onRenderSuccess={() => {
+                  const w = pageWrapRef.current?.getBoundingClientRect().width
+                  if (w) setPageWidthPx(w)
+                }}
               />
               {pageWidthPx > 0 && (
                 <AWBOverlay data={data} onChange={handleChange} pageWidthPx={pageWidthPx} />

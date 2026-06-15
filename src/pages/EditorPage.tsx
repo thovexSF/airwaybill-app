@@ -288,6 +288,12 @@ export function EditorPage() {
                         scale={zoom * 1.5}
                         renderTextLayer={false}
                         renderAnnotationLayer={false}
+                        onRenderSuccess={() => {
+                          // Measure the rendered width directly — robust even when the
+                          // ResizeObserver's initial callback is throttled (e.g. background tab).
+                          const w = pageWrapRef.current?.getBoundingClientRect().width
+                          if (w) setPageWidthPx(w)
+                        }}
                       />
                       {pageWidthPx > 0 && (
                         <AWBOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />

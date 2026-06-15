@@ -195,15 +195,24 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
     push({ key: 'routeTo3', ...cellIn(r(X.rBy2, Y.depBottom, X.rTo3, yb), 2), fontSize: XS, label: 'to' })
     push({ key: 'routeBy3', ...cellIn(r(X.rTo3, Y.depBottom, MID, yb), 2), fontSize: XS, label: 'by' })
     push({ key: 'currency', ...cellIn(r(MID, Y.depBottom, X.curr, yb), 2), fontSize: XS, label: 'Currency' })
-    text(X.chgs + 1, Y.depBottom + 2, X.otherEnd - X.chgs - 2, 8, 4.4, 'CHGS Code')
-    // WT/VAL and Other headers + PPD/COLL sub-columns
-    text(X.chgs + 1, Y.depBottom + 9, X.wtvalEnd - X.chgs, 7, 4.4, 'WT/VAL')
-    text(X.wtvalEnd + 1, Y.depBottom + 9, X.otherEnd - X.wtvalEnd, 7, 4.4, 'Other')
-    text(X.chgs, Y.depBottom + 15, X.otherEnd - X.chgs, 7, 4, 'PPD COLL PPD COLL')
-    push({ key: 'wtValPPD',  x: X.chgs + 1, y: Y.depBottom + 16, width: X.wtvalMid - X.chgs - 1, height: 8, fontSize: XS, align: 'center' })
-    push({ key: 'wtValCOLL', x: X.wtvalMid, y: Y.depBottom + 16, width: X.wtvalEnd - X.wtvalMid, height: 8, fontSize: XS, align: 'center' })
-    push({ key: 'otherPPD',  x: X.wtvalEnd + 1, y: Y.depBottom + 16, width: X.otherMid - X.wtvalEnd - 1, height: 8, fontSize: XS, align: 'center' })
-    push({ key: 'otherCOLL', x: X.otherMid, y: Y.depBottom + 16, width: X.otherEnd - X.otherMid, height: 8, fontSize: XS, align: 'center' })
+    // CHGS Code (own narrow cell, stacked) + WT/VAL & Other with PPD/COLL sub-columns and X marks below
+    text(X.curr + 1, Y.depBottom + 2, X.chgs - X.curr - 2, 12, 4, 'CHGS\nCode', 1.2)
+    // sub-column dividers within [chgs..otherEnd]
+    for (const vx of [X.wtvalMid, X.wtvalEnd, X.otherMid]) {
+      boxes.push({ x: vx, y: Y.depBottom, width: 0, height: yb - Y.depBottom, borderRight: true })
+    }
+    text(X.chgs + 1, Y.depBottom + 2, X.wtvalEnd - X.chgs - 1, 6, 4, 'WT/VAL', 1)
+    text(X.wtvalEnd + 1, Y.depBottom + 2, X.otherEnd - X.wtvalEnd - 1, 6, 4, 'Other', 1)
+    // PPD / COLL sub-labels, one per quarter cell
+    text(X.chgs, Y.depBottom + 8, X.wtvalMid - X.chgs, 5, 3.4, 'PPD')
+    text(X.wtvalMid, Y.depBottom + 8, X.wtvalEnd - X.wtvalMid, 5, 3.4, 'COLL')
+    text(X.wtvalEnd, Y.depBottom + 8, X.otherMid - X.wtvalEnd, 5, 3.4, 'PPD')
+    text(X.otherMid, Y.depBottom + 8, X.otherEnd - X.otherMid, 5, 3.4, 'COLL')
+    // X marks sit in their own row below the PPD/COLL labels
+    push({ key: 'wtValPPD',  x: X.chgs, y: Y.depBottom + 14, width: X.wtvalMid - X.chgs, height: 9, fontSize: XS, align: 'center' })
+    push({ key: 'wtValCOLL', x: X.wtvalMid, y: Y.depBottom + 14, width: X.wtvalEnd - X.wtvalMid, height: 9, fontSize: XS, align: 'center' })
+    push({ key: 'otherPPD',  x: X.wtvalEnd, y: Y.depBottom + 14, width: X.otherMid - X.wtvalEnd, height: 9, fontSize: XS, align: 'center' })
+    push({ key: 'otherCOLL', x: X.otherMid, y: Y.depBottom + 14, width: X.otherEnd - X.otherMid, height: 9, fontSize: XS, align: 'center' })
     push({ key: 'declaredValueCarriage', ...cellIn(r(X.otherEnd, Y.depBottom, X.declCustoms, yb), 2), fontSize: XS, label: 'Declared Value for Carriage' })
     push({ key: 'declaredValueCustoms', ...cellIn(r(X.declCustoms, Y.depBottom, R, yb), 2), fontSize: XS, label: 'Declared Value for Customs' })
   }
