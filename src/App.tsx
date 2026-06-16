@@ -17,10 +17,12 @@ import { DGDPage } from './pages/DGDPage'
 import { ManifestPage } from './pages/ManifestPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { DevPreviewPage } from './pages/DevPreviewPage'
+import { FeedbackWidget } from './components/FeedbackWidget'
 
 export default function App() {
   return (
     <BrowserRouter>
+      <FeedbackWidget />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route

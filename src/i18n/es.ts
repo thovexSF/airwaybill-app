@@ -200,6 +200,21 @@ const es = {
     sub: 'Tu plan ha sido activado. Puede tomar unos segundos en reflejarse.',
     goToEditor: 'Ir a la App →',
   },
+
+  feedback: {
+    open: 'Enviar feedback',
+    title: 'Enviar feedback',
+    subtitle: '¿Encontraste un bug, falta algo o algo no se entiende? Contanos — leemos cada mensaje.',
+    placeholder: '¿Qué pasó? ¿Qué estabas intentando hacer?',
+    emailPlaceholder: 'Tu email (opcional, para responder)',
+    submit: 'Enviar',
+    sending: 'Enviando...',
+    thanks: '¡Gracias! Recibimos tu mensaje.',
+    errors: {
+      too_short: 'Escribí al menos unas palabras.',
+      send_failed: 'No se pudo enviar ahora. Probá de nuevo en un momento.',
+    },
+  },
 } as const
 
 export default es

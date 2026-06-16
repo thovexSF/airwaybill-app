@@ -200,6 +200,21 @@ const en = {
     sub: 'Your plan has been activated. It may take a few seconds to reflect.',
     goToEditor: 'Go to App →',
   },
+
+  feedback: {
+    open: 'Send feedback',
+    title: 'Send feedback',
+    subtitle: 'Found a bug, missing feature, or something confusing? Tell us — we read every message.',
+    placeholder: 'What happened? What were you trying to do?',
+    emailPlaceholder: 'Your email (optional, for follow-up)',
+    submit: 'Send',
+    sending: 'Sending...',
+    thanks: 'Thanks! We got your message.',
+    errors: {
+      too_short: 'Please write at least a few words.',
+      send_failed: 'Could not send right now. Try again in a moment.',
+    },
+  },
 } as const
 
 export default en
