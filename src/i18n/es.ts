@@ -202,14 +202,15 @@ const es = {
   },
 
   feedback: {
-    open: 'Enviar feedback',
-    title: 'Enviar feedback',
-    subtitle: '¿Encontraste un bug, falta algo o algo no se entiende? Contanos — leemos cada mensaje.',
+    open: 'Hablar con el creador',
+    title: 'Feedback directo',
+    subtitle: 'Esto llega directo al creador de la app por Telegram — no es una cola de soporte. ¿Bug, idea o algo que no se entiende?',
+    directNote: 'Línea directa con el fundador · lectura personal',
     placeholder: '¿Qué pasó? ¿Qué estabas intentando hacer?',
-    emailPlaceholder: 'Tu email (opcional, para responder)',
-    submit: 'Enviar',
+    emailPlaceholder: 'Tu email (opcional, para que el creador pueda responderte)',
+    submit: 'Enviar al creador',
     sending: 'Enviando...',
-    thanks: '¡Gracias! Recibimos tu mensaje.',
+    thanks: '¡Enviado! El creador lo lee personalmente en Telegram.',
     errors: {
       too_short: 'Escribí al menos unas palabras.',
       send_failed: 'No se pudo enviar ahora. Probá de nuevo en un momento.',

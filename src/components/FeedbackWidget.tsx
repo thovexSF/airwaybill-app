@@ -164,8 +164,11 @@ export function FeedbackWidget() {
                 </p>
               ) : (
                 <form onSubmit={handleSubmit}>
-                  <p style={{ margin: '0 0 12px', fontSize: 13, color: '#555', lineHeight: 1.5 }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 13, color: '#555', lineHeight: 1.5 }}>
                     {t('feedback.subtitle')}
+                  </p>
+                  <p style={{ margin: '0 0 12px', fontSize: 11, color: '#8b0000', fontWeight: 600 }}>
+                    {t('feedback.directNote')}
                   </p>
 
                   <textarea
