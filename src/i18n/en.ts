@@ -203,6 +203,7 @@ const en = {
 
   feedback: {
     open: 'Message the creator',
+    label: 'Feedback',
     title: 'Direct feedback',
     subtitle: 'This goes straight to the app creator on Telegram — not a support queue. Found a bug, missing feature, or something confusing?',
     directNote: 'Direct line to the founder · read personally',

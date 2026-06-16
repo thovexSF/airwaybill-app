@@ -82,21 +82,23 @@ export function FeedbackWidget() {
           right: 18,
           bottom: 18,
           zIndex: 900,
-          width: 52,
-          height: 52,
-          borderRadius: '50%',
+          borderRadius: 24,
           border: 'none',
           background: '#8b0000',
           color: '#fff',
-          fontSize: 22,
+          fontSize: 13,
+          fontWeight: 700,
           cursor: 'pointer',
           boxShadow: '0 4px 18px rgba(139,0,0,0.35)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          gap: 6,
+          padding: '10px 16px',
         }}
       >
-        💬
+        <span style={{ fontSize: 18, lineHeight: 1 }} aria-hidden>💬</span>
+        <span>{t('feedback.label')}</span>
       </button>
 
       {open && (

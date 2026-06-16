@@ -203,6 +203,7 @@ const es = {
 
   feedback: {
     open: 'Hablar con el creador',
+    label: 'Feedback',
     title: 'Feedback directo',
     subtitle: 'Esto llega directo al creador de la app por Telegram — no es una cola de soporte. ¿Bug, idea o algo que no se entiende?',
     directNote: 'Línea directa con el fundador · lectura personal',
