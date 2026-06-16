@@ -124,7 +124,7 @@ export function EditorPage() {
   // Debounced PDF regeneration
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => regenerate(data), 400)
+    timerRef.current = setTimeout(() => regenerate(data), 700)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [data])
 
@@ -275,6 +275,7 @@ export function EditorPage() {
 
           {pdfBlob ? (
             <div style={{ overflow: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <div style={{ opacity: generating ? 0.65 : 1, transition: 'opacity 180ms' }}>
               <Document
                 file={pdfBlob}
                 onLoadSuccess={({ numPages }) => setNumPages(numPages)}
@@ -288,9 +289,8 @@ export function EditorPage() {
                         scale={zoom * 1.5}
                         renderTextLayer={false}
                         renderAnnotationLayer={false}
+                        loading={null}
                         onRenderSuccess={() => {
-                          // Measure the rendered width directly — robust even when the
-                          // ResizeObserver's initial callback is throttled (e.g. background tab).
                           const w = pageWrapRef.current?.getBoundingClientRect().width
                           if (w) setPageWidthPx(w)
                         }}
@@ -306,10 +306,12 @@ export function EditorPage() {
                       scale={zoom * 1.5}
                       renderTextLayer={false}
                       renderAnnotationLayer={false}
+                      loading={null}
                     />
                   )
                 ))}
               </Document>
+              </div>
             </div>
           ) : (
             <div className="preview-loading">{t('editor.previewLoading')}</div>

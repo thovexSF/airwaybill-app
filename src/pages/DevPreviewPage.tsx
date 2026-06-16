@@ -51,7 +51,7 @@ export function DevPreviewPage() {
   function handleChange(d: AWBData) {
     setData(d)
     if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => regenerate(d), 400)
+    timerRef.current = setTimeout(() => regenerate(d), 700)
   }
 
   return (
