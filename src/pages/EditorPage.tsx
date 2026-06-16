@@ -236,7 +236,7 @@ export function EditorPage() {
               (window as any).clarity?.('event', 'awb_downloaded')
               supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
             }}>
-              ↓ {t('editor.downloadPdf')}
+              {t('editor.downloadPdf')}
             </a>
           )}
           <Link to="/settings" className="btn-download" style={{ gap: 4 }}>
@@ -325,7 +325,7 @@ export function EditorPage() {
                   (window as any).clarity?.('event', 'awb_downloaded')
                   supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
                 }}>
-                ↓ {t('editor.downloadPdf')}
+                {t('editor.downloadPdf')}
               </a>
             )}
             {!pdfUrl && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>}
