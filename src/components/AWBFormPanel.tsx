@@ -308,11 +308,11 @@ export function AWBFormPanel({ data, onChange }: Props) {
                 <input value={item.rateCharge} onChange={(e) => updateRateItem(item.id, 'rateCharge', e.target.value)} placeholder="400.00" />
                 <input value={item.total} onChange={(e) => updateRateItem(item.id, 'total', e.target.value)} placeholder="400.00" />
                 <input className="col-nature" value={item.natureAndQuantity} onChange={(e) => updateRateItem(item.id, 'natureAndQuantity', e.target.value)} placeholder="BANK NOTES / 30x30x50cm" />
-                <button className="btn-remove" onClick={() => removeRateItem(item.id)}>×</button>
+                <button type="button" className="btn-remove" onClick={() => removeRateItem(item.id)}>×</button>
               </div>
             ))}
           </div>
-          <button className="btn-add" onClick={addRateItem}>+ Add Row</button>
+          <button type="button" className="btn-add" onClick={addRateItem}>+ Add Row</button>
         </div>
       </Section>
 
@@ -327,10 +327,10 @@ export function AWBFormPanel({ data, onChange }: Props) {
                 <option value="DUE AGENT">Due Agent</option>
                 <option value="DUE CARRIER">Due Carrier</option>
               </select>
-              <button className="btn-remove" onClick={() => removeOtherCharge(c.id)}>×</button>
+              <button type="button" className="btn-remove" onClick={() => removeOtherCharge(c.id)}>×</button>
             </div>
           ))}
-          <button className="btn-add" onClick={addOtherCharge}>+ Add Charge</button>
+          <button type="button" className="btn-add" onClick={addOtherCharge}>+ Add Charge</button>
         </div>
       </Section>
 
