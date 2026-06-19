@@ -5,6 +5,7 @@ import { validateAWBSerial, computeCheckDigit } from '../lib/awbCheckDigit'
 interface Props {
   data: AWBData
   onChange: (data: AWBData) => void
+  lockDraftWatermark?: boolean
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -38,7 +39,7 @@ function Row({ children }: { children: React.ReactNode }) {
   return <div className="field-row">{children}</div>
 }
 
-export function AWBFormPanel({ data, onChange }: Props) {
+export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
   const set = (key: keyof AWBData) => (val: string | boolean) =>
     onChange({ ...data, [key]: val })
 
@@ -124,6 +125,7 @@ export function AWBFormPanel({ data, onChange }: Props) {
           </Row>
         )}
         <Row>
+          {!lockDraftWatermark && (
           <div className="field">
             <label>Draft watermark</label>
             <label className="toggle">
@@ -131,6 +133,7 @@ export function AWBFormPanel({ data, onChange }: Props) {
               <span>Show DRAFT</span>
             </label>
           </div>
+          )}
           <div className="field">
             <label>Copy</label>
             <select value={data.copyNumber} onChange={(e) => {

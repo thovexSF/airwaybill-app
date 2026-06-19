@@ -203,8 +203,9 @@ const en = {
   },
 
   demo: {
-    banner: 'Demo mode — no watermark here. Free accounts include a DRAFT watermark on saved PDFs; paid plans remove it.',
+    banner: 'Demo — preview and edit with DRAFT watermark. Sign up free to download PDFs (10/month). Upgrade to remove watermark.',
     signupCta: 'Create free account',
+    downloadCta: 'Sign up to download PDF',
     sub: 'Live demo — no signup required',
     modeLabel: 'Demo',
   },

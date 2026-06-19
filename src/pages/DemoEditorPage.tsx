@@ -20,7 +20,13 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 export function DemoEditorPage() {
   const { t } = useTranslation()
-  const [data, setData] = useState<AWBData>({ ...exampleAWB, isDraft: false })
+  const [data, setDataRaw] = useState<AWBData>({ ...exampleAWB, isDraft: true })
+  const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
+    setDataRaw(prev => {
+      const updated = typeof next === 'function' ? next(prev) : next
+      return { ...updated, isDraft: true }
+    })
+  }
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [numPages, setNumPages] = useState(1)
@@ -71,10 +77,6 @@ export function DemoEditorPage() {
     setGenerating(false)
   }
 
-  const awbFull = data.awbPrefix && data.awbSerial
-    ? `${data.awbPrefix}-${data.awbSerial}`
-    : 'AWB'
-
   return (
     <div className="app">
       <div style={{
@@ -111,17 +113,15 @@ export function DemoEditorPage() {
 
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button type="button" className="btn-example" onClick={() => setData({ ...exampleAWB, isDraft: false })}>
+          <button type="button" className="btn-example" onClick={() => setData({ ...exampleAWB, isDraft: true })}>
             {t('editor.example')}
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
-          {pdfUrl && (
-            <a className="btn-download" href={pdfUrl} download={`AWB_${awbFull}.pdf`}>
-              {t('editor.downloadPdf')}
-            </a>
-          )}
+          <Link to="/signup" state={{ from: '/demo' }} className="btn-download">
+            {t('demo.downloadCta')}
+          </Link>
         </div>
       </div>
 
@@ -166,7 +166,7 @@ export function DemoEditorPage() {
 
         {!overlayMode && (
           <div className="form-panel-wrap form-panel-wrap-fallback">
-            <AWBFormPanel data={data} onChange={setData} />
+            <AWBFormPanel data={data} onChange={setData} lockDraftWatermark />
           </div>
         )}
       </div>

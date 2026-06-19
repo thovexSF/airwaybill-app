@@ -203,8 +203,9 @@ const es = {
   },
 
   demo: {
-    banner: 'Modo demo — sin marca de agua aquí. La cuenta gratis incluye watermark DRAFT al guardar; los planes de pago lo quitan.',
+    banner: 'Demo — previsualizá y editá con watermark DRAFT. Registrate gratis para descargar PDFs (10/mes). Mejorá el plan para quitarlo.',
     signupCta: 'Crear cuenta gratis',
+    downloadCta: 'Registrate para descargar PDF',
     sub: 'Demo en vivo — sin registrarte',
     modeLabel: 'Demo',
   },
