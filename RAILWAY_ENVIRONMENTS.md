@@ -26,6 +26,9 @@ Esta app es frontend Vite. Separamos ambientes con `VITE_APP_ENV` para evitar me
 - Start command:
   - `npm run preview -- --host 0.0.0.0 --port $PORT`
 
+Clickjacking protection (`X-Frame-Options: DENY`, `CSP frame-ancestors 'none'`) is set in
+`vite.config.ts` for the preview server and in `public/_headers` for static hosts (Cloudflare Pages).
+
 ## Scripts locales
 
 - Desarrollo normal:
