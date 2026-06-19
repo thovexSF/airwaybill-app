@@ -20,8 +20,9 @@ const en = {
       badge: 'IATA-Compliant Air Waybill Generator',
       title: 'Generate Air Waybills in seconds',
       subtitle: 'Professional AWB documents in IATA format — directly in your browser. No software to install.',
-      cta: 'Try it now — it\'s free →',
+      cta: 'Try it free — no signup required →',
       demo: 'Try Demo',
+      note: 'No signup required to try · 10 free AWBs/month when you register',
     },
     features: {
       label: 'Features',
@@ -199,6 +200,13 @@ const en = {
     title: '¡Payment successful!',
     sub: 'Your plan has been activated. It may take a few seconds to reflect.',
     goToEditor: 'Go to App →',
+  },
+
+  demo: {
+    banner: 'Demo mode — no watermark here. Free accounts include a DRAFT watermark on saved PDFs; paid plans remove it.',
+    signupCta: 'Create free account',
+    sub: 'Live demo — no signup required',
+    modeLabel: 'Demo',
   },
 
   feedback: {

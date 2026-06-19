@@ -17,6 +17,7 @@ import { DGDPage } from './pages/DGDPage'
 import { ManifestPage } from './pages/ManifestPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { DevPreviewPage } from './pages/DevPreviewPage'
+import { DemoEditorPage } from './pages/DemoEditorPage'
 import { FeedbackWidget } from './components/FeedbackWidget'
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
       <FeedbackWidget />
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/demo" element={<DemoEditorPage />} />
         <Route
           path="/editor"
           element={(

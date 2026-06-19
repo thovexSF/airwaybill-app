@@ -49,6 +49,7 @@ const STEPS = [
 export function LandingPage() {
   const { t } = useTranslation()
   const { user, orgName, logout } = useAuth()
+  const tryPath = user ? '/editor' : '/demo'
 
   return (
     <div className="lp">
@@ -71,7 +72,7 @@ export function LandingPage() {
               </>
             ) : (
               <>
-                <Link to="/editor" className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
+                <Link to={tryPath} className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
                 <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
               </>
             )}
@@ -91,19 +92,19 @@ export function LandingPage() {
             {t('landing.hero.subtitle')}
           </p>
           <div className="lp-hero-ctas">
-            <Link to="/editor" className="lp-cta-primary">
+            <Link to={tryPath} className="lp-cta-primary">
               {t('landing.hero.cta')}
             </Link>
             <a href="#how" className="lp-cta-ghost">{t('landing.steps.cta')}</a>
           </div>
-          <p className="lp-hero-note">No credit card required · 10 free AWBs/month</p>
+          <p className="lp-hero-note">{t('landing.hero.note')}</p>
         </div>
 
-        {/* Mockup */}
-        <div className="lp-hero-mockup">
+        {/* Mockup — clickable, opens demo editor */}
+        <Link to={tryPath} className="lp-hero-mockup" aria-label={t('landing.hero.cta')}>
           <div className="lp-mockup-bar">
             <span /><span /><span />
-            <div className="lp-mockup-url">airwaybill.app/editor</div>
+            <div className="lp-mockup-url">airwaybill.app/demo</div>
           </div>
           <div className="lp-mockup-body">
             <div className="lp-mockup-sidebar">
@@ -123,7 +124,7 @@ export function LandingPage() {
               </div>
             </div>
           </div>
-        </div>
+        </Link>
       </section>
 
       {/* ── SOCIAL PROOF ── */}
@@ -144,11 +145,11 @@ export function LandingPage() {
           <p className="lp-section-sub">{t('landing.features.sub')}</p>
           <div className="lp-features-grid">
             {FEATURES.map(f => (
-              <div key={f.title} className="lp-feature-card">
+              <Link key={f.title} to={tryPath} className="lp-feature-card">
                 <div className="lp-feature-icon">{f.icon}</div>
                 <h3>{f.title}</h3>
                 <p>{f.desc}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -169,7 +170,7 @@ export function LandingPage() {
             ))}
           </div>
           <div className="lp-how-cta">
-            <Link to="/editor" className="lp-cta-primary">{t('landing.steps.cta')}</Link>
+            <Link to={tryPath} className="lp-cta-primary">{t('landing.steps.cta')}</Link>
           </div>
         </div>
       </section>
@@ -212,7 +213,7 @@ export function LandingPage() {
         <div className="lp-section-inner" style={{ textAlign: 'center' }}>
           <h2>{t('landing.finalCta.title')}</h2>
           <p>{t('landing.finalCta.sub')}</p>
-          <Link to="/editor" className="lp-cta-primary lp-cta-lg">
+          <Link to={tryPath} className="lp-cta-primary lp-cta-lg">
             {t('landing.finalCta.cta')}
           </Link>
         </div>
@@ -230,12 +231,12 @@ export function LandingPage() {
               <strong>{t('landing.footer.product')}</strong>
               <a href="#features">{t('landing.nav.features')}</a>
               <a href="#pricing">{t('landing.nav.pricing')}</a>
-              <Link to="/editor">Editor</Link>
+              <Link to={tryPath}>Editor</Link>
             </div>
             <div>
               <strong>{t('landing.footer.company')}</strong>
-              <a href="#">{t('landing.footer.about')}</a>
-              <a href="#">{t('landing.footer.contact')}</a>
+              <Link to="/">{t('landing.footer.about')}</Link>
+              <a href="mailto:support@airwaybill.app">{t('landing.footer.contact')}</a>
             </div>
             <div>
               <strong>{t('landing.footer.legal')}</strong>
