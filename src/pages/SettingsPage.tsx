@@ -11,6 +11,7 @@ type OrgDefaults = {
   shipper_account_number: string
   carrier_name: string
   carrier_address: string
+  carrier_logo_url: string
   issuing_carrier_agent: string
   airport_of_departure: string
   awb_prefix: string
@@ -21,6 +22,7 @@ const EMPTY: OrgDefaults = {
   shipper_account_number: '',
   carrier_name: '',
   carrier_address: '',
+  carrier_logo_url: '',
   issuing_carrier_agent: '',
   airport_of_departure: '',
   awb_prefix: '',
@@ -136,6 +138,41 @@ export function SettingsPage() {
               <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>{t('settings.carrier')}</h2>
               {field(t('settings.carrierName'), 'carrier_name', 'Ej: LATAM CARGO')}
               {field(t('settings.carrierAddress'), 'carrier_address', 'Ej: Av. Presidente Riesco 5711, Santiago')}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Carrier Logo
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {form.carrier_logo_url ? (
+                    <div style={{ position: 'relative', display: 'inline-flex', border: '1px solid #e0e0e0', borderRadius: 8, padding: 6, background: '#fafafa' }}>
+                      <img src={form.carrier_logo_url} alt="logo" style={{ height: 40, maxWidth: 120, objectFit: 'contain' }} />
+                      <button
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, carrier_logo_url: '' }))}
+                        style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#c00', color: '#fff', border: 'none', fontSize: 12, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >×</button>
+                    </div>
+                  ) : (
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '2px dashed #ccc', borderRadius: 8, cursor: 'pointer', fontSize: 13, color: '#666', transition: 'border-color 0.2s' }}>
+                      <span style={{ fontSize: 18 }}>+</span> Subir logo
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/svg+xml"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          if (file.size > 500_000) { alert('Logo must be under 500KB'); return }
+                          const reader = new FileReader()
+                          reader.onload = (ev) => setForm(f => ({ ...f, carrier_logo_url: ev.target?.result as string }))
+                          reader.readAsDataURL(file)
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+                <p style={{ fontSize: 11, color: '#999', marginTop: 4 }}>PNG, JPG o SVG. Max 500 KB. Aparece en el header del AWB junto a "Air Waybill".</p>
+              </div>
             </div>
 
             <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginBottom: 20, border: '1px solid #e8dcdc' }}>

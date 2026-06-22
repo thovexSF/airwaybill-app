@@ -1,5 +1,5 @@
 import React from 'react'
-import { Document, Page, View, Text, StyleSheet, Image } from '@react-pdf/renderer'
+import { Document, Page, View, Text, StyleSheet, Image, Svg, Line } from '@react-pdf/renderer'
 import { AWBData } from '../types/awb'
 import {
   AWB_BOXES, STATIC_TEXT_BLOCKS, PAGE_PADDING, PAGE_WIDTH,
@@ -70,6 +70,15 @@ function renderFieldText(value: string, def: FieldDef) {
     >
       {visibleText}
     </Text>
+  )
+}
+
+/** Diagonal separator line drawn from bottom-left to top-right within a cell. */
+function Diagonal({ x, y, width, height }: { x: number; y: number; width: number; height: number }) {
+  return (
+    <Svg style={{ position: 'absolute', left: x, top: y, width, height }}>
+      <Line x1={0} y1={height} x2={width} y2={0} stroke={RED} strokeWidth={0.5} />
+    </Svg>
   )
 }
 
@@ -156,6 +165,34 @@ export function AWBDocument({ data }: { data: AWBData; userScale?: 'sm' | 'md' |
           }
           return <Field key={i} def={def} value={fieldValue(data, def)} />
         })}
+
+        {/* Diagonal separator lines — visual signature of real AWBs */}
+        {/* Rate / Charge header diagonal */}
+        <Diagonal x={338} y={366} width={94} height={24} />
+        {/* Prepaid / Weight Charge / Collect header diagonals */}
+        <Diagonal x={57} y={558} width={101} height={12} />
+        <Diagonal x={158} y={558} width={101} height={12} />
+        {/* Total Prepaid / Total Collect diagonals */}
+        <Diagonal x={57} y={702} width={101} height={24} />
+        <Diagonal x={158} y={702} width={101} height={24} />
+        {/* Currency conversion row diagonals */}
+        <Diagonal x={57} y={726} width={101} height={24} />
+        <Diagonal x={158} y={726} width={101} height={24} />
+
+        {/* Carrier logo in the Air Waybill header area */}
+        {data.carrierLogoUrl ? (
+          <Image
+            src={data.carrierLogoUrl}
+            style={{
+              position: 'absolute',
+              left: 505,
+              top: 33,
+              width: 80,
+              height: 35,
+              objectFit: 'contain',
+            }}
+          />
+        ) : null}
 
         {/* Full AWB number displayed prominently on the right side of the header bar */}
         {awbFull ? (

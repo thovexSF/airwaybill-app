@@ -107,6 +107,7 @@ export function EditorPage() {
               shipperAccountNumber: defaults.shipper_account_number || prev.shipperAccountNumber,
               carrierName: defaults.carrier_name || prev.carrierName,
               carrierAddress: defaults.carrier_address || prev.carrierAddress,
+              carrierLogoUrl: defaults.carrier_logo_url || prev.carrierLogoUrl,
               agentNameAndCity: defaults.issuing_carrier_agent || prev.agentNameAndCity,
               airportOfDeparture: defaults.airport_of_departure || prev.airportOfDeparture,
               awbPrefix: defaults.awb_prefix || prev.awbPrefix,
