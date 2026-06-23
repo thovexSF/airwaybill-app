@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { identify, resetAnalytics } from '../lib/analytics'
 
 type AuthContextValue = {
   user: User | null
@@ -29,6 +30,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
       setLoading(false)
+      if (s?.user) {
+        identify(s.user.id, { email: s.user.email })
+      } else {
+        resetAnalytics()
+      }
     })
 
     return () => subscription.unsubscribe()
