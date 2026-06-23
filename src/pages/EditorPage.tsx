@@ -15,6 +15,7 @@ import { saveAWB, getAWB } from '../lib/awbService'
 import { usePlan } from '../lib/usePlan'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { track } from '../lib/analytics'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -159,7 +160,7 @@ export function EditorPage() {
       navigate(`/editor?id=${doc.id}`, { replace: true })
       setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
-      ;(window as any).clarity?.('event', 'awb_saved')
+      track('awb_saved')
     } catch {
       setSaveMsg(t('editor.saveError'))
     }
@@ -235,7 +236,7 @@ export function EditorPage() {
           </button>
           {pdfUrl && (
             <a className="btn-download" href={pdfUrl} download={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}.pdf`} onClick={() => {
-              (window as any).clarity?.('event', 'awb_downloaded')
+              track('awb_downloaded', { awb: awbFull, plan })
               supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
             }}>
               {t('editor.downloadPdf')}
@@ -327,7 +328,7 @@ export function EditorPage() {
               <a className="btn-download" href={pdfUrl} download={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}.pdf`}
                 style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}
                 onClick={() => {
-                  (window as any).clarity?.('event', 'awb_downloaded')
+                  track('awb_downloaded', { awb: awbFull, plan })
                   supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
                 }}>
                 {t('editor.downloadPdf')}

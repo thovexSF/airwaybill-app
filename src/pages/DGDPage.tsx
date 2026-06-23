@@ -10,6 +10,7 @@ import { saveDGD, getDGD } from '../lib/dgdService'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { track } from '../lib/analytics'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -174,7 +175,7 @@ export function DGDPage() {
         </button>
         {pdfUrl && (
           <a className="btn-download" href={pdfUrl} download={`DGD_${data.awbNo || 'document'}.pdf`}
-            onClick={() => (window as any).clarity?.('event', 'dgd_downloaded')}>
+            onClick={() => track('dgd_downloaded')}>
             Download PDF
           </a>
         )}
@@ -272,7 +273,7 @@ export function DGDPage() {
             {pdfUrl
               ? <a className="btn-download" href={pdfUrl} download={`DGD_${data.awbNo || 'document'}.pdf`}
                   style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}
-                  onClick={() => (window as any).clarity?.('event', 'dgd_downloaded')}>
+                  onClick={() => track('dgd_downloaded')}>
                   ↓ Download DGD PDF
                 </a>
               : <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>
