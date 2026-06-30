@@ -6,7 +6,6 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { AWBFormPanel } from '../components/AWBFormPanel'
-import { AWBOverlay } from '../components/AWBOverlay'
 import { AWBDocument } from '../pdf/AWBDocument'
 import { AWBData, defaultAWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
@@ -15,7 +14,6 @@ import { saveAWB, getAWB } from '../lib/awbService'
 import { usePlan } from '../lib/usePlan'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
-import { track } from '../lib/analytics'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -43,35 +41,24 @@ export function EditorPage() {
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
-  const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
-  const [overlayMode, setOverlayMode] = useState(() => window.innerWidth >= 900)
-  const [pageWidthPx, setPageWidthPx] = useState(0)
+  const [formWidth, setFormWidth] = useState(380)
+  const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const dragRef = useRef(false)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
 
-  // Narrow-viewport fallback: overlay editing is impractical on phone-sized screens
-  useEffect(() => {
-    const onResize = () => {
-      const wide = window.innerWidth >= 900
-      setIsWideViewport(wide)
-      if (!wide) setOverlayMode(false)
+  function onDragStart(e: React.MouseEvent) {
+    dragRef.current = true
+    const startX = e.clientX
+    const startW = formWidth
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return
+      setFormWidth(Math.max(280, Math.min(600, startW + ev.clientX - startX)))
     }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-
-  // Track the rendered PDF page width so the overlay can derive ptToPx and track zoom
-  useEffect(() => {
-    const el = pageWrapRef.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width
-      if (w) setPageWidthPx(w)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [overlayMode, pdfBlob])
+    const onUp = () => { dragRef.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
 
   // Auto-disable DRAFT watermark for paid plans
   useEffect(() => {
@@ -108,7 +95,6 @@ export function EditorPage() {
               shipperAccountNumber: defaults.shipper_account_number || prev.shipperAccountNumber,
               carrierName: defaults.carrier_name || prev.carrierName,
               carrierAddress: defaults.carrier_address || prev.carrierAddress,
-              carrierLogoUrl: defaults.carrier_logo_url || prev.carrierLogoUrl,
               agentNameAndCity: defaults.issuing_carrier_agent || prev.agentNameAndCity,
               airportOfDeparture: defaults.airport_of_departure || prev.airportOfDeparture,
               awbPrefix: defaults.awb_prefix || prev.awbPrefix,
@@ -126,14 +112,14 @@ export function EditorPage() {
   // Debounced PDF regeneration
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => regenerate(data), 700)
+    timerRef.current = setTimeout(() => regenerate(data, pdfScale), 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data])
+  }, [data, pdfScale])
 
-  async function regenerate(d: AWBData) {
+  async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
     setGenerating(true)
     try {
-      const blob = await pdf(<AWBDocument data={d} />).toBlob()
+      const blob = await pdf(<AWBDocument data={d} userScale={scale} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
@@ -160,7 +146,7 @@ export function EditorPage() {
       navigate(`/editor?id=${doc.id}`, { replace: true })
       setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
-      track('awb_saved')
+      ;(window as any).clarity?.('event', 'awb_saved')
     } catch {
       setSaveMsg(t('editor.saveError'))
     }
@@ -212,21 +198,20 @@ export function EditorPage() {
             </div>
           )}
           <LangSwitcher />
-          <button type="button" className="btn-example" onClick={logout}>{t('common.signOut')}</button>
+          <button className="btn-example" onClick={logout}>{t('common.signOut')}</button>
         </div>
       </div>
 
       {/* Row 2 — Document actions */}
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button type="button" className="btn-example" onClick={() => { if (window.confirm(t('editor.exampleConfirm'))) setData(exampleAWB) }}>{t('editor.example')}</button>
-          <button type="button" className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { setData(defaultAWBData); setCurrentId(null) } }}>{t('editor.clear')}</button>
+          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.exampleConfirm'))) setData(exampleAWB) }}>{t('editor.example')}</button>
+          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { setData(defaultAWBData); setCurrentId(null) } }}>{t('editor.clear')}</button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
           {saveMsg && <span style={{ color: saveMsg.includes('Error') ? '#ffaaaa' : 'rgba(255,255,255,0.8)', fontSize: 12 }}>{saveMsg}</span>}
           <button
-            type="button"
             className="btn-save"
             onClick={handleSave}
             disabled={saving || atLimit || hawbBlocked}
@@ -236,10 +221,10 @@ export function EditorPage() {
           </button>
           {pdfUrl && (
             <a className="btn-download" href={pdfUrl} download={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}.pdf`} onClick={() => {
-              track('awb_downloaded', { awb: awbFull, plan })
+              (window as any).clarity?.('event', 'awb_downloaded')
               supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
             }}>
-              {t('editor.downloadPdf')}
+              ↓ {t('editor.downloadPdf')}
             </a>
           )}
           <Link to="/settings" className="btn-download" style={{ gap: 4 }}>
@@ -256,71 +241,9 @@ export function EditorPage() {
         </div>
       )}
 
-      <div className="main main-single">
-        <div className="preview-panel preview-panel-full">
-          {/* Zoom + mode controls */}
-          <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#2a2a2a', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #444' }}>
-            <button type="button" onClick={() => setZoom(z => Math.max(z - 0.1, 0.4))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>−</button>
-            <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
-            <button type="button" onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>+</button>
-            <button type="button" onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>{t('editor.zoomReset')}</button>
-            <div style={{ width: 1, height: 18, background: '#555' }} />
-            {isWideViewport && (
-              <button
-                type="button"
-                onClick={() => setOverlayMode(m => !m)}
-                style={{ background: overlayMode ? '#8b0000' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
-              >
-                {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}
-              </button>
-            )}
-            {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 4 }}>{t('editor.updating')}</span>}
-          </div>
-
-          {pdfBlob ? (
-            <div style={{ overflow: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <div style={{ opacity: generating ? 0.65 : 1, transition: 'opacity 180ms' }}>
-              <Document
-                file={pdfBlob}
-                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                loading={null}
-              >
-                {Array.from({ length: numPages }, (_, i) => (
-                  i === 0 && overlayMode ? (
-                    <div key={i + 1} ref={pageWrapRef} style={{ position: 'relative' }}>
-                      <Page
-                        pageNumber={i + 1}
-                        scale={zoom * 1.5}
-                        renderTextLayer={false}
-                        renderAnnotationLayer={false}
-                        loading={null}
-                        onRenderSuccess={() => {
-                          const w = pageWrapRef.current?.getBoundingClientRect().width
-                          if (w) setPageWidthPx(w)
-                        }}
-                      />
-                      {pageWidthPx > 0 && (
-                        <AWBOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />
-                      )}
-                    </div>
-                  ) : (
-                    <Page
-                      key={i + 1}
-                      pageNumber={i + 1}
-                      scale={zoom * 1.5}
-                      renderTextLayer={false}
-                      renderAnnotationLayer={false}
-                      loading={null}
-                    />
-                  )
-                ))}
-              </Document>
-              </div>
-            </div>
-          ) : (
-            <div className="preview-loading">{t('editor.previewLoading')}</div>
-          )}
-
+      <div className="main">
+        <div className="form-panel-wrap" style={{ width: formWidth }}>
+          <AWBFormPanel data={data} onChange={setData} />
           {/* Mobile-only: sticky download bar */}
           <div className="mobile-pdf-strip">
             {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, flex: 1 }}>{t('editor.generating')}</span>}
@@ -328,21 +251,48 @@ export function EditorPage() {
               <a className="btn-download" href={pdfUrl} download={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}.pdf`}
                 style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}
                 onClick={() => {
-                  track('awb_downloaded', { awb: awbFull, plan })
+                  (window as any).clarity?.('event', 'awb_downloaded')
                   supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
                 }}>
-                {t('editor.downloadPdf')}
+                ↓ {t('editor.downloadPdf')}
               </a>
             )}
             {!pdfUrl && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>}
           </div>
         </div>
-
-        {!overlayMode && (
-          <div className="form-panel-wrap form-panel-wrap-fallback">
-            <AWBFormPanel data={data} onChange={setData} />
+        <div className="resize-handle" onMouseDown={onDragStart} title="Drag to resize" />
+        <div className="preview-panel">
+          {/* Zoom + PDF text size controls */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#2a2a2a', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #444' }}>
+            {/* View zoom */}
+            <button onClick={() => setZoom(z => Math.max(z - 0.1, 0.4))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>−</button>
+            <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
+            <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>+</button>
+            <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>{t('editor.zoomReset')}</button>
+            {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 8 }}>{t('editor.updating')}</span>}
           </div>
-        )}
+          {pdfBlob ? (
+            <div style={{ overflow: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <Document
+                file={pdfBlob}
+                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                loading={null}
+              >
+                {Array.from({ length: numPages }, (_, i) => (
+                  <Page
+                    key={i + 1}
+                    pageNumber={i + 1}
+                    scale={zoom * 1.5}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                  />
+                ))}
+              </Document>
+            </div>
+          ) : (
+            <div className="preview-loading">{t('editor.previewLoading')}</div>
+          )}
+        </div>
       </div>
     </div>
   )

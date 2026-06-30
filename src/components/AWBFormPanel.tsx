@@ -18,14 +18,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Field({
-  label, value, onChange, type = 'text', rows, placeholder, style,
+  label, value, onChange, type = 'text', rows, placeholder, style, required,
 }: {
   label: string; value: string; onChange: (v: string) => void
-  type?: string; rows?: number; placeholder?: string; style?: React.CSSProperties
+  type?: string; rows?: number; placeholder?: string; style?: React.CSSProperties; required?: boolean
 }) {
   return (
     <div className="field" style={style}>
-      <label>{label}</label>
+      <label>{label}{required && <span style={{ color: '#c00', marginLeft: 2 }}>*</span>}</label>
       {rows ? (
         <textarea rows={rows} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
       ) : (
@@ -98,10 +98,10 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
           </>
         ) : (
           <Row>
-            <Field label="Prefix (airline code)" value={data.awbPrefix} onChange={set('awbPrefix')} placeholder="014" />
+            <Field label="Prefix (airline code)" value={data.awbPrefix} onChange={set('awbPrefix')} placeholder="014" required />
             <Field label="Airport Code" value={data.awbAirportCode} onChange={set('awbAirportCode')} placeholder="SCL" />
             <div className="field">
-              <label>Serial Number</label>
+              <label>Serial Number<span style={{ color: '#c00', marginLeft: 2 }}>*</span></label>
               <input
                 value={data.awbSerial}
                 onChange={(e) => set('awbSerial')(e.target.value)}
@@ -195,13 +195,13 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
       {/* SHIPPER */}
       <Section title="Shipper">
         <Field label="Account Number" value={data.shipperAccountNumber} onChange={set('shipperAccountNumber')} />
-        <Field label="Name and Address" value={data.shipperNameAndAddress} onChange={set('shipperNameAndAddress')} rows={3} />
+        <Field label="Name and Address" value={data.shipperNameAndAddress} onChange={set('shipperNameAndAddress')} rows={3} required />
       </Section>
 
       {/* CONSIGNEE */}
       <Section title="Consignee">
         <Field label="Account Number" value={data.consigneeAccountNumber} onChange={set('consigneeAccountNumber')} />
-        <Field label="Name and Address" value={data.consigneeNameAndAddress} onChange={set('consigneeNameAndAddress')} rows={3} />
+        <Field label="Name and Address" value={data.consigneeNameAndAddress} onChange={set('consigneeNameAndAddress')} rows={3} required />
       </Section>
 
       {/* AGENT */}
@@ -224,7 +224,7 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
 
       {/* ROUTING */}
       <Section title="Routing">
-        <Field label="Airport of Departure" value={data.airportOfDeparture} onChange={set('airportOfDeparture')} placeholder="SANTIAGO DE CHILE (SCL/ZRH)" />
+        <Field label="Airport of Departure" value={data.airportOfDeparture} onChange={set('airportOfDeparture')} placeholder="SANTIAGO DE CHILE (SCL/ZRH)" required />
         <Row>
           <Field label="To (1)" style={{ flex: '0 0 56px' }} value={data.routeTo1} onChange={set('routeTo1')} placeholder="YYZ" />
           <Field label="By (1)" style={{ flex: '0 0 56px' }} value={data.routeBy1} onChange={set('routeBy1')} placeholder="AC" />
@@ -236,7 +236,7 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
           <Field label="By (3)" style={{ flex: '0 0 56px' }} value={data.routeBy3} onChange={set('routeBy3')} />
         </Row>
         <Row>
-          <Field label="Airport of Destination" value={data.airportOfDestination} onChange={set('airportOfDestination')} placeholder="ZURICH" />
+          <Field label="Airport of Destination" value={data.airportOfDestination} onChange={set('airportOfDestination')} placeholder="ZURICH" required />
         </Row>
         <Row>
           <Field label="Flight Number" value={data.flightNumber} onChange={set('flightNumber')} placeholder="AC093" />
