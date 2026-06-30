@@ -12,6 +12,7 @@ import { AWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
 import { LangSwitcher } from '../components/LangSwitcher'
 import '../App.css'
+import { usePostHog } from '@posthog/react'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -20,6 +21,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 export function DemoEditorPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const [data, setDataRaw] = useState<AWBData>({ ...exampleAWB, isDraft: true })
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
     setDataRaw(prev => {
@@ -37,6 +39,10 @@ export function DemoEditorPage() {
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    posthog?.capture('demo_viewed')
+  }, [])
 
   useEffect(() => {
     const onResize = () => {

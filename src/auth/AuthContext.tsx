@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-import { identify, resetAnalytics } from '../lib/analytics'
+import { usePostHog } from '@posthog/react'
 
 type AuthContextValue = {
   user: User | null
@@ -17,6 +17,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const posthog = usePostHog()
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [orgName, setOrgName] = useState<string | null>(null)
@@ -27,13 +28,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s)
       setLoading(false)
-      if (s?.user) {
-        identify(s.user.id, { email: s.user.email })
-      } else {
-        resetAnalytics()
+      if (event === 'SIGNED_IN' && s?.user) {
+        posthog?.identify(s.user.id, { email: s.user.email })
+        const pendingProvider = sessionStorage.getItem('posthog_pending_login')
+        if (pendingProvider) {
+          sessionStorage.removeItem('posthog_pending_login')
+          posthog?.capture('user_logged_in', { method: pendingProvider })
+        }
       }
     })
 
@@ -76,10 +80,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login: async ({ email, password }) => {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) return { ok: false, error: error.message }
+      posthog?.capture('user_logged_in', { method: 'email' })
       return { ok: true }
     },
 
     loginWithProvider: async (provider) => {
+      sessionStorage.setItem('posthog_pending_login', provider)
       await supabase.auth.signInWithOAuth({
         provider,
         options: { redirectTo: window.location.origin + '/editor' },
@@ -88,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     logout: async () => {
       await supabase.auth.signOut()
+      posthog?.reset()
     },
   }
 

@@ -6,12 +6,14 @@ import { usePlan } from '../lib/usePlan'
 import { listAWBs, deleteAWB, AWBDocument } from '../lib/awbService'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { ImportModal } from '../components/ImportModal'
+import { usePostHog } from '@posthog/react'
 
 type ViewMode = 'cards' | 'table'
 type StatusFilter = 'all' | 'final' | 'draft'
 
 export function MyAWBsPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
   const { plan } = usePlan()
   const navigate = useNavigate()
@@ -39,6 +41,7 @@ export function MyAWBsPage() {
     try {
       await deleteAWB(id)
       setDocs(prev => prev.filter(d => d.id !== id))
+      posthog?.capture('awb_deleted', { doc_id: id })
     } catch (e: any) {
       alert(t('myAwbs.deleteError') + e.message)
     }

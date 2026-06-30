@@ -2,16 +2,21 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { AuthProvider } from './auth/AuthContext'
-import { initAnalytics } from './lib/analytics'
+import { initAnalytics, posthogClient } from './lib/analytics'
 import './App.css'
 import './i18n'
+import { PostHogErrorBoundary, PostHogProvider } from '@posthog/react'
 
 initAnalytics()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <PostHogProvider client={posthogClient}>
+      <PostHogErrorBoundary>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </PostHogErrorBoundary>
+    </PostHogProvider>
   </React.StrictMode>,
 )

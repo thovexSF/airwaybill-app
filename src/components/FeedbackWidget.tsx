@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { submitFeedback } from '../lib/feedbackService'
+import { usePostHog } from '@posthog/react'
 
 const ENABLED = import.meta.env.VITE_FEEDBACK_ENABLED !== 'false'
 
@@ -10,6 +11,7 @@ type Step = 'form' | 'sending' | 'done' | 'error'
 
 export function FeedbackWidget() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const { user } = useAuth()
   const location = useLocation()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -60,6 +62,7 @@ export function FeedbackWidget() {
     })
 
     if (result.ok) {
+      posthog?.capture('feedback_submitted', { page: location.pathname })
       setStep('done')
       setText('')
       window.setTimeout(resetAndClose, 1400)

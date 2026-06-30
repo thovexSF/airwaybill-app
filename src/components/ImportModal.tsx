@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { parseExcelFile, importRows, ImportPreviewRow } from '../lib/importService'
+import { usePostHog } from '@posthog/react'
 
 interface Props {
   onClose: () => void
@@ -9,6 +10,7 @@ interface Props {
 type Step = 'pick' | 'preview' | 'importing' | 'done'
 
 export function ImportModal({ onClose, onDone }: Props) {
+  const posthog = usePostHog()
   const inputRef = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState<Step>('pick')
   const [rows, setRows] = useState<ImportPreviewRow[]>([])
@@ -35,7 +37,10 @@ export function ImportModal({ onClose, onDone }: Props) {
     const res = await importRows(rows, (done, total) => setProgress(Math.round((done / total) * 100)))
     setResult(res)
     setStep('done')
-    if (res.ok > 0) onDone()
+    if (res.ok > 0) {
+      posthog?.capture('excel_imported', { rows_total: rows.length, rows_ok: res.ok, rows_failed: res.errors.length })
+      onDone()
+    }
   }
 
   const awbCount  = rows.filter(r => !r.isHawb).length

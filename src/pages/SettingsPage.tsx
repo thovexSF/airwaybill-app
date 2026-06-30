@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
 import { usePlan } from '../lib/usePlan'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { usePostHog } from '@posthog/react'
 
 type OrgDefaults = {
   shipper_name_and_address: string
@@ -30,6 +31,7 @@ const EMPTY: OrgDefaults = {
 
 export function SettingsPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
   const { orgId, plan } = usePlan()
   const [form, setForm] = useState<OrgDefaults>(EMPTY)
@@ -70,6 +72,7 @@ export function SettingsPage() {
       .from('organization_defaults')
       .upsert({ ...form, organization_id: orgId }, { onConflict: 'organization_id' })
     setSaving(false)
+    if (!error) posthog?.capture('settings_saved', { plan })
     setMsg(error ? t('common.error') : t('editor.saved'))
     setTimeout(() => setMsg(null), 3000)
   }

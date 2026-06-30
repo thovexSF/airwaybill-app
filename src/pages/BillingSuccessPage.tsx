@@ -3,16 +3,18 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
-import { track } from '../lib/analytics'
+import { usePostHog } from '@posthog/react'
 
 export function BillingSuccessPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const [params] = useSearchParams()
   const sessionId = params.get('session_id')
   const { user } = useAuth()
 
   useEffect(() => {
-    track('subscription_completed')
+    ;(window as any).clarity?.('event', 'subscription_completed')
+    posthog?.capture('subscription_completed', { session_id: sessionId, email: user?.email })
     supabase.functions.invoke('notify-owner', { body: { event: 'subscription_completed', data: { email: user?.email } } })
   }, [])
 

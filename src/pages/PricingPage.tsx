@@ -7,10 +7,11 @@ import { openCheckout } from '../lib/paddleService'
 import { PLANS, PRICE_IDS } from '../data/plans'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { supabase } from '../lib/supabase'
-import { track } from '../lib/analytics'
+import { usePostHog } from '@posthog/react'
 
 export function PricingPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
   const { plan: currentPlan, orgId } = usePlan()
   const navigate = useNavigate()
@@ -35,7 +36,8 @@ export function PricingPage() {
     setLoading(planId)
     setError(null)
     try {
-      track('checkout_opened')
+      ;(window as any).clarity?.('event', 'checkout_opened')
+      posthog?.capture('checkout_opened', { plan_id: planId, from_plan: currentPlan })
       await openCheckout({ priceId, email: user.email!, orgId })
     } catch (e: any) {
       setError(e.message)
@@ -66,7 +68,8 @@ export function PricingPage() {
     setSuccessMsg(null)
     try {
       await callUpdatePlan('change', priceId)
-      track('plan_downgraded')
+      ;(window as any).clarity?.('event', 'plan_downgraded')
+      posthog?.capture('plan_downgraded', { to_plan: planId, from_plan: currentPlan })
       setSuccessMsg(`Plan changed to ${planId}. Your account will update shortly.`)
       setTimeout(() => setSuccessMsg(null), 6000)
     } catch (e: any) {
@@ -82,7 +85,8 @@ export function PricingPage() {
     setSuccessMsg(null)
     try {
       await callUpdatePlan('cancel')
-      track('subscription_cancelled')
+      ;(window as any).clarity?.('event', 'subscription_cancelled')
+      posthog?.capture('subscription_cancelled', { plan: currentPlan })
       setSuccessMsg('Subscription cancelled. You will keep access until the end of your billing period.')
       setTimeout(() => setSuccessMsg(null), 8000)
     } catch (e: any) {
