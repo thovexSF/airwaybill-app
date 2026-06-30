@@ -74,7 +74,7 @@ const es = {
       createAccount: 'Crear cuenta gratis',
     },
     signup: {
-      sub: 'Crea tu cuenta de empresa y empieza a generar AWBs.',
+      sub: 'Crea tu cuenta gratis: 10 descargas PDF de AWB/mes, sin tarjeta de credito.',
       google: 'Registrarse con Google',
       github: 'Registrarse con GitHub',
       orEmail: 'o con email',
@@ -118,10 +118,12 @@ const es = {
     saved: 'Guardado ✓',
     saveError: 'Error al guardar',
     generating: 'Generando...',
+    downloading: 'Preparando descarga...',
+    downloadError: 'No se pudo descargar el PDF',
     downloadPdf: '⬇ Descargar PDF',
-    limitBanner: 'Has alcanzado el límite de 10 AWBs del plan Free este mes.',
+    limitBanner: 'Alcanzaste las 10 descargas PDF de AWB incluidas en el plan Free este mes.',
     upgradeNow: 'Actualizar a Starter →',
-    limitReached: 'Límite del plan Free (10/mes)',
+    limitReached: 'Limite del plan Free: 10 descargas PDF de AWB/mes',
     previewLoading: 'Generando vista previa…',
     updating: 'Actualizando…',
     zoomReset: 'Reset',
@@ -203,7 +205,7 @@ const es = {
   },
 
   demo: {
-    banner: 'Demo — previsualizá y editá con watermark DRAFT. Registrate gratis para descargar PDFs (10/mes). Mejorá el plan para quitarlo.',
+    banner: 'Demo — previsualiza y edita con watermark DRAFT. Registrate gratis para descargar 10 PDFs de AWB/mes.',
     signupCta: 'Crear cuenta gratis',
     downloadCta: 'Registrate para descargar PDF',
     sub: 'Demo en vivo — sin registrarte',

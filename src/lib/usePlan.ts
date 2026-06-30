@@ -10,7 +10,9 @@ export interface PlanInfo {
   awbUsedThisMonth: number
   awbLimit: number | null  // null = unlimited
   canCreateAWB: boolean
+  canDownloadAWB: boolean
   loading: boolean
+  refreshUsage: () => Promise<void>
 }
 
 const LIMITS: Record<Plan, number | null> = {
@@ -26,6 +28,18 @@ export function usePlan(): PlanInfo {
   const [orgId, setOrgId] = useState<string | null>(null)
   const [used, setUsed]   = useState(0)
   const [loading, setLoading] = useState(true)
+
+  async function loadUsage(id: string) {
+    const month = new Date().toISOString().slice(0, 7) // 'YYYY-MM'
+    const { data: usage } = await supabase
+      .from('awb_usage')
+      .select('count')
+      .eq('organization_id', id)
+      .eq('month', month)
+      .single()
+
+    setUsed(usage?.count ?? 0)
+  }
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -47,16 +61,7 @@ export function usePlan(): PlanInfo {
       setOrgId(id)
       setPlan(p)
 
-      // Get this month's usage
-      const month = new Date().toISOString().slice(0, 7) // 'YYYY-MM'
-      const { data: usage } = await supabase
-        .from('awb_usage')
-        .select('count')
-        .eq('organization_id', id)
-        .eq('month', month)
-        .single()
-
-      setUsed(usage?.count ?? 0)
+      await loadUsage(id)
       setLoading(false)
     }
 
@@ -64,7 +69,19 @@ export function usePlan(): PlanInfo {
   }, [user?.id])
 
   const limit = LIMITS[plan]
-  const canCreateAWB = limit === null || used < limit
+  const canDownloadAWB = limit === null || used < limit
+  const refreshUsage = async () => {
+    if (orgId) await loadUsage(orgId)
+  }
 
-  return { plan, orgId, awbUsedThisMonth: used, awbLimit: limit, canCreateAWB, loading }
+  return {
+    plan,
+    orgId,
+    awbUsedThisMonth: used,
+    awbLimit: limit,
+    canCreateAWB: canDownloadAWB,
+    canDownloadAWB,
+    loading,
+    refreshUsage,
+  }
 }

@@ -74,7 +74,7 @@ const en = {
       createAccount: 'Create free account',
     },
     signup: {
-      sub: 'Create your company account and start generating AWBs.',
+      sub: 'Create your free account: 10 AWB PDF downloads/month, no credit card required.',
       google: 'Sign up with Google',
       github: 'Sign up with GitHub',
       orEmail: 'or with email',
@@ -118,10 +118,12 @@ const en = {
     saved: 'Saved ✓',
     saveError: 'Save error',
     generating: 'Generating...',
+    downloading: 'Preparing download...',
+    downloadError: 'Could not download PDF',
     downloadPdf: '⬇ Download PDF',
-    limitBanner: 'You\'ve reached the 10 AWB limit for the Free plan this month.',
+    limitBanner: 'You\'ve reached the 10 AWB PDF downloads included in the Free plan this month.',
     upgradeNow: 'Upgrade to Starter →',
-    limitReached: 'Free plan limit (10/month)',
+    limitReached: 'Free plan limit: 10 AWB PDF downloads/month',
     previewLoading: 'Generating preview…',
     updating: 'Updating…',
     zoomReset: 'Reset',
@@ -203,7 +205,7 @@ const en = {
   },
 
   demo: {
-    banner: 'Demo — preview and edit with DRAFT watermark. Sign up free to download PDFs (10/month). Upgrade to remove watermark.',
+    banner: 'Demo — preview and edit with DRAFT watermark. Sign up free to download 10 AWB PDFs/month.',
     signupCta: 'Create free account',
     downloadCta: 'Sign up to download PDF',
     sub: 'Live demo — no signup required',

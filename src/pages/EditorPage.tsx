@@ -25,7 +25,7 @@ export function EditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
-  const { plan, orgId, canCreateAWB, awbUsedThisMonth, awbLimit } = usePlan()
+  const { plan, orgId, canDownloadAWB, awbUsedThisMonth, awbLimit, refreshUsage } = usePlan()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const docId = searchParams.get('id')
@@ -42,7 +42,9 @@ export function EditorPage() {
   const [zoom, setZoom] = useState<number>(1.0)
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const [downloadCountedAt, setDownloadCountedAt] = useState<string | null>(null)
   const [formWidth, setFormWidth] = useState(380)
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -75,8 +77,10 @@ export function EditorPage() {
       getAWB(docId).then(doc => {
         setData(doc.data)
         setCurrentId(doc.id)
+        setDownloadCountedAt(doc.download_counted_at ?? null)
       }).catch(() => {})
     } else {
+      setDownloadCountedAt(null)
       // Try local draft first, then org defaults
       const raw = localStorage.getItem(draftKey)
       if (raw) {
@@ -131,20 +135,12 @@ export function EditorPage() {
   }
 
   async function handleSave() {
-    // Enforce Free plan limit on new docs
-    if (!currentId && orgId) {
-      const { data: result } = await supabase.rpc('increment_awb_usage', { p_org_id: orgId })
-      if (result === 'limit_reached') {
-        setSaveMsg(t('editor.limitReached'))
-        setTimeout(() => setSaveMsg(null), 4000)
-        return
-      }
-    }
     setSaving(true)
     setSaveMsg(null)
     try {
-      const doc = await saveAWB(data, currentId ?? undefined)
+      const doc = await saveAWB(data, currentId ?? undefined, orgId ?? undefined)
       setCurrentId(doc.id)
+      setDownloadCountedAt(doc.download_counted_at ?? null)
       navigate(`/editor?id=${doc.id}`, { replace: true })
       setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
@@ -156,11 +152,72 @@ export function EditorPage() {
     setSaving(false)
   }
 
+  function downloadPdfFile() {
+    if (!pdfUrl) return
+    const link = document.createElement('a')
+    link.href = pdfUrl
+    link.download = `${isHawb ? 'HAWB' : 'AWB'}_${awbFull}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+
+  async function handleDownloadPdf() {
+    if (!pdfUrl || downloading) return
+
+    setSaveMsg(null)
+    setDownloading(true)
+    try {
+      let docIdForDownload = currentId
+      let countedAt = downloadCountedAt
+
+      if (!docIdForDownload) {
+        const doc = await saveAWB(data, undefined, orgId ?? undefined)
+        docIdForDownload = doc.id
+        countedAt = doc.download_counted_at ?? null
+        setCurrentId(doc.id)
+        setDownloadCountedAt(countedAt)
+        navigate(`/editor?id=${doc.id}`, { replace: true })
+        ;(window as any).clarity?.('event', 'awb_saved')
+        posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source: 'download' })
+      }
+
+      if (orgId && !countedAt) {
+        const { data: result, error } = await supabase.rpc('record_awb_pdf_download', {
+          p_org_id: orgId,
+          p_awb_document_id: docIdForDownload,
+        })
+        if (error) throw error
+        if (result === 'limit_reached') {
+          setSaveMsg(t('editor.limitReached'))
+          setTimeout(() => setSaveMsg(null), 5000)
+          ;(window as any).clarity?.('event', 'free_awb_pdf_limit_reached')
+          posthog?.capture('free_awb_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
+          return
+        }
+        if (result === 'ok' || result === 'already_counted') {
+          setDownloadCountedAt(new Date().toISOString())
+          await refreshUsage()
+        }
+      }
+
+      downloadPdfFile()
+      ;(window as any).clarity?.('event', 'awb_downloaded')
+      posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
+      supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
+    } catch {
+      setSaveMsg(t('editor.downloadError'))
+      setTimeout(() => setSaveMsg(null), 5000)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   const isHawb = data.docType === 'hawb'
   const awbFull = isHawb
     ? (data.hawbNumber || 'HAWB')
     : (data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : 'AWB')
-  const atLimit = plan === 'free' && !canCreateAWB && !currentId
+  const atLimit = plan === 'free' && !canDownloadAWB && !downloadCountedAt
   const hawbBlocked = false
 
   return (
@@ -178,7 +235,7 @@ export function EditorPage() {
           <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
             {orgName ?? user?.email}
             {plan === 'free' && awbLimit !== null && (
-              <span style={{ marginLeft: 6, opacity: 0.7 }}>· {awbUsedThisMonth}/{awbLimit} AWBs</span>
+              <span style={{ marginLeft: 6, opacity: 0.7 }}>· {awbUsedThisMonth}/{awbLimit} PDF downloads</span>
             )}
           </span>
           {/* Plan badge — simple label for paid users */}
@@ -209,7 +266,7 @@ export function EditorPage() {
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button className="btn-example" onClick={() => { if (window.confirm(t('editor.exampleConfirm'))) setData(exampleAWB) }}>{t('editor.example')}</button>
-          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { setData(defaultAWBData); setCurrentId(null) } }}>{t('editor.clear')}</button>
+          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { setData(defaultAWBData); setCurrentId(null); setDownloadCountedAt(null) } }}>{t('editor.clear')}</button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
@@ -217,19 +274,15 @@ export function EditorPage() {
           <button
             className="btn-save"
             onClick={handleSave}
-            disabled={saving || atLimit || hawbBlocked}
-            title={hawbBlocked ? 'Upgrade to Pro to save HAWBs' : atLimit ? t('editor.limitReached') : undefined}
+            disabled={saving || hawbBlocked}
+            title={hawbBlocked ? 'Upgrade to Pro to save HAWBs' : undefined}
           >
             {saving ? t('editor.saving') : t('editor.saveDoc')}
           </button>
           {pdfUrl && (
-            <a className="btn-download" href={pdfUrl} download={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}.pdf`} onClick={() => {
-              (window as any).clarity?.('event', 'awb_downloaded')
-              posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
-              supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
-            }}>
-              ↓ {t('editor.downloadPdf')}
-            </a>
+            <button className="btn-download" type="button" onClick={handleDownloadPdf} disabled={downloading}>
+              {downloading ? t('editor.downloading') : `↓ ${t('editor.downloadPdf')}`}
+            </button>
           )}
           <Link to="/settings" className="btn-download" style={{ gap: 4 }}>
             {t('common.settings')}
@@ -252,15 +305,11 @@ export function EditorPage() {
           <div className="mobile-pdf-strip">
             {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, flex: 1 }}>{t('editor.generating')}</span>}
             {pdfUrl && (
-              <a className="btn-download" href={pdfUrl} download={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}.pdf`}
+              <button className="btn-download" type="button" onClick={handleDownloadPdf} disabled={downloading}
                 style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}
-                onClick={() => {
-                  (window as any).clarity?.('event', 'awb_downloaded')
-                  posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
-                  supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
-                }}>
-                ↓ {t('editor.downloadPdf')}
-              </a>
+              >
+                {downloading ? t('editor.downloading') : `↓ ${t('editor.downloadPdf')}`}
+              </button>
             )}
             {!pdfUrl && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>}
           </div>

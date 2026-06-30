@@ -4,8 +4,10 @@ import { AWBData } from '../types/awb'
 export interface AWBDocument {
   id: string
   user_id: string
+  organization_id: string | null
   data: AWBData
   status: 'draft' | 'final'
+  download_counted_at: string | null
   created_at: string
   updated_at: string
 }
@@ -40,7 +42,7 @@ export async function getAWB(id: string): Promise<AWBDocument> {
   return doc
 }
 
-export async function saveAWB(awbData: AWBData, id?: string): Promise<AWBDocument> {
+export async function saveAWB(awbData: AWBData, id?: string, orgId?: string): Promise<AWBDocument> {
   if (id) {
     const { data, error } = await supabase
       .from('awb_documents')
@@ -54,7 +56,7 @@ export async function saveAWB(awbData: AWBData, id?: string): Promise<AWBDocumen
 
   const { data, error } = await supabase
     .from('awb_documents')
-    .insert({ data: awbData, status: awbData.isDraft ? 'draft' : 'final' })
+    .insert({ data: awbData, organization_id: orgId, status: awbData.isDraft ? 'draft' : 'final' })
     .select()
     .single()
 
