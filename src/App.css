@@ -55,6 +55,52 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
 }
 .btn-example:hover { background: rgba(255,255,255,0.25); }
 
+.demo-conversion-strip {
+  background: #fff;
+  border-bottom: 1px solid #e6d4d4;
+  box-shadow: 0 1px 8px rgba(53, 30, 30, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 20px;
+  position: relative;
+  z-index: 25;
+}
+
+.demo-conversion-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.demo-conversion-copy strong {
+  color: #3a1f1f;
+  font-size: 14px;
+}
+
+.demo-conversion-copy span {
+  color: #665;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.demo-conversion-cta {
+  background: var(--red);
+  border-radius: 6px;
+  color: #fff;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 9px 16px;
+  text-decoration: none;
+}
+
+.demo-conversion-cta:hover {
+  background: #a00;
+}
+
 .main { display: flex; flex: 1; overflow: hidden; }
 
 /* ── Form Panel ── */
@@ -238,6 +284,17 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
   /* Action bar: scrollable row */
   .action-bar { padding: 0 10px !important; overflow-x: auto; }
   .action-bar > div { flex-shrink: 0; }
+
+  .demo-conversion-strip {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .demo-conversion-cta {
+    text-align: center;
+  }
 
   /* Form sections: full width inputs */
   .field-row { flex-direction: column !important; }

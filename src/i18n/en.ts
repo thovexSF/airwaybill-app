@@ -75,6 +75,11 @@ const en = {
     },
     signup: {
       sub: 'Create your company account and start generating AWBs.',
+      demoCalloutTitle: 'Your demo PDF is ready to unlock.',
+      demoCalloutSub: 'Create your free account to download PDFs and keep editing in the full AWB editor.',
+      trustFree: '10 AWB PDF downloads included every month on Free',
+      trustNoCard: 'No credit card required',
+      trustContinue: 'Continue straight to the editor after signup',
       google: 'Sign up with Google',
       github: 'Sign up with GitHub',
       orEmail: 'or with email',
@@ -203,11 +208,14 @@ const en = {
   },
 
   demo: {
-    banner: 'Demo — preview and edit with DRAFT watermark. Sign up free to download PDFs (10/month). Upgrade to remove watermark.',
-    signupCta: 'Create free account',
-    downloadCta: 'Sign up to download PDF',
+    banner: 'Demo — preview and edit with DRAFT watermark. Create a free account to download 10 PDFs/month. No credit card required.',
+    signupCta: 'Unlock free downloads',
+    downloadCta: 'Create free account to download',
     sub: 'Live demo — no signup required',
     modeLabel: 'Demo',
+    conversionTitle: 'Ready to use this AWB for real?',
+    conversionSub: 'Free account includes 10 PDF downloads/month and keeps your work in the full editor. No credit card.',
+    conversionCta: 'Unlock PDF downloads',
   },
 
   feedback: {
