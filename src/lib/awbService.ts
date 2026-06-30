@@ -28,7 +28,16 @@ export async function getAWB(id: string): Promise<AWBDocument> {
     .single()
 
   if (error) throw error
-  return data as AWBDocument
+  const doc = data as AWBDocument
+  // Migrate legacy optionalShippingInfo → optionalShippingInfo1
+  if (doc.data.optionalShippingInfo && !doc.data.optionalShippingInfo1) {
+    doc.data.optionalShippingInfo1 = doc.data.optionalShippingInfo
+    doc.data.optionalShippingInfo2 = ''
+    doc.data.optionalShippingInfo3 = ''
+    delete doc.data.optionalShippingInfo
+  }
+  if (!doc.data.signatureCarrier) doc.data.signatureCarrier = ''
+  return doc
 }
 
 export async function saveAWB(awbData: AWBData, id?: string): Promise<AWBDocument> {

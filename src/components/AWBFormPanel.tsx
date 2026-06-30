@@ -218,7 +218,11 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
         <Field label="Accounting Information" value={data.accountingInformation} onChange={set('accountingInformation')} rows={3} placeholder="FREIGHT PREPAID" />
         <Row>
           <Field label="Reference Number" value={data.referenceNumber} onChange={set('referenceNumber')} />
-          <Field label="Optional Shipping Info" value={data.optionalShippingInfo} onChange={set('optionalShippingInfo')} />
+        </Row>
+        <Row>
+          <Field label="Optional Shipping Info 1" value={data.optionalShippingInfo1} onChange={set('optionalShippingInfo1')} />
+          <Field label="Optional Shipping Info 2" value={data.optionalShippingInfo2} onChange={set('optionalShippingInfo2')} />
+          <Field label="Optional Shipping Info 3" value={data.optionalShippingInfo3} onChange={set('optionalShippingInfo3')} />
         </Row>
       </Section>
 
@@ -374,6 +378,7 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
           <Field label="At (place)" value={data.executedAtPlace} onChange={set('executedAtPlace')} placeholder="SANTIAGO" />
         </Row>
         <Field label="Signature of Shipper or Agent" value={data.signatureShipper} onChange={set('signatureShipper')} />
+        <Field label="Signature of Issuing Carrier or Agent" value={data.signatureCarrier} onChange={set('signatureCarrier')} />
       </Section>
     </div>
   )

@@ -169,10 +169,16 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
   // ── Airport of Departure / Reference / Optional (y 246–270) ──
   box(r(L, Y.iataBottom, MID, Y.depBottom))
   box(r(MID, Y.iataBottom, X.ref, Y.depBottom))
-  box(r(X.ref, Y.iataBottom, R, Y.depBottom))
+  // Optional Shipping Info — 3 boxes per IATA 5.2.16
+  const optW = Math.round((R - X.ref) / 3)
+  box(r(X.ref, Y.iataBottom, X.ref + optW, Y.depBottom))
+  box(r(X.ref + optW, Y.iataBottom, X.ref + optW * 2, Y.depBottom))
+  box(r(X.ref + optW * 2, Y.iataBottom, R, Y.depBottom))
   push({ key: 'airportOfDeparture', ...cellIn(r(L, Y.iataBottom, MID, Y.depBottom), 3), fontSize: TXT, label: 'Airport of Departure (Addr. of First Carrier) and Requested Routing' })
   push({ key: 'referenceNumber', ...cellIn(r(MID, Y.iataBottom, X.ref, Y.depBottom), 3), fontSize: TXT, label: 'Reference Number' })
-  push({ key: 'optionalShippingInfo', ...cellIn(r(X.ref, Y.iataBottom, R, Y.depBottom), 3), fontSize: TXT, label: 'Optional Shipping Information' })
+  push({ key: 'optionalShippingInfo1', ...cellIn(r(X.ref, Y.iataBottom, X.ref + optW, Y.depBottom), 3), fontSize: TXT, label: 'Optional Shipping Information' })
+  push({ key: 'optionalShippingInfo2', ...cellIn(r(X.ref + optW, Y.iataBottom, X.ref + optW * 2, Y.depBottom), 3), fontSize: TXT })
+  push({ key: 'optionalShippingInfo3', ...cellIn(r(X.ref + optW * 2, Y.iataBottom, R, Y.depBottom), 3), fontSize: TXT })
 
   // ── Routing grid (y 270–294) ──
   {
@@ -344,6 +350,7 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
   push({ key: 'ccChargesInDestCurrency', ...cellIn(r(X.botCharges, Y.totalsBottom, X.botCollect, Y.ccBottom), 3), fontSize: XS, label: 'CC Charges in Dest. Currency' })
   push({ key: 'executedOnDate', ...cellIn(r(X.botCollect, Y.totalsBottom, X.execPlace, Y.ccBottom), 3), fontSize: TXT, label: 'Executed on (date)' })
   push({ key: 'executedAtPlace', ...cellIn(r(X.execPlace, Y.totalsBottom, X.execSig, Y.ccBottom), 3), fontSize: TXT, label: 'at (place)' })
+  push({ key: 'signatureCarrier', x: X.execSig + 4, y: Y.totalsBottom + 4, width: R - X.execSig - 8, height: 14, fontSize: TXT, align: 'center' })
   text(X.execSig + 4, Y.ccBottom - 9, R - X.execSig - 8, 8, 4.4, 'Signature of Issuing Carrier or its Agent')
 
   // ── Bottom row (y 750–774) ──

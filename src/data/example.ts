@@ -26,7 +26,9 @@ export const exampleAWB: AWBData = {
     'FREIGHT PREPAID\nNOTIFY:\nSIMONE KENNEL\nPHONE +41 44 226 7485\nSIMONE.KENNEL@RAIFFEISEN.CH',
 
   referenceNumber: '',
-  optionalShippingInfo: '',
+  optionalShippingInfo1: '',
+  optionalShippingInfo2: '',
+  optionalShippingInfo3: '',
 
   airportOfDeparture: 'SANTIAGO DE CHILE (SCL/ZRH)',
   routeTo1: 'YYZ',
@@ -95,6 +97,7 @@ export const exampleAWB: AWBData = {
   executedOnDate: '02-NOV-2023',
   executedAtPlace: 'SANTIAGO',
   signatureShipper: 'BANCO SECURITY',
+  signatureCarrier: '',
 
   isDraft: true,
   copyNumber: 2,

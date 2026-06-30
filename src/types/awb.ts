@@ -44,7 +44,10 @@ export interface AWBData {
   // Accounting & Reference
   accountingInformation: string
   referenceNumber: string
-  optionalShippingInfo: string
+  optionalShippingInfo1: string
+  optionalShippingInfo2: string
+  optionalShippingInfo3: string
+  optionalShippingInfo?: string  // legacy — migrated to 1/2/3 on load
 
   // Routing
   airportOfDeparture: string
@@ -102,6 +105,7 @@ export interface AWBData {
   executedOnDate: string
   executedAtPlace: string
   signatureShipper: string
+  signatureCarrier: string
 
   // Meta
   isDraft: boolean
@@ -130,7 +134,9 @@ export const defaultAWBData: AWBData = {
   agentAccountNumber: '',
   accountingInformation: '',
   referenceNumber: '',
-  optionalShippingInfo: '',
+  optionalShippingInfo1: '',
+  optionalShippingInfo2: '',
+  optionalShippingInfo3: '',
   airportOfDeparture: '',
   routeTo1: '',
   routeBy1: '',
@@ -183,6 +189,7 @@ export const defaultAWBData: AWBData = {
   executedOnDate: '',
   executedAtPlace: '',
   signatureShipper: '',
+  signatureCarrier: '',
   isDraft: true,
   copyNumber: 1,
   copyLabel: 'Original 1 (for Issuing Carrier)',
