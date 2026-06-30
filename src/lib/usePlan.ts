@@ -9,7 +9,6 @@ export interface PlanInfo {
   orgId: string | null
   awbUsedThisMonth: number
   awbLimit: number | null  // null = unlimited
-  canCreateAWB: boolean
   canDownloadAWB: boolean
   loading: boolean
   refreshUsage: () => Promise<void>
@@ -79,7 +78,6 @@ export function usePlan(): PlanInfo {
     orgId,
     awbUsedThisMonth: used,
     awbLimit: limit,
-    canCreateAWB: canDownloadAWB,
     canDownloadAWB,
     loading,
     refreshUsage,
