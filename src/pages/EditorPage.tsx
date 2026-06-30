@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
@@ -6,6 +6,7 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { AWBFormPanel } from '../components/AWBFormPanel'
+import { AWBOverlay } from '../components/AWBOverlay'
 import { AWBDocument } from '../pdf/AWBDocument'
 import { AWBData, defaultAWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
@@ -25,7 +26,7 @@ export function EditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
-  const { plan, orgId, canDownloadAWB, awbUsedThisMonth, awbLimit, refreshUsage } = usePlan()
+  const { plan, orgId, canDownloadAWB, awbUsedThisMonth, awbLimit, loading: planLoading, refreshUsage } = usePlan()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const docId = searchParams.get('id')
@@ -47,9 +48,23 @@ export function EditorPage() {
   const [downloadCountedAt, setDownloadCountedAt] = useState<string | null>(null)
   const [formWidth, setFormWidth] = useState(380)
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
+  const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
+  const [overlayMode, setOverlayMode] = useState(() => window.innerWidth >= 900)
+  const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
+  const pageWrapRef = useRef<HTMLDivElement | null>(null)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
+
+  const updatePageWidth = useCallback(() => {
+    const width = pageWrapRef.current?.getBoundingClientRect().width
+    if (width) setPageWidthPx(width)
+  }, [])
+
+  const setPageWrap = useCallback((node: HTMLDivElement | null) => {
+    pageWrapRef.current = node
+    if (node) requestAnimationFrame(updatePageWidth)
+  }, [updatePageWidth])
 
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
@@ -63,6 +78,28 @@ export function EditorPage() {
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }
+
+  useEffect(() => {
+    const onResize = () => {
+      const wide = window.innerWidth >= 900
+      setIsWideViewport(wide)
+      if (!wide) setOverlayMode(false)
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    const el = pageWrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width
+      if (w) setPageWidthPx(w)
+    })
+    ro.observe(el)
+    updatePageWidth()
+    return () => ro.disconnect()
+  }, [overlayMode, pdfBlob, updatePageWidth])
 
   // Auto-disable DRAFT watermark for paid plans
   useEffect(() => {
@@ -163,45 +200,60 @@ export function EditorPage() {
   }
 
   async function handleDownloadPdf() {
-    if (!pdfUrl || downloading) return
+    if (!pdfUrl || downloading || planLoading) return
+    if (atLimit) {
+      setSaveMsg(t('editor.limitReached'))
+      setTimeout(() => setSaveMsg(null), 5000)
+      ;(window as any).clarity?.('event', 'free_awb_pdf_limit_reached')
+      posthog?.capture('free_awb_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
+      return
+    }
 
     setSaveMsg(null)
     setDownloading(true)
+    downloadPdfFile()
     try {
       let docIdForDownload = currentId
       let countedAt = downloadCountedAt
 
       if (!docIdForDownload) {
-        const doc = await saveAWB(data, undefined, orgId ?? undefined)
-        docIdForDownload = doc.id
-        countedAt = doc.download_counted_at ?? null
-        setCurrentId(doc.id)
-        setDownloadCountedAt(countedAt)
-        navigate(`/editor?id=${doc.id}`, { replace: true })
-        ;(window as any).clarity?.('event', 'awb_saved')
-        posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source: 'download' })
-      }
-
-      if (orgId && !countedAt) {
-        const { data: result, error } = await supabase.rpc('record_awb_pdf_download', {
-          p_org_id: orgId,
-          p_awb_document_id: docIdForDownload,
-        })
-        if (error) throw error
-        if (result === 'limit_reached') {
-          setSaveMsg(t('editor.limitReached'))
-          setTimeout(() => setSaveMsg(null), 5000)
-          ;(window as any).clarity?.('event', 'free_awb_pdf_limit_reached')
-          posthog?.capture('free_awb_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
-          return
-        }
-        if (result === 'ok' || result === 'already_counted') {
-          setDownloadCountedAt(new Date().toISOString())
-          await refreshUsage()
+        try {
+          const doc = await saveAWB(data, undefined, orgId ?? undefined)
+          docIdForDownload = doc.id
+          countedAt = doc.download_counted_at ?? null
+          setCurrentId(doc.id)
+          setDownloadCountedAt(countedAt)
+          navigate(`/editor?id=${doc.id}`, { replace: true })
+          ;(window as any).clarity?.('event', 'awb_saved')
+          posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source: 'download' })
+        } catch (error) {
+          console.error('PDF save before download failed:', error)
         }
       }
 
-      downloadPdfFile()
+      if (orgId && docIdForDownload && !countedAt) {
+        try {
+          const { data: result, error } = await supabase.rpc('record_awb_pdf_download', {
+            p_org_id: orgId,
+            p_awb_document_id: docIdForDownload,
+          })
+          if (error) throw error
+          if (result === 'limit_reached') {
+            setSaveMsg(t('editor.limitReached'))
+            setTimeout(() => setSaveMsg(null), 5000)
+            ;(window as any).clarity?.('event', 'free_awb_pdf_limit_reached')
+            posthog?.capture('free_awb_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
+            return
+          }
+          if (result === 'ok' || result === 'already_counted') {
+            setDownloadCountedAt(new Date().toISOString())
+            await refreshUsage()
+          }
+        } catch (error) {
+          console.error('PDF usage tracking failed:', error)
+        }
+      }
+
       ;(window as any).clarity?.('event', 'awb_downloaded')
       posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
       supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
@@ -280,8 +332,8 @@ export function EditorPage() {
             {saving ? t('editor.saving') : t('editor.saveDoc')}
           </button>
           {pdfUrl && (
-            <button className="btn-download" type="button" onClick={handleDownloadPdf} disabled={downloading}>
-              {downloading ? t('editor.downloading') : `↓ ${t('editor.downloadPdf')}`}
+            <button className="btn-download" type="button" onClick={handleDownloadPdf} disabled={downloading || planLoading}>
+              {downloading ? t('editor.downloading') : t('editor.downloadPdf')}
             </button>
           )}
           <Link to="/settings" className="btn-download" style={{ gap: 4 }}>
@@ -298,24 +350,28 @@ export function EditorPage() {
         </div>
       )}
 
-      <div className="main">
-        <div className="form-panel-wrap" style={{ width: formWidth }}>
-          <AWBFormPanel data={data} onChange={setData} />
-          {/* Mobile-only: sticky download bar */}
-          <div className="mobile-pdf-strip">
-            {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, flex: 1 }}>{t('editor.generating')}</span>}
-            {pdfUrl && (
-              <button className="btn-download" type="button" onClick={handleDownloadPdf} disabled={downloading}
-                style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}
-              >
-                {downloading ? t('editor.downloading') : `↓ ${t('editor.downloadPdf')}`}
-              </button>
-            )}
-            {!pdfUrl && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>}
-          </div>
-        </div>
-        <div className="resize-handle" onMouseDown={onDragStart} title="Drag to resize" />
-        <div className="preview-panel">
+      <div className={`main ${overlayMode ? 'main-single' : ''}`}>
+        {!overlayMode && (
+          <>
+            <div className="form-panel-wrap" style={{ width: formWidth }}>
+              <AWBFormPanel data={data} onChange={setData} />
+              {/* Mobile-only: sticky download bar */}
+              <div className="mobile-pdf-strip">
+                {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, flex: 1 }}>{t('editor.generating')}</span>}
+                {pdfUrl && (
+                  <button className="btn-download" type="button" onClick={handleDownloadPdf} disabled={downloading || planLoading}
+                    style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}
+                  >
+                    {downloading ? t('editor.downloading') : t('editor.downloadPdf')}
+                  </button>
+                )}
+                {!pdfUrl && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>}
+              </div>
+            </div>
+            <div className="resize-handle" onMouseDown={onDragStart} title="Drag to resize" />
+          </>
+        )}
+        <div className={`preview-panel ${overlayMode ? 'preview-panel-full' : ''}`}>
           {/* Zoom + PDF text size controls */}
           <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#2a2a2a', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #444' }}>
             {/* View zoom */}
@@ -323,6 +379,15 @@ export function EditorPage() {
             <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
             <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>+</button>
             <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>{t('editor.zoomReset')}</button>
+            {isWideViewport && (
+              <button
+                type="button"
+                onClick={() => setOverlayMode(m => !m)}
+                style={{ background: overlayMode ? '#8b0000' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
+              >
+                {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}
+              </button>
+            )}
             {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 8 }}>{t('editor.updating')}</span>}
           </div>
           {pdfBlob ? (
@@ -333,13 +398,27 @@ export function EditorPage() {
                 loading={null}
               >
                 {Array.from({ length: numPages }, (_, i) => (
-                  <Page
-                    key={i + 1}
-                    pageNumber={i + 1}
-                    scale={zoom * 1.5}
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                  />
+                  i === 0 && overlayMode ? (
+                    <div key={i + 1} ref={setPageWrap} style={{ position: 'relative' }}>
+                      <Page
+                        pageNumber={1}
+                        scale={zoom * 1.5}
+                        renderTextLayer={false}
+                        renderAnnotationLayer={false}
+                        loading={null}
+                        onRenderSuccess={updatePageWidth}
+                      />
+                      {pageWidthPx > 0 && <AWBOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />}
+                    </div>
+                  ) : (
+                    <Page
+                      key={i + 1}
+                      pageNumber={i + 1}
+                      scale={zoom * 1.5}
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
+                    />
+                  )
                 ))}
               </Document>
             </div>

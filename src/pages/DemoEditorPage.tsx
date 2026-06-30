@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
@@ -40,6 +40,16 @@ export function DemoEditorPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
 
+  const updatePageWidth = useCallback(() => {
+    const width = pageWrapRef.current?.getBoundingClientRect().width
+    if (width) setPageWidthPx(width)
+  }, [])
+
+  const setPageWrap = useCallback((node: HTMLDivElement | null) => {
+    pageWrapRef.current = node
+    if (node) requestAnimationFrame(updatePageWidth)
+  }, [updatePageWidth])
+
   useEffect(() => {
     posthog?.capture('demo_viewed')
   }, [])
@@ -62,8 +72,9 @@ export function DemoEditorPage() {
       if (w) setPageWidthPx(w)
     })
     ro.observe(el)
+    updatePageWidth()
     return () => ro.disconnect()
-  }, [overlayMode, pdfBlob])
+  }, [overlayMode, pdfBlob, updatePageWidth])
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -154,8 +165,8 @@ export function DemoEditorPage() {
                 <Document file={pdfBlob} onLoadSuccess={({ numPages: n }) => setNumPages(n)} loading={null}>
                   {Array.from({ length: numPages }, (_, i) => (
                     i === 0 && overlayMode ? (
-                      <div key={i + 1} ref={pageWrapRef} style={{ position: 'relative' }}>
-                        <Page pageNumber={1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} loading={null} />
+                      <div key={i + 1} ref={setPageWrap} style={{ position: 'relative' }}>
+                        <Page pageNumber={1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} loading={null} onRenderSuccess={updatePageWidth} />
                         {pageWidthPx > 0 && <AWBOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />}
                       </div>
                     ) : (
