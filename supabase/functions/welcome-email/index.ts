@@ -46,8 +46,8 @@ Deno.serve(async (req) => {
             <table cellpadding="0" cellspacing="0" style="margin:24px 0;background:#faf8f8;border-radius:8px;padding:20px;border:1px solid #e8dcdc;width:100%;box-sizing:border-box;">
               <tr><td>
                 <p style="margin:0 0 10px;font-weight:700;color:#8B0000;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">Your Free plan includes:</p>
-                <p style="margin:4px 0;color:#444;font-size:14px;">✓ 10 AWBs per month</p>
-                <p style="margin:4px 0;color:#444;font-size:14px;">✓ PDF download</p>
+                <p style="margin:4px 0;color:#444;font-size:14px;">✓ 10 AWB PDF downloads per month</p>
+                <p style="margin:4px 0;color:#444;font-size:14px;">✓ Save and edit AWBs</p>
                 <p style="margin:4px 0;color:#444;font-size:14px;">✓ IATA check digit validation</p>
                 <p style="margin:4px 0;color:#444;font-size:14px;">✓ Auto-save documents</p>
               </td></tr>
