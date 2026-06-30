@@ -176,9 +176,11 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
   box(r(X.ref + optW * 2, Y.iataBottom, R, Y.depBottom))
   push({ key: 'airportOfDeparture', ...cellIn(r(L, Y.iataBottom, MID, Y.depBottom), 3), fontSize: TXT, label: 'Airport of Departure (Addr. of First Carrier) and Requested Routing' })
   push({ key: 'referenceNumber', ...cellIn(r(MID, Y.iataBottom, X.ref, Y.depBottom), 3), fontSize: TXT, label: 'Reference Number' })
-  push({ key: 'optionalShippingInfo1', ...cellIn(r(X.ref, Y.iataBottom, X.ref + optW, Y.depBottom), 3), fontSize: TXT, label: 'Optional Shipping Information' })
-  push({ key: 'optionalShippingInfo2', ...cellIn(r(X.ref + optW, Y.iataBottom, X.ref + optW * 2, Y.depBottom), 3), fontSize: TXT })
-  push({ key: 'optionalShippingInfo3', ...cellIn(r(X.ref + optW * 2, Y.iataBottom, R, Y.depBottom), 3), fontSize: TXT })
+  // OSI: single label spanning all 3 boxes (§5.2.16 allows "without title"; spanning label matches official form)
+  text(X.ref + 2, Y.iataBottom + 2, R - X.ref - 4, LBL + 1, LBL - 0.5, 'Optional Shipping Information')
+  push({ key: 'optionalShippingInfo1', x: X.ref + 3, y: Y.iataBottom + LBL + 3, width: optW - 6, height: Y.depBottom - Y.iataBottom - LBL - 6, fontSize: TXT })
+  push({ key: 'optionalShippingInfo2', x: X.ref + optW + 3, y: Y.iataBottom + LBL + 3, width: optW - 6, height: Y.depBottom - Y.iataBottom - LBL - 6, fontSize: TXT })
+  push({ key: 'optionalShippingInfo3', x: X.ref + optW * 2 + 3, y: Y.iataBottom + LBL + 3, width: R - (X.ref + optW * 2) - 6, height: Y.depBottom - Y.iataBottom - LBL - 6, fontSize: TXT })
 
   // ── Routing grid (y 270–294) ──
   {
@@ -195,7 +197,7 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
     box(r(X.otherEnd, Y.depBottom, X.declCustoms, yb))
     box(r(X.declCustoms, Y.depBottom, R, yb))
     push({ key: 'routeTo1', ...cellIn(r(L, Y.depBottom, X.rTo1, yb), 2), fontSize: XS, label: 'To' })
-    push({ key: 'routeBy1', ...cellIn(r(X.rTo1, Y.depBottom, X.rBy1, yb), 2), fontSize: XS, label: 'By First Carrier   Routing and Destination' })
+    push({ key: 'routeBy1', ...cellIn(r(X.rTo1, Y.depBottom, X.rBy1, yb), 2), fontSize: XS, label: 'By First Carrier' })
     push({ key: 'routeTo2', ...cellIn(r(X.rBy1, Y.depBottom, X.rTo2, yb), 2), fontSize: XS, label: 'to' })
     push({ key: 'routeBy2', ...cellIn(r(X.rTo2, Y.depBottom, X.rBy2, yb), 2), fontSize: XS, label: 'by' })
     push({ key: 'routeTo3', ...cellIn(r(X.rBy2, Y.depBottom, X.rTo3, yb), 2), fontSize: XS, label: 'to' })
