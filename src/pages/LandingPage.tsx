@@ -115,7 +115,7 @@ export function LandingPage() {
             <div className="lp-mockup-preview">
               <div className="lp-mockup-pdf">
                 <div className="lp-mockup-awb-header">
-                  <div className="lp-mockup-awb-num">014 <span>57318306</span></div>
+                  <div className="lp-mockup-awb-num">999 <span>12345675</span></div>
                   <div className="lp-mockup-awb-title">Air Waybill</div>
                 </div>
                 {[1,2,3,4,5,6].map(i => (

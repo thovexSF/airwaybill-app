@@ -190,7 +190,7 @@ export function DGDPage() {
               <Field label="Shipper Name & Address" value={data.shipperNameAndAddress} onChange={set('shipperNameAndAddress')} rows={3} />
               <Field label="Consignee Name & Address" value={data.consigneeNameAndAddress} onChange={set('consigneeNameAndAddress')} rows={3} />
               <Row>
-                <Field label="Air Waybill No." value={data.awbNo} onChange={set('awbNo')} placeholder="014-57318306" />
+                <Field label="Air Waybill No." value={data.awbNo} onChange={set('awbNo')} placeholder="999-12345675" />
                 <Field label="Page of Pages" value={data.pageOf} onChange={set('pageOf')} placeholder="1 of 1" />
               </Row>
               <Field label="Shipper's Reference (optional)" value={data.shipperReference} onChange={set('shipperReference')} />

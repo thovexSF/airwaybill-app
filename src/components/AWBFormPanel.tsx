@@ -94,18 +94,18 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
         {isHawb ? (
           <>
             <Field label="HAWB Number" value={data.hawbNumber ?? ''} onChange={set('hawbNumber')} placeholder="HB-2024-001" />
-            <Field label="MAWB Reference (Master AWB)" value={data.mawbReference ?? ''} onChange={set('mawbReference')} placeholder="014-57318306" />
+            <Field label="MAWB Reference (Master AWB)" value={data.mawbReference ?? ''} onChange={set('mawbReference')} placeholder="999-12345675" />
           </>
         ) : (
           <Row>
-            <Field label="Prefix (airline code)" value={data.awbPrefix} onChange={set('awbPrefix')} placeholder="014" required />
+            <Field label="Prefix (airline code)" value={data.awbPrefix} onChange={set('awbPrefix')} placeholder="999" required />
             <Field label="Airport Code" value={data.awbAirportCode} onChange={set('awbAirportCode')} placeholder="SCL" />
             <div className="field">
               <label>Serial Number<span style={{ color: '#c00', marginLeft: 2 }}>*</span></label>
               <input
                 value={data.awbSerial}
                 onChange={(e) => set('awbSerial')(e.target.value)}
-                placeholder="57318306"
+                placeholder="12345675"
                 style={{ borderColor: data.awbSerial.length === 8 ? (validateAWBSerial(data.awbSerial) ? '#2a7a2a' : '#c00') : undefined }}
               />
               {data.awbSerial.length >= 7 && data.awbSerial.length < 8 && (
@@ -208,7 +208,7 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
       <Section title="Issuing Carrier's Agent">
         <Field label="Name and City" value={data.agentNameAndCity} onChange={set('agentNameAndCity')} rows={2} />
         <Row>
-          <Field label="IATA Code" value={data.agentIataCode} onChange={set('agentIataCode')} placeholder="75-1-9012/0014" />
+          <Field label="IATA Code" value={data.agentIataCode} onChange={set('agentIataCode')} placeholder="75-1-1234/0000" />
           <Field label="Account No." value={data.agentAccountNumber} onChange={set('agentAccountNumber')} />
         </Row>
       </Section>
@@ -314,7 +314,7 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
                 <input value={item.chargeableWeight} onChange={(e) => updateRateItem(item.id, 'chargeableWeight', e.target.value)} placeholder="10" />
                 <input value={item.rateCharge} onChange={(e) => updateRateItem(item.id, 'rateCharge', e.target.value)} placeholder="400.00" />
                 <input value={item.total} onChange={(e) => updateRateItem(item.id, 'total', e.target.value)} placeholder="400.00" />
-                <input className="col-nature" value={item.natureAndQuantity} onChange={(e) => updateRateItem(item.id, 'natureAndQuantity', e.target.value)} placeholder="BANK NOTES / 30x30x50cm" />
+                <input className="col-nature" value={item.natureAndQuantity} onChange={(e) => updateRateItem(item.id, 'natureAndQuantity', e.target.value)} placeholder="PRINTED BROCHURES / 30x30x50cm" />
                 <button type="button" className="btn-remove" onClick={() => removeRateItem(item.id)}>×</button>
               </div>
             ))}

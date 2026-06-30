@@ -180,9 +180,9 @@ export function SettingsPage() {
 
             <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginBottom: 20, border: '1px solid #e8dcdc' }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>{t('settings.agent')}</h2>
-              {field(t('settings.issuingAgent'), 'issuing_carrier_agent', 'Ej: B2B Express S.A. RUT: 99.515.150-2')}
+              {field(t('settings.issuingAgent'), 'issuing_carrier_agent', 'Ej: Pacific Freight Agency')}
               {field(t('settings.departureAirport'), 'airport_of_departure', 'Ej: SANTIAGO DE CHILE (SCL/ZRH)')}
-              {field(t('settings.awbPrefix'), 'awb_prefix', 'Ej: 014')}
+              {field(t('settings.awbPrefix'), 'awb_prefix', 'Ej: 999')}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
