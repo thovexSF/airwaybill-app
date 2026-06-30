@@ -30,6 +30,51 @@
   font-size: 14px;
 }
 
+.auth-demo-callout {
+  background: #fff6ea;
+  border: 1px solid #f2c98a;
+  border-radius: 10px;
+  color: #4f2c00;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 12px;
+}
+
+.auth-demo-callout strong {
+  font-size: 14px;
+}
+
+.auth-demo-callout span {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.auth-trust-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  list-style: none;
+  margin-top: 14px;
+}
+
+.auth-trust-list li {
+  color: #4c4444;
+  font-size: 13px;
+  line-height: 1.35;
+  padding-left: 20px;
+  position: relative;
+}
+
+.auth-trust-list li::before {
+  color: #8b0000;
+  content: '+';
+  font-weight: 800;
+  left: 0;
+  position: absolute;
+}
+
 .auth-form {
   margin-top: 20px;
   display: flex;

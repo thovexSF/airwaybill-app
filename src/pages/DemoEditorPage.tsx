@@ -22,6 +22,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 export function DemoEditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
+  const signupPath = '/signup?from=demo'
+  const signupState = { from: '/demo', intent: 'download_pdf' }
   const [data, setDataRaw] = useState<AWBData>({ ...exampleAWB, isDraft: true })
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
     setDataRaw(prev => {
@@ -83,6 +85,10 @@ export function DemoEditorPage() {
     setGenerating(false)
   }
 
+  function captureSignupClick(location: 'banner' | 'action_bar' | 'conversion_strip') {
+    posthog?.capture('demo_signup_cta_clicked', { location, intent: 'download_pdf' })
+  }
+
   return (
     <div className="app">
       <div style={{
@@ -97,7 +103,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupPath}
+          state={signupState}
+          onClick={() => captureSignupClick('banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -125,10 +136,30 @@ export function DemoEditorPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
-          <Link to="/signup" state={{ from: '/demo' }} className="btn-download">
+          <Link
+            to={signupPath}
+            state={signupState}
+            onClick={() => captureSignupClick('action_bar')}
+            className="btn-download"
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>
+      </div>
+
+      <div className="demo-conversion-strip">
+        <div className="demo-conversion-copy">
+          <strong>{t('demo.conversionTitle')}</strong>
+          <span>{t('demo.conversionSub')}</span>
+        </div>
+        <Link
+          to={signupPath}
+          state={signupState}
+          onClick={() => captureSignupClick('conversion_strip')}
+          className="demo-conversion-cta"
+        >
+          {t('demo.conversionCta')}
+        </Link>
       </div>
 
       <div className="main main-single">
