@@ -1,9 +1,9 @@
 import React from 'react'
-import { Document, Page, View, Text, StyleSheet, Image, Svg, Line } from '@react-pdf/renderer'
+import { Document, Page, View, Text, StyleSheet, Image, Svg, Line, Polygon } from '@react-pdf/renderer'
 import { AWBData } from '../types/awb'
 import {
-  AWB_BOXES, STATIC_TEXT_BLOCKS, PAGE_PADDING, PAGE_WIDTH,
-  FieldDef, BoxDef, getFieldDefs,
+  AWB_BOXES, STATIC_TEXT_BLOCKS, AWB_BANNERS, PAGE_PADDING, PAGE_WIDTH,
+  FieldDef, BoxDef, BannerDef, getFieldDefs,
 } from './awbLayout'
 
 const RED = '#8B0000'
@@ -79,6 +79,64 @@ function Diagonal({ x, y, width, height }: { x: number; y: number; width: number
     <Svg style={{ position: 'absolute', left: x, top: y, width, height }}>
       <Line x1={0} y1={height} x2={width} y2={0} stroke={RED} strokeWidth={0.5} />
     </Svg>
+  )
+}
+
+const NOTCH_INSET = 8
+const NOTCH_DROP = 9
+const NOTCH_CLEARANCE = 7 // flat (untapered) zone at the top of the notch, sized to clear the label text
+const BANNER_FONT_SIZE = 5
+
+/** Rough Helvetica-Bold width estimate, used to size a banner's notch to its label. */
+function textWidth(text: string, fontSize = BANNER_FONT_SIZE) {
+  return text.length * fontSize * 0.68
+}
+
+/**
+ * Chamfers a box corner into a diagonal notch, replacing the sharp 90° corner
+ * it would otherwise have — the pennant/banner style real AWBs use for charge
+ * and total row headers so label text never crosses a border line. The notch
+ * stays full-width for `clearance` pt below the top border (room for the
+ * label), then tapers down to the true corner by `drop` pt, where the wall
+ * resumes straight. `inset` defaults to a small fixed chamfer but widens to
+ * fit the label on banners that straddle a shared divider (see `Banner`).
+ */
+function CornerCut({ cx, cy, corner, inset = NOTCH_INSET, drop = NOTCH_DROP, clearance = 0 }: {
+  cx: number; cy: number; corner: 'tl' | 'tr'; inset?: number; drop?: number; clearance?: number
+}) {
+  const left = corner === 'tr' ? cx - inset : cx
+  const localCx = corner === 'tr' ? inset : 0
+  const localSx = corner === 'tr' ? 0 : inset
+  return (
+    <Svg style={{ position: 'absolute', left, top: cy, width: inset, height: drop }}>
+      <Polygon points={`${localCx},0 ${localSx},0 ${localSx},${clearance} ${localCx},${drop}`} fill="#fff" />
+      <Line x1={localSx} y1={clearance} x2={localCx} y2={drop} stroke={RED} strokeWidth={0.5} />
+    </Svg>
+  )
+}
+
+/** Renders a pennant/banner row-header label per `BannerDef` (see awbLayout.ts). */
+function Banner({ b }: { b: BannerDef }) {
+  if (b.kind === 'divider') {
+    const inset = Math.max(NOTCH_INSET, textWidth(b.text) / 2 + 3)
+    const drop = NOTCH_CLEARANCE + 7
+    return (
+      <>
+        <CornerCut cx={b.cx} cy={b.y} corner="tr" inset={inset} drop={drop} clearance={NOTCH_CLEARANCE} />
+        <CornerCut cx={b.cx} cy={b.y} corner="tl" inset={inset} drop={drop} clearance={NOTCH_CLEARANCE} />
+        <Text style={{ position: 'absolute', left: b.cx - 60, top: b.y + 1, width: 120, textAlign: 'center', fontSize: BANNER_FONT_SIZE, fontFamily: 'Helvetica-Bold', color: '#000' }}>
+          {b.text}
+        </Text>
+      </>
+    )
+  }
+  return (
+    <>
+      <CornerCut cx={b.cutSide === 'right' ? b.x + b.width : b.x} cy={b.y} corner={b.cutSide === 'right' ? 'tr' : 'tl'} />
+      <Text style={{ position: 'absolute', left: b.x + 4, top: b.y + 1, width: b.width - 8, fontSize: BANNER_FONT_SIZE, fontFamily: 'Helvetica-Bold', color: '#000' }}>
+        {b.text}
+      </Text>
+    </>
   )
 }
 
@@ -169,9 +227,8 @@ export function AWBDocument({ data }: { data: AWBData; userScale?: 'sm' | 'md' |
         {/* Diagonal separator lines — visual signature of real AWBs */}
         {/* Rate / Charge header diagonal */}
         <Diagonal x={338} y={366} width={94} height={24} />
-        {/* Prepaid / Weight Charge / Collect header diagonals */}
-        <Diagonal x={57} y={558} width={101} height={12} />
-        <Diagonal x={158} y={558} width={101} height={12} />
+        {/* Pennant/banner row headers — Weight Charge, Valuation Charge, Tax, Total Other Charges */}
+        {AWB_BANNERS.map((b, i) => <Banner key={i} b={b} />)}
         {/* Total Prepaid / Total Collect diagonals */}
         <Diagonal x={57} y={702} width={101} height={24} />
         <Diagonal x={158} y={702} width={101} height={24} />

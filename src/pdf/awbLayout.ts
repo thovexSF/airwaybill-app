@@ -113,12 +113,26 @@ const XS = 5
 export type BoxDef = Rect & { borderTop?: boolean; borderBottom?: boolean; borderLeft?: boolean; borderRight?: boolean }
 export type StaticTextDef = { key: string; x: number; y: number; width: number; height: number; fontSize: number; lineHeight: number; text: string; boldFrom?: string }
 
+/**
+ * A pennant/banner-style row header, matching the chamfered-corner labels used
+ * throughout the real AWB's charges & totals section ("WEIGHT CHARGE", "TAX",
+ * "TOTAL PREPAID", etc.) instead of plain text laid over a straight grid line.
+ * - `divider`: the label straddles a shared internal divider (e.g. Prepaid |
+ *   Collect) — both facing corners are chamfered, opening a diamond notch.
+ * - `side`: the label sits inside one cell, and only the corner nearest a wall
+ *   it would otherwise collide with is chamfered.
+ */
+export type BannerDef =
+  | { kind: 'divider'; cx: number; y: number; text: string }
+  | { kind: 'side'; x: number; y: number; width: number; text: string; cutSide: 'left' | 'right' }
+
 const fullBorder = { borderTop: true, borderBottom: true, borderLeft: true, borderRight: true }
 
-function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: StaticTextDef[] } {
+function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: StaticTextDef[]; banners: BannerDef[] } {
   const fields: FieldDef[] = []
   const boxes: BoxDef[] = []
   const staticTexts: StaticTextDef[] = []
+  const banners: BannerDef[] = []
   const push = (f: FieldDef) => fields.push(f)
   const box = (rect: Rect, borders: Partial<BoxDef> = fullBorder) => boxes.push({ ...rect, ...borders })
   let st = 0
@@ -280,41 +294,40 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
   }
 
   // ── Charges left column (y 558–702) ──
-  // Three logical sub-columns: Prepaid [57–158] | Collect [158–259].
+  // Prepaid [57–158] | Collect [158–259] for Weight/Valuation/Tax; a single
+  // full-width row for the two Total Other Charges lines (they're lump sums,
+  // not split PPD/COLL — matches the real form, which has no divider there).
   {
     const lx = L, midx = X.chgPpdEnd, rx = X.chgCollEnd
-    const rows = [
-      { y0: Y.rateCarryBottom, y1: Y.chgRow1, label: '' },          // weight charge (special header)
-      { y0: Y.chgRow1, y1: Y.chgRow2, label: 'Valuation Charge' },
-      { y0: Y.chgRow2, y1: Y.chgRow3, label: 'Tax' },
-      { y0: Y.chgRow3, y1: Y.chgRow4, label: 'Total Other Charges Due Agent' },
-      { y0: Y.chgRow4, y1: Y.chgRow5, label: 'Total Other Charges Due Carrier' },
+    const splitRows = [
+      { y0: Y.rateCarryBottom, y1: Y.chgRow1, label: 'WEIGHT CHARGE' },
+      { y0: Y.chgRow1, y1: Y.chgRow2, label: 'VALUATION CHARGE' },
+      { y0: Y.chgRow2, y1: Y.chgRow3, label: 'TAX' },
     ]
-    rows.forEach((row) => {
+    splitRows.forEach((row) => {
       box(r(lx, row.y0, midx, row.y1))
       box(r(midx, row.y0, rx, row.y1))
+      banners.push({ kind: 'divider', cx: midx, y: row.y0, text: row.label })
     })
-    // weight-charge header row sub-labels
-    text(lx + 2, Y.rateCarryBottom + 1, midx - lx - 4, 8, 4.6, 'Prepaid')
-    text(midx + 2, Y.rateCarryBottom + 1, rx - midx - 4, 8, 4.6, 'Collect')
-    text(lx + 2, Y.rateCarryBottom + 8, rx - lx - 4, 8, 4.6, 'Weight Charge')
+    const lumpRows = [
+      { y0: Y.chgRow3, y1: Y.chgRow4, label: 'TOTAL OTHER CHARGES DUE AGENT', key: 'totalOtherChargesDueAgent' as FieldKey },
+      { y0: Y.chgRow4, y1: Y.chgRow5, label: 'TOTAL OTHER CHARGES DUE CARRIER', key: 'totalOtherChargesDueCarrier' as FieldKey },
+    ]
+    lumpRows.forEach((row) => {
+      box(r(lx, row.y0, rx, row.y1))
+      banners.push({ kind: 'side', x: lx, y: row.y0, width: rx - lx, text: row.label, cutSide: 'right' })
+      push({ key: row.key, x: lx + 2, y: row.y0 + 12, width: rx - lx - 4, height: 11, fontSize: TXT })
+    })
+    // weight-charge sub-column labels
+    text(lx + 2, Y.rateCarryBottom + 1, midx - lx - 4, 8, 4.6, 'PREPAID')
+    text(midx + 2, Y.rateCarryBottom + 1, rx - midx - 4, 8, 4.6, 'COLLECT')
     push({ key: 'weightChargePPD',  x: lx + 2, y: Y.rateCarryBottom + 14, width: midx - lx - 4, height: 11, fontSize: TXT })
     push({ key: 'weightChargeCOLL', x: midx + 2, y: Y.rateCarryBottom + 14, width: rx - midx - 4, height: 11, fontSize: TXT })
-    // other rows: centered label at top + PPD/COLL values
-    const valFields: Record<string, [string, string]> = {
-      'Valuation Charge': ['valuationChargePPD', 'valuationChargeCOLL'],
-      'Tax': ['taxPPD', 'taxCOLL'],
-    }
-    rows.slice(1).forEach((row) => {
-      text(lx + 2, row.y0 + 1, rx - lx - 4, 8, 4.6, row.label)
-      const vf = valFields[row.label]
-      if (vf) {
-        push({ key: vf[0] as FieldKey, x: lx + 2, y: row.y0 + 12, width: midx - lx - 4, height: 11, fontSize: TXT })
-        push({ key: vf[1] as FieldKey, x: midx + 2, y: row.y0 + 12, width: rx - midx - 4, height: 11, fontSize: TXT })
-      }
-    })
-    push({ key: 'totalOtherChargesDueAgent', x: lx + 2, y: Y.chgRow3 + 12, width: midx - lx - 4, height: 11, fontSize: TXT })
-    push({ key: 'totalOtherChargesDueCarrier', x: midx + 2, y: Y.chgRow4 + 12, width: rx - midx - 4, height: 11, fontSize: TXT })
+    // Valuation Charge / Tax PPD & COLL values
+    push({ key: 'valuationChargePPD', x: lx + 2, y: Y.chgRow1 + 12, width: midx - lx - 4, height: 11, fontSize: TXT })
+    push({ key: 'valuationChargeCOLL', x: midx + 2, y: Y.chgRow1 + 12, width: rx - midx - 4, height: 11, fontSize: TXT })
+    push({ key: 'taxPPD', x: lx + 2, y: Y.chgRow2 + 12, width: midx - lx - 4, height: 11, fontSize: TXT })
+    push({ key: 'taxCOLL', x: midx + 2, y: Y.chgRow2 + 12, width: rx - midx - 4, height: 11, fontSize: TXT })
   }
 
   // ── Other Charges (right column, y 558–630) + shipper cert + signature (630–702) ──
@@ -365,7 +378,7 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
   push({ key: 'totalCollectCharges', ...cellIn(r(X.botCollect, Y.ccBottom, X.botCopy, Y.bottomBottom), 3), fontSize: XS, label: 'Total Collect Charges' })
   // copy label + repeated AWB number drawn dynamically by AWBDocument in [botCopy..R]
 
-  return { fields, boxes, staticTexts }
+  return { fields, boxes, staticTexts, banners }
 }
 
 function rectIn(rect: Rect, pad = 4): { x: number; y: number; width: number; height: number } {
@@ -390,6 +403,7 @@ const built = buildLayout()
 export const AWB_LAYOUT: FieldDef[] = built.fields
 export const AWB_BOXES: BoxDef[] = built.boxes
 export const STATIC_TEXT_BLOCKS: StaticTextDef[] = built.staticTexts
+export const AWB_BANNERS: BannerDef[] = built.banners
 
 /**
  * Expand row-template entries to match the actual number of rate items / other
