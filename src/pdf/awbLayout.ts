@@ -350,19 +350,23 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
     text(ox + 4, Y.chgBottom - 9, R - ox - 8, 8, 4.6, 'Signature of Shipper or his Agent')
   }
 
-  // ── Totals (y 702–726) ──
+  // ── Totals (y 702–726) ── banner labels straddle the Charges/Collect divider, same as the split rows above
   box(r(L, Y.chgBottom, X.botCharges, Y.totalsBottom))
   box(r(X.botCharges, Y.chgBottom, X.botCollect, Y.totalsBottom))
   box(r(X.botCollect, Y.chgBottom, R, Y.totalsBottom))
-  push({ key: 'totalPrepaid', ...cellIn(r(L, Y.chgBottom, X.botCharges, Y.totalsBottom), 3), fontSize: TXT, label: 'Total Prepaid' })
-  push({ key: 'totalCollect', ...cellIn(r(X.botCharges, Y.chgBottom, X.botCollect, Y.totalsBottom), 3), fontSize: TXT, label: 'Total Collect' })
+  banners.push({ kind: 'side', x: L, y: Y.chgBottom, width: X.botCharges - L, text: 'TOTAL PREPAID', cutSide: 'right' })
+  banners.push({ kind: 'side', x: X.botCharges, y: Y.chgBottom, width: X.botCollect - X.botCharges, text: 'TOTAL COLLECT', cutSide: 'left' })
+  push({ key: 'totalPrepaid', x: L + 2, y: Y.chgBottom + 12, width: X.botCharges - L - 4, height: 11, fontSize: TXT })
+  push({ key: 'totalCollect', x: X.botCharges + 2, y: Y.chgBottom + 12, width: X.botCollect - X.botCharges - 4, height: 11, fontSize: TXT })
 
   // ── Currency conversion / Execution (y 726–750) ──
   box(r(L, Y.totalsBottom, X.botCharges, Y.ccBottom))
   box(r(X.botCharges, Y.totalsBottom, X.botCollect, Y.ccBottom))
   box(r(X.botCollect, Y.totalsBottom, R, Y.ccBottom))
-  push({ key: 'currencyConversionRates', ...cellIn(r(L, Y.totalsBottom, X.botCharges, Y.ccBottom), 3), fontSize: XS, label: 'Currency Conversion Rates' })
-  push({ key: 'ccChargesInDestCurrency', ...cellIn(r(X.botCharges, Y.totalsBottom, X.botCollect, Y.ccBottom), 3), fontSize: XS, label: 'CC Charges in Dest. Currency' })
+  banners.push({ kind: 'side', x: L, y: Y.totalsBottom, width: X.botCharges - L, text: 'CURRENCY CONVERSION RATES', cutSide: 'right' })
+  banners.push({ kind: 'side', x: X.botCharges, y: Y.totalsBottom, width: X.botCollect - X.botCharges, text: 'CC CHARGES IN DEST. CURRENCY', cutSide: 'left' })
+  push({ key: 'currencyConversionRates', x: L + 2, y: Y.totalsBottom + 12, width: X.botCharges - L - 4, height: 11, fontSize: XS })
+  push({ key: 'ccChargesInDestCurrency', x: X.botCharges + 2, y: Y.totalsBottom + 12, width: X.botCollect - X.botCharges - 4, height: 11, fontSize: XS })
   push({ key: 'executedOnDate', ...cellIn(r(X.botCollect, Y.totalsBottom, X.execPlace, Y.ccBottom), 3), fontSize: TXT, label: 'Executed on (date)' })
   push({ key: 'executedAtPlace', ...cellIn(r(X.execPlace, Y.totalsBottom, X.execSig, Y.ccBottom), 3), fontSize: TXT, label: 'at (place)' })
   push({ key: 'signatureCarrier', x: X.execSig + 4, y: Y.totalsBottom + 4, width: R - X.execSig - 8, height: 14, fontSize: TXT, align: 'center' })
@@ -374,8 +378,10 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
   box(r(X.botCollect, Y.ccBottom, X.botCopy, Y.bottomBottom))
   box(r(X.botCopy, Y.ccBottom, R, Y.bottomBottom))
   text(L + 4, Y.ccBottom + 3, X.botCharges - L - 8, 18, 4.6, "For Carrier's Use only\nat Destination")
-  push({ key: 'chargesAtDestination', ...cellIn(r(X.botCharges, Y.ccBottom, X.botCollect, Y.bottomBottom), 3), fontSize: XS, label: 'Charges at Destination' })
-  push({ key: 'totalCollectCharges', ...cellIn(r(X.botCollect, Y.ccBottom, X.botCopy, Y.bottomBottom), 3), fontSize: XS, label: 'Total Collect Charges' })
+  banners.push({ kind: 'side', x: X.botCharges, y: Y.ccBottom, width: X.botCollect - X.botCharges, text: 'CHARGES AT DESTINATION', cutSide: 'left' })
+  banners.push({ kind: 'side', x: X.botCollect, y: Y.ccBottom, width: X.botCopy - X.botCollect, text: 'TOTAL COLLECT CHARGES', cutSide: 'left' })
+  push({ key: 'chargesAtDestination', x: X.botCharges + 2, y: Y.ccBottom + 12, width: X.botCollect - X.botCharges - 4, height: 11, fontSize: XS })
+  push({ key: 'totalCollectCharges', x: X.botCollect + 2, y: Y.ccBottom + 12, width: X.botCopy - X.botCollect - 4, height: 11, fontSize: XS })
   // copy label + repeated AWB number drawn dynamically by AWBDocument in [botCopy..R]
 
   return { fields, boxes, staticTexts, banners }

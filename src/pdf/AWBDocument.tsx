@@ -92,6 +92,13 @@ function textWidth(text: string, fontSize = BANNER_FONT_SIZE) {
   return text.length * fontSize * 0.68
 }
 
+/** Shrinks the banner font (down to a floor) so long labels fit their available width. */
+function fitFontSize(text: string, maxWidth: number) {
+  let fontSize = BANNER_FONT_SIZE
+  while (fontSize > 3.6 && textWidth(text, fontSize) > maxWidth) fontSize -= 0.2
+  return Math.round(fontSize * 10) / 10
+}
+
 /**
  * Chamfers a box corner into a diagonal notch, replacing the sharp 90° corner
  * it would otherwise have — the pennant/banner style real AWBs use for charge
@@ -130,10 +137,13 @@ function Banner({ b }: { b: BannerDef }) {
       </>
     )
   }
+  const clear = NOTCH_INSET + 3 // keep label text clear of the cut corner's widest (top) point
+  const left = b.x + (b.cutSide === 'left' ? clear : 4)
+  const right = b.x + b.width - (b.cutSide === 'right' ? clear : 4)
   return (
     <>
       <CornerCut cx={b.cutSide === 'right' ? b.x + b.width : b.x} cy={b.y} corner={b.cutSide === 'right' ? 'tr' : 'tl'} />
-      <Text style={{ position: 'absolute', left: b.x + 4, top: b.y + 1, width: b.width - 8, fontSize: BANNER_FONT_SIZE, fontFamily: 'Helvetica-Bold', color: '#000' }}>
+      <Text style={{ position: 'absolute', left, top: b.y + 1, width: right - left, fontSize: fitFontSize(b.text, right - left), fontFamily: 'Helvetica-Bold', color: '#000' }}>
         {b.text}
       </Text>
     </>
@@ -227,14 +237,9 @@ export function AWBDocument({ data }: { data: AWBData; userScale?: 'sm' | 'md' |
         {/* Diagonal separator lines — visual signature of real AWBs */}
         {/* Rate / Charge header diagonal */}
         <Diagonal x={338} y={366} width={94} height={24} />
-        {/* Pennant/banner row headers — Weight Charge, Valuation Charge, Tax, Total Other Charges */}
+        {/* Pennant/banner row headers — Weight/Valuation/Tax Charge, Total Other Charges,
+            Total Prepaid/Collect, Currency Conversion, Charges at Destination */}
         {AWB_BANNERS.map((b, i) => <Banner key={i} b={b} />)}
-        {/* Total Prepaid / Total Collect diagonals */}
-        <Diagonal x={57} y={702} width={101} height={24} />
-        <Diagonal x={158} y={702} width={101} height={24} />
-        {/* Currency conversion row diagonals */}
-        <Diagonal x={57} y={726} width={101} height={24} />
-        <Diagonal x={158} y={726} width={101} height={24} />
 
         {/* Carrier logo in the Air Waybill header area */}
         {data.carrierLogoUrl ? (
