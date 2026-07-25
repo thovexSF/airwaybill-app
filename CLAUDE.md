@@ -60,11 +60,14 @@ equivalent renderers for the other two document types, defined more directly
 
 The AWB is built entirely from vector boxes/lines/text (`awbLayout.ts` +
 `AWBDocument.tsx`), reproducing the official grid rather than overlaying
-fields on a scanned/rasterized real AWB. This is intentional: IATA Resolution
-600a (the AWB's technical spec, including exact box positions) is
-paid/restricted IP, and IATA Resolution 600b (Conditions of Contract text) is
-public — see `docs/iata-reference/README.md` for what's verified against
-official sources and what was measured from a real production AWB instead.
+fields on a scanned/rasterized real AWB. The box grid itself is a functional
+business form used industry-wide — reproducing measured box positions isn't
+gated by anything. What IS IATA-restricted is the official Resolution 600a
+*document* (sold inside the CSCRM manual, ~USD $320-343) and, more
+importantly, copying somebody else's actual finished artwork/scan wholesale
+(exact typography, exact printed expression) rather than your own
+measurements — see `docs/iata-reference/README.md` for the full picture and
+what was measured from a real production AWB instead.
 Do not embed a scanned/photographed real AWB as a background image without
 confirming the source is properly licensed for redistribution.
 
