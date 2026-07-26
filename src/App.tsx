@@ -18,7 +18,6 @@ import { ManifestPage } from './pages/ManifestPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { DevPreviewPage } from './pages/DevPreviewPage'
 import { DemoEditorPage } from './pages/DemoEditorPage'
-import { KidsBuilderPage } from './pages/KidsBuilderPage'
 import { FeedbackWidget } from './components/FeedbackWidget'
 
 export default function App() {
@@ -28,7 +27,6 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/demo" element={<DemoEditorPage />} />
-        <Route path="/mini-mundo" element={<KidsBuilderPage />} />
         <Route
           path="/editor"
           element={(
