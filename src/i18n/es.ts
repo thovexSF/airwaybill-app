@@ -127,6 +127,19 @@ const es = {
     previewLoading: 'Generando vista previa…',
     updating: 'Actualizando…',
     zoomReset: 'Reset',
+    onboarding: {
+      eyebrow: 'Nuevo AWB',
+      title: 'Crea tu primer Air Waybill',
+      body: 'Empieza con los datos basicos del embarque y luego guarda o descarga el PDF cuando la vista previa se vea correcta.',
+      steps: {
+        awbNumber: 'Agrega numero AWB y ruta',
+        parties: 'Completa shipper, consignee y carga',
+        download: 'Guarda o descarga el PDF final',
+      },
+      loadExampleCta: 'Cargar ejemplo',
+      openFormCta: 'Abrir formulario guiado',
+      settingsCta: 'Prellenar datos de empresa',
+    },
   },
 
   // My AWBs

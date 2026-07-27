@@ -154,6 +154,102 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
 .plan-downgrade-tooltip a:hover { color: rgba(255,255,255,0.9); }
 .plan-badge-wrap:hover .plan-downgrade-tooltip { display: block; }
 
+/* ── First AWB onboarding ── */
+.editor-onboarding {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 20px;
+  background: #fff8e6;
+  border-bottom: 1px solid #f0d38a;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  flex-shrink: 0;
+}
+
+.editor-onboarding-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 220px;
+  flex: 1.1;
+}
+
+.editor-onboarding-copy strong {
+  color: #3d2500;
+  font-size: 14px;
+}
+
+.editor-onboarding-copy span {
+  color: #5f4a1b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.editor-onboarding-eyebrow {
+  color: var(--red);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.editor-onboarding-steps {
+  display: flex;
+  gap: 14px;
+  color: #4c3c16;
+  font-size: 12px;
+  line-height: 1.3;
+  list-style-position: inside;
+  flex: 1.6;
+}
+
+.editor-onboarding-steps li {
+  min-width: 130px;
+}
+
+.editor-onboarding-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.editor-onboarding-primary,
+.editor-onboarding-secondary {
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+}
+
+.editor-onboarding-primary {
+  background: var(--red);
+  border: 1px solid var(--red);
+  color: #fff;
+}
+
+.editor-onboarding-primary:hover { background: #6b0000; }
+
+.editor-onboarding-secondary {
+  background: #fff;
+  border: 1px solid #d6b45d;
+  color: var(--red);
+}
+
+.editor-onboarding-secondary:hover { background: #fff1cc; }
+
+.editor-onboarding-link {
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.editor-onboarding-link:hover { text-decoration: underline; }
+
 /* ── Rate table ── */
 .rate-table { padding: 8px 12px; overflow-x: auto; }
 .rate-inner { min-width: 560px; }
@@ -238,6 +334,22 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
   /* Action bar: scrollable row */
   .action-bar { padding: 0 10px !important; overflow-x: auto; }
   .action-bar > div { flex-shrink: 0; }
+
+  .editor-onboarding {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .editor-onboarding-steps {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .editor-onboarding-actions {
+    justify-content: flex-start;
+  }
 
   /* Form sections: full width inputs */
   .field-row { flex-direction: column !important; }
