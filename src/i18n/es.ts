@@ -23,6 +23,8 @@ const es = {
       cta: 'Pruébalo gratis — sin registrarte →',
       demo: 'Ver demo',
       note: 'Sin registro para probar · 10 AWBs gratis/mes al crear cuenta',
+      spanishHelp: '¿Necesitas ayuda en español?',
+      spanishHelpCta: 'Habla con una persona real →',
     },
     features: {
       label: 'Funciones',
@@ -227,6 +229,20 @@ const es = {
       too_short: 'Escribí al menos unas palabras.',
       send_failed: 'No se pudo enviar ahora. Probá de nuevo en un momento.',
     },
+  },
+
+  contact: {
+    label: 'Soporte Airwaybill',
+    title: 'Contacta a Airwaybill',
+    sub: 'Cuéntanos qué necesitas generar, enviar o integrar. Respondemos personalmente en español o inglés.',
+    salesTitle: 'Para equipos de carga evaluando Airwaybill',
+    salesSub: 'Usa este contacto para preguntas de precio, flujos multiusuario, eAWB/Cargo-IMP o brechas de integración tipo AMI/WebCargo.',
+    emailCta: 'Enviar email a support@airwaybill.app',
+    demoCta: 'Probar la demo en vivo',
+    signupCta: 'Crear cuenta gratis',
+    responseNote: 'Una persona real lee este inbox. Incluye tu país, tipo de empresa y el flujo documental donde necesitas ayuda.',
+    subject: 'Consulta sobre Airwaybill App',
+    body: 'Hola equipo Airwaybill, necesito ayuda con...',
   },
 } as const
 

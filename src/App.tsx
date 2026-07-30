@@ -19,6 +19,7 @@ import { ProtectedRoute } from './auth/ProtectedRoute'
 import { DevPreviewPage } from './pages/DevPreviewPage'
 import { DemoEditorPage } from './pages/DemoEditorPage'
 import { FeedbackWidget } from './components/FeedbackWidget'
+import { ContactPage } from './pages/ContactPage'
 
 export default function App() {
   return (
@@ -73,23 +74,12 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/contact" element={<ComingSoon title="Contact Sales" />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/refunds" element={<RefundsPage />} />
         {import.meta.env.DEV && <Route path="/dev-preview" element={<DevPreviewPage />} />}
       </Routes>
     </BrowserRouter>
-  )
-}
-
-function ComingSoon({ title }: { title: string }) {
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui', gap: 16 }}>
-      <div style={{ fontSize: 48 }}>✈</div>
-      <h1 style={{ fontSize: 28, fontWeight: 800 }}>{title}</h1>
-      <p style={{ color: '#666' }}>Coming soon.</p>
-      <a href="/" style={{ marginTop: 8, background: '#8B0000', color: '#fff', padding: '10px 24px', borderRadius: 6, fontWeight: 600, fontSize: 14 }}>← Back to Home</a>
-    </div>
   )
 }
