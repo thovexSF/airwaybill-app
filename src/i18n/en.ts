@@ -75,6 +75,13 @@ const en = {
     },
     signup: {
       sub: 'Create your free account: 10 AWB PDF downloads/month, no credit card required.',
+      demoIntro: {
+        title: 'Your demo AWB is ready for the next step.',
+        sub: 'Create a free account to turn the draft preview into a clean PDF workflow.',
+        save: 'Save and reuse your AWB details',
+        downloads: 'Download 10 AWB PDFs/month on the free plan',
+        noCard: 'No credit card required',
+      },
       google: 'Sign up with Google',
       github: 'Sign up with GitHub',
       orEmail: 'or with email',
@@ -210,6 +217,12 @@ const en = {
     downloadCta: 'Sign up to download PDF',
     sub: 'Live demo — no signup required',
     modeLabel: 'Demo',
+    conversion: {
+      eyebrow: 'Ready to export?',
+      title: 'Create a free account to download a clean AWB PDF.',
+      sub: 'Keep this workflow moving with saved AWBs, 10 free PDF downloads/month, and no credit card.',
+      cta: 'Continue from demo',
+    },
   },
 
   feedback: {

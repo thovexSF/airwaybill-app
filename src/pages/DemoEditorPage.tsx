@@ -23,6 +23,8 @@ export function DemoEditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
   const [data, setDataRaw] = useState<AWBData>({ ...exampleAWB, isDraft: true })
+  const signupTo = '/signup?source=demo&intent=download_awb_pdf'
+  const signupState = { from: '/demo', intent: 'download_awb_pdf' }
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
     setDataRaw(prev => {
       const updated = typeof next === 'function' ? next(prev) : next
@@ -53,6 +55,19 @@ export function DemoEditorPage() {
   useEffect(() => {
     posthog?.capture('demo_viewed')
   }, [])
+
+  function trackSignupClick(placement: 'top_banner' | 'download_bar' | 'preview_card') {
+    ;(window as any).clarity?.('event', 'demo_signup_cta_clicked')
+    posthog?.capture('demo_signup_cta_clicked', {
+      placement,
+      intent: 'download_awb_pdf',
+    })
+  }
+
+  function handleResetExample() {
+    posthog?.capture('demo_example_reset_clicked')
+    setData({ ...exampleAWB, isDraft: true })
+  }
 
   useEffect(() => {
     const onResize = () => {
@@ -108,7 +123,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupTo}
+          state={signupState}
+          onClick={() => trackSignupClick('top_banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -130,13 +150,18 @@ export function DemoEditorPage() {
 
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button type="button" className="btn-example" onClick={() => setData({ ...exampleAWB, isDraft: true })}>
+          <button type="button" className="btn-example" onClick={handleResetExample}>
             {t('editor.example')}
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
-          <Link to="/signup" state={{ from: '/demo' }} className="btn-download">
+          <Link
+            to={signupTo}
+            state={signupState}
+            className="btn-download"
+            onClick={() => trackSignupClick('download_bar')}
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>
@@ -157,6 +182,22 @@ export function DemoEditorPage() {
                 {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}
               </button>
             )}
+          </div>
+
+          <div className="demo-conversion-card">
+            <div>
+              <div className="demo-conversion-eyebrow">{t('demo.conversion.eyebrow')}</div>
+              <strong>{t('demo.conversion.title')}</strong>
+              <p>{t('demo.conversion.sub')}</p>
+            </div>
+            <Link
+              to={signupTo}
+              state={signupState}
+              className="btn-download demo-conversion-cta"
+              onClick={() => trackSignupClick('preview_card')}
+            >
+              {t('demo.conversion.cta')}
+            </Link>
           </div>
 
           {pdfBlob ? (
