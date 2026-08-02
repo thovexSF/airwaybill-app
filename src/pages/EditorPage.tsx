@@ -54,7 +54,46 @@ export function EditorPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const editorOpenedRef = useRef(false)
+  const firstEditTrackedRef = useRef(false)
+  const outputCreatedRef = useRef(false)
+  const sessionStartedAtRef = useRef(Date.now())
+  const currentIdRef = useRef<string | null>(docId)
+  const docTypeRef = useRef<'awb' | 'hawb'>(docTypeParam ?? 'awb')
+  const planRef = useRef(plan)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
+
+  useEffect(() => {
+    currentIdRef.current = currentId
+  }, [currentId])
+
+  useEffect(() => {
+    docTypeRef.current = data.docType ?? docTypeParam ?? 'awb'
+    planRef.current = plan
+  }, [data.docType, docTypeParam, plan])
+
+  useEffect(() => {
+    if (editorOpenedRef.current) return
+    editorOpenedRef.current = true
+    posthog?.capture('awb_editor_opened', {
+      doc_type: docTypeParam ?? 'awb',
+      entry: docId ? 'existing_document' : 'new_document',
+      plan,
+    })
+  }, [docId, docTypeParam, plan, posthog])
+
+  useEffect(() => {
+    return () => {
+      if (outputCreatedRef.current) return
+      posthog?.capture('awb_editor_left_without_output', {
+        doc_type: docTypeRef.current,
+        had_first_edit: firstEditTrackedRef.current,
+        had_saved_document: Boolean(currentIdRef.current),
+        lifetime_seconds: Math.round((Date.now() - sessionStartedAtRef.current) / 1000),
+        plan: planRef.current,
+      })
+    }
+  }, [posthog])
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -77,6 +116,49 @@ export function EditorPage() {
     const onUp = () => { dragRef.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
+  }
+
+  function trackEditorAction(event: string, properties?: Record<string, unknown>) {
+    posthog?.capture(event, {
+      doc_type: data.docType ?? docTypeParam ?? 'awb',
+      has_doc_id: Boolean(currentId),
+      plan,
+      ...properties,
+    })
+  }
+
+  function handleUserDataChange(nextData: AWBData, source: 'form_panel' | 'pdf_overlay') {
+    if (!firstEditTrackedRef.current) {
+      firstEditTrackedRef.current = true
+      trackEditorAction('awb_editor_first_edit', {
+        source,
+        seconds_to_first_edit: Math.round((Date.now() - sessionStartedAtRef.current) / 1000),
+      })
+    }
+    setData(nextData)
+  }
+
+  function handleLoadExample(source: 'action_bar' | 'first_awb_guide') {
+    if (!window.confirm(t('editor.exampleConfirm'))) return
+    setData(exampleAWB)
+    trackEditorAction('awb_example_loaded', { source })
+  }
+
+  function handleClear() {
+    if (!window.confirm(t('editor.clearConfirm'))) return
+    setData(defaultAWBData)
+    setCurrentId(null)
+    setDownloadCountedAt(null)
+    trackEditorAction('awb_editor_cleared')
+  }
+
+  function handleToggleOverlayMode(source: 'toolbar' | 'first_awb_guide') {
+    const nextMode = !overlayMode
+    setOverlayMode(nextMode)
+    trackEditorAction('awb_editor_mode_toggled', {
+      source,
+      mode: nextMode ? 'pdf_overlay' : 'form_panel',
+    })
   }
 
   useEffect(() => {
@@ -172,6 +254,7 @@ export function EditorPage() {
   }
 
   async function handleSave() {
+    trackEditorAction('awb_save_clicked', { required_fields_complete: requiredFieldsComplete })
     setSaving(true)
     setSaveMsg(null)
     try {
@@ -181,10 +264,12 @@ export function EditorPage() {
       navigate(`/editor?id=${doc.id}`, { replace: true })
       setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
+      outputCreatedRef.current = true
       ;(window as any).clarity?.('event', 'awb_saved')
       posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: !currentId })
-    } catch {
+    } catch (error) {
       setSaveMsg(t('editor.saveError'))
+      trackEditorAction('awb_save_failed', { error_type: error instanceof Error ? error.name : typeof error })
     }
     setSaving(false)
   }
@@ -201,6 +286,10 @@ export function EditorPage() {
 
   async function handleDownloadPdf() {
     if (!pdfUrl || downloading || planLoading) return
+    trackEditorAction('awb_download_clicked', {
+      required_fields_complete: requiredFieldsComplete,
+      at_limit: atLimit,
+    })
     if (atLimit) {
       setSaveMsg(t('editor.limitReached'))
       setTimeout(() => setSaveMsg(null), 5000)
@@ -224,6 +313,7 @@ export function EditorPage() {
           setCurrentId(doc.id)
           setDownloadCountedAt(countedAt)
           navigate(`/editor?id=${doc.id}`, { replace: true })
+          outputCreatedRef.current = true
           ;(window as any).clarity?.('event', 'awb_saved')
           posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source: 'download' })
         } catch (error) {
@@ -272,11 +362,13 @@ export function EditorPage() {
       }
 
       ;(window as any).clarity?.('event', 'awb_downloaded')
+      outputCreatedRef.current = true
       posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
       supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
-    } catch {
+    } catch (error) {
       setSaveMsg(t('editor.downloadError'))
       setTimeout(() => setSaveMsg(null), 5000)
+      trackEditorAction('awb_download_failed', { error_type: error instanceof Error ? error.name : typeof error })
     } finally {
       setDownloading(false)
     }
@@ -288,6 +380,17 @@ export function EditorPage() {
     : (data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : 'AWB')
   const atLimit = plan === 'free' && !canDownloadAWB && !downloadCountedAt
   const hawbBlocked = false
+  const firstAwbSteps = [
+    { key: 'awbNumber', done: Boolean(data.awbPrefix.trim() && data.awbSerial.trim()) },
+    { key: 'parties', done: Boolean(data.shipperNameAndAddress.trim() && data.consigneeNameAndAddress.trim()) },
+    { key: 'route', done: Boolean(data.airportOfDeparture.trim() && data.airportOfDestination.trim()) },
+    {
+      key: 'cargo',
+      done: data.rateItems.some((item) => Boolean(item.pieces.trim() || item.grossWeight.trim() || item.natureAndQuantity.trim())),
+    },
+  ]
+  const requiredFieldsComplete = firstAwbSteps.every(step => step.done)
+  const showFirstAwbGuide = !currentId && !requiredFieldsComplete
 
   return (
     <div className="app">
@@ -334,8 +437,8 @@ export function EditorPage() {
       {/* Row 2 — Document actions */}
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.exampleConfirm'))) setData(exampleAWB) }}>{t('editor.example')}</button>
-          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { setData(defaultAWBData); setCurrentId(null); setDownloadCountedAt(null) } }}>{t('editor.clear')}</button>
+          <button className="btn-example" onClick={() => handleLoadExample('action_bar')}>{t('editor.example')}</button>
+          <button className="btn-example" onClick={handleClear}>{t('editor.clear')}</button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
@@ -367,11 +470,37 @@ export function EditorPage() {
         </div>
       )}
 
+      {showFirstAwbGuide && (
+        <div className="first-awb-guide">
+          <div className="first-awb-guide-copy">
+            <strong>{t('editor.firstGuide.title')}</strong>
+            <span>{t('editor.firstGuide.body')}</span>
+          </div>
+          <div className="first-awb-guide-steps">
+            {firstAwbSteps.map(step => (
+              <span key={step.key} className={step.done ? 'done' : undefined}>
+                {step.done ? '✓' : '○'} {t(`editor.firstGuide.steps.${step.key}`)}
+              </span>
+            ))}
+          </div>
+          <div className="first-awb-guide-actions">
+            <button type="button" className="btn-example" onClick={() => handleLoadExample('first_awb_guide')}>
+              {t('editor.firstGuide.loadExample')}
+            </button>
+            {isWideViewport && (
+              <button type="button" className="btn-example" onClick={() => handleToggleOverlayMode('first_awb_guide')}>
+                {overlayMode ? t('editor.firstGuide.useForm') : t('editor.firstGuide.editOnPdf')}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className={`main ${overlayMode ? 'main-single' : ''}`}>
         {!overlayMode && (
           <>
             <div className="form-panel-wrap" style={{ width: formWidth }}>
-              <AWBFormPanel data={data} onChange={setData} />
+              <AWBFormPanel data={data} onChange={(nextData) => handleUserDataChange(nextData, 'form_panel')} />
               {/* Mobile-only: sticky download bar */}
               <div className="mobile-pdf-strip">
                 {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, flex: 1 }}>{t('editor.generating')}</span>}
@@ -399,7 +528,7 @@ export function EditorPage() {
             {isWideViewport && (
               <button
                 type="button"
-                onClick={() => setOverlayMode(m => !m)}
+                onClick={() => handleToggleOverlayMode('toolbar')}
                 style={{ background: overlayMode ? '#8b0000' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
               >
                 {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}
@@ -425,7 +554,7 @@ export function EditorPage() {
                         loading={null}
                         onRenderSuccess={updatePageWidth}
                       />
-                      {pageWidthPx > 0 && <AWBOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />}
+                      {pageWidthPx > 0 && <AWBOverlay data={data} onChange={(nextData) => handleUserDataChange(nextData, 'pdf_overlay')} pageWidthPx={pageWidthPx} />}
                     </div>
                   ) : (
                     <Page

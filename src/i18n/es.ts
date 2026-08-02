@@ -127,6 +127,19 @@ const es = {
     previewLoading: 'Generando vista previa…',
     updating: 'Actualizando…',
     zoomReset: 'Reset',
+    firstGuide: {
+      title: 'Termina tu primer AWB más rápido',
+      body: 'Completa los campos mínimos abajo y luego descarga el PDF. La descarga también guarda el AWB en tu cuenta.',
+      steps: {
+        awbNumber: 'Número AWB',
+        parties: 'Shipper y consignee',
+        route: 'Origen y destino',
+        cargo: 'Datos de carga',
+      },
+      loadExample: 'Cargar AWB de ejemplo',
+      editOnPdf: 'Editar sobre el PDF',
+      useForm: 'Usar formulario lateral',
+    },
   },
 
   // My AWBs
