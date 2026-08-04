@@ -30,6 +30,37 @@
   font-size: 14px;
 }
 
+.auth-handoff {
+  margin-top: 12px;
+  background: #fff7e8;
+  border: 1px solid #f1d19a;
+  border-radius: 10px;
+  color: #6b3b00;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  padding: 10px 12px;
+}
+
+.auth-benefits {
+  margin-top: 12px;
+  background: #faf7f7;
+  border: 1px solid #eadede;
+  border-radius: 10px;
+  color: #4b3a3a;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 11px 12px;
+}
+
+.auth-benefits strong {
+  color: #8b0000;
+  font-size: 14px;
+}
+
 .auth-form {
   margin-top: 20px;
   display: flex;

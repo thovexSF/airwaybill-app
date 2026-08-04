@@ -108,7 +108,7 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link to="/signup?source=demo&intent=download_awb_pdf" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -136,7 +136,7 @@ export function DemoEditorPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
-          <Link to="/signup" state={{ from: '/demo' }} className="btn-download">
+          <Link to="/signup?source=demo&intent=download_awb_pdf" state={{ from: '/demo' }} className="btn-download">
             {t('demo.downloadCta')}
           </Link>
         </div>
