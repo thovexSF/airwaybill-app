@@ -15,7 +15,6 @@ import { PrivacyPage } from './pages/PrivacyPage'
 import { RefundsPage } from './pages/RefundsPage'
 import { DGDPage } from './pages/DGDPage'
 import { ManifestPage } from './pages/ManifestPage'
-import { NeppexPage } from './pages/NeppexPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { DevPreviewPage } from './pages/DevPreviewPage'
 import { DemoEditorPage } from './pages/DemoEditorPage'
@@ -57,14 +56,6 @@ export default function App() {
           element={(
             <ProtectedRoute>
               <ManifestPage />
-            </ProtectedRoute>
-          )}
-        />
-        <Route
-          path="/neppex"
-          element={(
-            <ProtectedRoute>
-              <NeppexPage />
             </ProtectedRoute>
           )}
         />
