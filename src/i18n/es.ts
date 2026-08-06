@@ -75,6 +75,7 @@ const es = {
     },
     signup: {
       sub: 'Crea tu cuenta gratis: 10 descargas PDF de AWB/mes, sin tarjeta de credito.',
+      demoSub: 'Crea tu cuenta gratis para convertir el demo en tu primer PDF AWB real. Sin tarjeta de credito.',
       google: 'Registrarse con Google',
       github: 'Registrarse con GitHub',
       orEmail: 'o con email',
@@ -206,10 +207,14 @@ const es = {
 
   demo: {
     banner: 'Demo — previsualiza y edita con watermark DRAFT. Registrate gratis para descargar 10 PDFs de AWB/mes.',
-    signupCta: 'Crear cuenta gratis',
-    downloadCta: 'Registrate para descargar PDF',
+    signupCta: 'Crea tu primer AWB',
+    downloadCta: 'Crea tu primer AWB',
     sub: 'Demo en vivo — sin registrarte',
     modeLabel: 'Demo',
+    nextStepKicker: 'Listo para emitir un documento real?',
+    nextStepTitle: 'Crea tu primer AWB y descarga el PDF',
+    nextStepBody: 'Conserva el flujo que acabas de probar, sal del limite del demo y recibe 10 descargas PDF de AWB gratis cada mes.',
+    nextStepCta: 'Crea tu primer AWB',
   },
 
   feedback: {
