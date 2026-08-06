@@ -56,25 +56,31 @@ export function MyAWBsPage() {
     const isHawb     = d.docType === 'hawb'
     const isDgd      = d.docType === 'dgd'
     const isManifest = d.docType === 'manifest'
+    const isNeppex   = d.docType === 'neppex'
     const awbNum = isDgd
       ? (d.awbNo || 'DGD')
       : isManifest
         ? (d.flightNumber ? `${d.flightNumber} ${d.flightDate || ''}`.trim() : 'Manifest')
-        : isHawb
-          ? (d.hawbNumber || '—')
-          : (d.awbPrefix && d.awbSerial ? `${d.awbPrefix}-${d.awbSerial}` : '—')
-    const shipper = d.shipperNameAndAddress?.split('\n')[0] || '—'
-    const consignee = d.consigneeNameAndAddress?.split('\n')[0] || '—'
-    const origin = d.airportOfDeparture || d.originStation || ''
-    const dest = d.airportOfDestination || d.destinationStation || ''
+        : isNeppex
+          ? (d.neppexNumber || d.rutExportador || 'NEPPEX')
+          : isHawb
+            ? (d.hawbNumber || '—')
+            : (d.awbPrefix && d.awbSerial ? `${d.awbPrefix}-${d.awbSerial}` : '—')
+    const shipper = d.shipperNameAndAddress?.split('\n')[0] || d.razonSocialExportador || '—'
+    const consignee = d.consigneeNameAndAddress?.split('\n')[0] || d.consignatario || '—'
+    const origin = d.airportOfDeparture || d.originStation || d.puertoEmbarque || ''
+    const dest = d.airportOfDestination || d.destinationStation || d.puertoDestino || ''
     const route = origin && dest ? `${origin} → ${dest}` : origin || dest || '—'
-    const weight = d.rateItems?.reduce((s: number, r: any) => s + (parseFloat(r.chargeableWeight) || 0), 0) || 0
+    const weight = d.rateItems?.reduce((s: number, r: any) => s + (parseFloat(r.chargeableWeight) || 0), 0)
+      || parseFloat(d.totalKgNetos) || 0
     const editPath = isDgd
       ? `/dgd?id=${doc.id}`
       : isManifest
         ? `/manifest?id=${doc.id}`
-        : `/editor?id=${doc.id}`
-    return { awbNum, shipper, consignee, route, weight, status: doc.status, isHawb, isDgd, isManifest, editPath }
+        : isNeppex
+          ? `/neppex?id=${doc.id}`
+          : `/editor?id=${doc.id}`
+    return { awbNum, shipper, consignee, route, weight, status: doc.status, isHawb, isDgd, isManifest, isNeppex, editPath }
   }
 
   const filtered = useMemo(() => {
@@ -134,6 +140,7 @@ export function MyAWBsPage() {
   const isPro = plan === 'pro' || plan === 'enterprise'
 
   function DocBadge({ r }: { r: ReturnType<typeof rowOf> }) {
+    if (r.isNeppex)   return <span style={{ background: '#0d4a6b', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>NEPPEX</span>
     if (r.isDgd)      return <span style={{ background: '#7a3a00', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>DGD</span>
     if (r.isHawb)     return <span style={{ background: '#1a3a5c', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>HAWB</span>
     if (r.isManifest) return <span style={{ background: '#1a5c3a', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>MANIFEST</span>
@@ -212,6 +219,12 @@ export function MyAWBsPage() {
             {isPro && (
               <>
                 <Link
+                  to="/neppex"
+                  style={{ background: '#0d4a6b', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
+                >
+                  + New NEPPEX
+                </Link>
+                <Link
                   to="/manifest"
                   style={{ background: '#1a5c3a', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
                 >
@@ -230,6 +243,15 @@ export function MyAWBsPage() {
                   + New HAWB
                 </Link>
               </>
+            )}
+            {/* Always show NEPPEX for B2B office use (SERNAPESCA) */}
+            {!isPro && (
+              <Link
+                to="/neppex"
+                style={{ background: '#0d4a6b', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
+              >
+                + New NEPPEX
+              </Link>
             )}
             <Link
               to="/editor"
@@ -304,7 +326,7 @@ export function MyAWBsPage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 15, color: '#222', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <DocBadge r={r} />
-                      {r.isManifest ? r.awbNum : (r.isDgd || r.isHawb) ? r.awbNum : <>AWB {r.awbNum}</>}
+                      {r.isManifest ? r.awbNum : r.isNeppex ? <>NEPPEX {r.awbNum}</> : (r.isDgd || r.isHawb) ? r.awbNum : <>AWB {r.awbNum}</>}
                     </div>
                     <div style={{ fontSize: 12, color: '#888', marginTop: 3 }}>
                       {r.shipper} → {r.consignee}
