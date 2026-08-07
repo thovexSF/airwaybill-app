@@ -29,16 +29,78 @@ const en = {
       title: 'Everything you need for air freight documentation',
       sub: 'Built for freight forwarders, cargo agents, and logistics teams.',
     },
+    featureCards: {
+      iataPdf: {
+        title: 'IATA-Compliant PDFs',
+        desc: 'Generate Air Waybills that meet IATA Resolution 600a standards. Accepted by airlines and freight forwarders worldwide.',
+      },
+      preview: {
+        title: 'Real-Time Preview',
+        desc: 'See your AWB update live as you type. No more blind editing — what you see is exactly what prints.',
+      },
+      cloud: {
+        title: 'Cloud-Based',
+        desc: 'Access your AWBs from any device, anywhere. No software to install, no updates to manage.',
+      },
+      security: {
+        title: 'Secure & Private',
+        desc: 'Your shipment data stays yours. Enterprise-grade encryption, SOC 2 compliant infrastructure.',
+      },
+      documents: {
+        title: 'All Document Types',
+        desc: 'AWB, House AWB, Dangerous Goods Declaration, Cargo Labels, and Flight Manifests — all in one place.',
+      },
+      validation: {
+        title: 'IATA Check Digit Validation',
+        desc: 'Automatic AWB number validation prevents costly errors before they reach the airline.',
+      },
+    },
     steps: {
       label: 'How it works',
       title: 'From form to PDF in three steps',
       cta: 'See how it works',
+    },
+    stepCards: {
+      fill: {
+        title: 'Fill the form',
+        desc: 'Enter shipper, consignee, routing, and cargo details in our structured form.',
+      },
+      preview: {
+        title: 'Preview live',
+        desc: 'See the AWB render in real time — exactly as it will look when printed or sent.',
+      },
+      download: {
+        title: 'Download & send',
+        desc: 'Export a print-ready PDF. Share directly with airlines, agents, or customs.',
+      },
+    },
+    proof: {
+      label: 'Trusted by freight forwarders in',
+      countries: {
+        chile: '🇨🇱 Chile',
+        usa: '🇺🇸 USA',
+        brazil: '🇧🇷 Brazil',
+        spain: '🇪🇸 Spain',
+        germany: '🇩🇪 Germany',
+        switzerland: '🇨🇭 Switzerland',
+      },
+    },
+    mockup: {
+      sections: {
+        awbNumber: 'AWB Number',
+        shipper: 'Shipper',
+        consignee: 'Consignee',
+        routing: 'Routing',
+        charges: 'Charges',
+        rateItems: 'Rate Items',
+      },
     },
     pricing: {
       label: 'Pricing',
       title: 'Simple, transparent pricing',
       sub: 'Start free. Upgrade when you\'re ready.',
       trial: '7-day free trial · Cancel anytime · Payments processed by Paddle',
+      mostPopular: 'Most Popular',
     },
     finalCta: {
       title: 'Ready to modernize your air freight documentation?',
@@ -54,7 +116,41 @@ const en = {
       privacy: 'Privacy Policy',
       terms: 'Terms of Service',
       refunds: 'Refund Policy',
+      editor: 'Editor',
+      tagline: 'Professional Air Waybill generation for modern freight forwarders.',
+      compliance: 'Built for IATA Resolution 600a compliance',
       copyright: '© 2025 Thovex Software Factory. All rights reserved.',
+    },
+  },
+
+  plans: {
+    free: {
+      name: 'Free',
+      period: 'forever',
+      description: 'Try real AWB PDF generation at no cost',
+      features: ['10 AWB PDF downloads/month', 'Save and edit AWBs', 'DRAFT watermark', 'Basic AWB form', '1 user'],
+      cta: 'Get Started Free',
+    },
+    starter: {
+      name: 'Starter',
+      period: 'per month',
+      description: 'For small freight forwarders',
+      features: ['Unlimited AWB PDF downloads', 'No watermark', 'Custom carrier logo', 'AWB check digit validation', '2 users', 'Email support'],
+      cta: 'Start 7-day Trial',
+    },
+    pro: {
+      name: 'Pro',
+      period: 'per month',
+      description: 'For active freight forwarders',
+      features: ['Everything in Starter', 'HAWB + DGD + Manifest', 'Flight manifest export', '5 users', 'Priority support'],
+      cta: 'Start 7-day Trial',
+    },
+    enterprise: {
+      name: 'Enterprise',
+      period: '',
+      description: 'For airlines & large agencies',
+      features: ['Everything in Pro', 'Unlimited users', 'API access', 'Cargo-IMP / CUSCAR export', 'Custom domain', 'SSO / SAML', 'Dedicated support'],
+      cta: 'Contact Sales',
     },
   },
 

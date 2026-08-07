@@ -6,44 +6,18 @@ import { PLANS } from '../data/plans'
 import './LandingPage.css'
 import { LangSwitcher } from '../components/LangSwitcher'
 
-const FEATURES = [
-  {
-    icon: '📄',
-    title: 'IATA-Compliant PDFs',
-    desc: 'Generate Air Waybills that meet IATA Resolution 600a standards. Accepted by airlines and freight forwarders worldwide.',
-  },
-  {
-    icon: '⚡',
-    title: 'Real-Time Preview',
-    desc: 'See your AWB update live as you type. No more blind editing — what you see is exactly what prints.',
-  },
-  {
-    icon: '☁️',
-    title: 'Cloud-Based',
-    desc: 'Access your AWBs from any device, anywhere. No software to install, no updates to manage.',
-  },
-  {
-    icon: '🔒',
-    title: 'Secure & Private',
-    desc: 'Your shipment data stays yours. Enterprise-grade encryption, SOC 2 compliant infrastructure.',
-  },
-  {
-    icon: '📦',
-    title: 'All Document Types',
-    desc: 'AWB, House AWB, Dangerous Goods Declaration, Cargo Labels, and Flight Manifests — all in one place.',
-  },
-  {
-    icon: '✅',
-    title: 'IATA Check Digit Validation',
-    desc: 'Automatic AWB number validation prevents costly errors before they reach the airline.',
-  },
-]
+const FEATURE_KEYS = [
+  { key: 'iataPdf', icon: '📄' },
+  { key: 'preview', icon: '⚡' },
+  { key: 'cloud', icon: '☁️' },
+  { key: 'security', icon: '🔒' },
+  { key: 'documents', icon: '📦' },
+  { key: 'validation', icon: '✅' },
+] as const
 
-const STEPS = [
-  { num: '01', title: 'Fill the form', desc: 'Enter shipper, consignee, routing, and cargo details in our structured form.' },
-  { num: '02', title: 'Preview live', desc: 'See the AWB render in real time — exactly as it will look when printed or sent.' },
-  { num: '03', title: 'Download & send', desc: 'Export a print-ready PDF. Share directly with airlines, agents, or customs.' },
-]
+const STEP_KEYS = ['fill', 'preview', 'download'] as const
+const MOCKUP_SECTION_KEYS = ['awbNumber', 'shipper', 'consignee', 'routing', 'charges', 'rateItems'] as const
+const PROOF_COUNTRY_KEYS = ['chile', 'usa', 'brazil', 'spain', 'germany', 'switzerland'] as const
 
 
 export function LandingPage() {
@@ -108,8 +82,8 @@ export function LandingPage() {
           </div>
           <div className="lp-mockup-body">
             <div className="lp-mockup-sidebar">
-              {['AWB Number', 'Shipper', 'Consignee', 'Routing', 'Charges', 'Rate Items'].map(s => (
-                <div key={s} className="lp-mockup-section">{s}</div>
+              {MOCKUP_SECTION_KEYS.map(key => (
+                <div key={key} className="lp-mockup-section">{t(`landing.mockup.sections.${key}`)}</div>
               ))}
             </div>
             <div className="lp-mockup-preview">
@@ -129,10 +103,10 @@ export function LandingPage() {
 
       {/* ── SOCIAL PROOF ── */}
       <section className="lp-proof">
-        <p>Trusted by freight forwarders in</p>
+        <p>{t('landing.proof.label')}</p>
         <div className="lp-proof-flags">
-          {['🇨🇱 Chile', '🇺🇸 USA', '🇧🇷 Brazil', '🇪🇸 Spain', '🇩🇪 Germany', '🇨🇭 Switzerland'].map(c => (
-            <span key={c}>{c}</span>
+          {PROOF_COUNTRY_KEYS.map(key => (
+            <span key={key}>{t(`landing.proof.countries.${key}`)}</span>
           ))}
         </div>
       </section>
@@ -144,11 +118,11 @@ export function LandingPage() {
           <h2 className="lp-section-title">{t('landing.features.title')}</h2>
           <p className="lp-section-sub">{t('landing.features.sub')}</p>
           <div className="lp-features-grid">
-            {FEATURES.map(f => (
-              <Link key={f.title} to={tryPath} className="lp-feature-card">
+            {FEATURE_KEYS.map(f => (
+              <Link key={f.key} to={tryPath} className="lp-feature-card">
                 <div className="lp-feature-icon">{f.icon}</div>
-                <h3>{f.title}</h3>
-                <p>{f.desc}</p>
+                <h3>{t(`landing.featureCards.${f.key}.title`)}</h3>
+                <p>{t(`landing.featureCards.${f.key}.desc`)}</p>
               </Link>
             ))}
           </div>
@@ -161,11 +135,11 @@ export function LandingPage() {
           <div className="lp-section-label">{t('landing.steps.label')}</div>
           <h2 className="lp-section-title">{t('landing.steps.title')}</h2>
           <div className="lp-steps">
-            {STEPS.map(step => (
-              <div key={step.num} className="lp-step">
-                <div className="lp-step-num">{step.num}</div>
-                <h3>{step.title}</h3>
-                <p>{step.desc}</p>
+            {STEP_KEYS.map((step, index) => (
+              <div key={step} className="lp-step">
+                <div className="lp-step-num">{String(index + 1).padStart(2, '0')}</div>
+                <h3>{t(`landing.stepCards.${step}.title`)}</h3>
+                <p>{t(`landing.stepCards.${step}.desc`)}</p>
               </div>
             ))}
           </div>
@@ -184,23 +158,23 @@ export function LandingPage() {
           <div className="lp-plans">
             {PLANS.map(plan => (
               <div key={plan.name} className={`lp-plan ${plan.highlight ? 'lp-plan-highlight' : ''}`}>
-                {plan.highlight && <div className="lp-plan-badge">Most Popular</div>}
-                <div className="lp-plan-name">{plan.name}</div>
+                {plan.highlight && <div className="lp-plan-badge">{t('landing.pricing.mostPopular')}</div>}
+                <div className="lp-plan-name">{t(`plans.${plan.id}.name`)}</div>
                 <div className="lp-plan-price">
                   {plan.priceDisplay}
-                  {plan.period && <span>/{plan.period}</span>}
+                  {plan.period && <span>/{t(`plans.${plan.id}.period`)}</span>}
                 </div>
-                <div className="lp-plan-desc">{plan.description}</div>
+                <div className="lp-plan-desc">{t(`plans.${plan.id}.description`)}</div>
                 <ul className="lp-plan-features">
-                  {plan.features.map(f => (
-                    <li key={f}><span>✓</span> {f}</li>
+                  {plan.features.map((_, index) => (
+                    <li key={`${plan.id}-${index}`}><span>✓</span> {t(`plans.${plan.id}.features.${index}`)}</li>
                   ))}
                 </ul>
                 <Link
                   to={plan.ctaLink ?? '/pricing'}
                   className={`lp-plan-cta ${plan.highlight ? 'lp-plan-cta-primary' : 'lp-plan-cta-ghost'}`}
                 >
-                  {plan.cta}
+                  {t(`plans.${plan.id}.cta`)}
                 </Link>
               </div>
             ))}
@@ -224,14 +198,14 @@ export function LandingPage() {
         <div className="lp-footer-inner">
           <div className="lp-footer-brand">
             <div className="lp-logo">✈ AIRWAYBILL <span>APP</span></div>
-            <p>Professional Air Waybill generation for modern freight forwarders.</p>
+            <p>{t('landing.footer.tagline')}</p>
           </div>
           <div className="lp-footer-links">
             <div>
               <strong>{t('landing.footer.product')}</strong>
               <a href="#features">{t('landing.nav.features')}</a>
               <a href="#pricing">{t('landing.nav.pricing')}</a>
-              <Link to={tryPath}>Editor</Link>
+              <Link to={tryPath}>{t('landing.footer.editor')}</Link>
             </div>
             <div>
               <strong>{t('landing.footer.company')}</strong>
@@ -248,7 +222,7 @@ export function LandingPage() {
         </div>
         <div className="lp-footer-bottom">
           <span>{t('landing.footer.copyright')}</span>
-          <span>Built for IATA Resolution 600a compliance</span>
+          <span>{t('landing.footer.compliance')}</span>
         </div>
       </footer>
     </div>
