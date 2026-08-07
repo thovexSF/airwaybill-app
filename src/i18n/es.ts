@@ -29,16 +29,78 @@ const es = {
       title: 'Todo lo que necesitas para documentación de carga aérea',
       sub: 'Diseñado para agentes de carga, operadores logísticos y aerolíneas.',
     },
+    featureCards: {
+      iataPdf: {
+        title: 'PDFs compatibles con IATA',
+        desc: 'Genera Air Waybills que siguen el estándar IATA Resolution 600a. Listos para aerolíneas y agentes de carga.',
+      },
+      preview: {
+        title: 'Vista previa en tiempo real',
+        desc: 'Mira cómo se actualiza tu AWB mientras completas los datos. Lo que ves es lo que se imprime.',
+      },
+      cloud: {
+        title: 'Trabajo en la nube',
+        desc: 'Accede a tus AWBs desde cualquier dispositivo. Sin instalar software ni gestionar actualizaciones.',
+      },
+      security: {
+        title: 'Seguro y privado',
+        desc: 'Los datos de tus embarques siguen siendo tuyos. Infraestructura cifrada y controles de seguridad modernos.',
+      },
+      documents: {
+        title: 'Documentos de carga en un lugar',
+        desc: 'AWB, House AWB, Dangerous Goods Declaration, etiquetas de carga y manifiestos de vuelo en una sola app.',
+      },
+      validation: {
+        title: 'Validación de dígito AWB',
+        desc: 'La validación automática del número AWB ayuda a evitar errores costosos antes de enviarlo a la aerolínea.',
+      },
+    },
     steps: {
       label: 'Cómo funciona',
       title: 'Del formulario al PDF en tres pasos',
       cta: 'Ver cómo funciona',
+    },
+    stepCards: {
+      fill: {
+        title: 'Completa el formulario',
+        desc: 'Ingresa shipper, consignee, ruta y detalles de carga en un formulario ordenado.',
+      },
+      preview: {
+        title: 'Revisa la vista previa',
+        desc: 'El AWB se renderiza en vivo, exactamente como se verá al imprimirlo o enviarlo.',
+      },
+      download: {
+        title: 'Descarga y envía',
+        desc: 'Exporta un PDF listo para imprimir y compartir con aerolíneas, agentes o aduana.',
+      },
+    },
+    proof: {
+      label: 'Usado por freight forwarders en',
+      countries: {
+        chile: '🇨🇱 Chile',
+        usa: '🇺🇸 EE. UU.',
+        brazil: '🇧🇷 Brasil',
+        spain: '🇪🇸 España',
+        germany: '🇩🇪 Alemania',
+        switzerland: '🇨🇭 Suiza',
+      },
+    },
+    mockup: {
+      sections: {
+        awbNumber: 'Número AWB',
+        shipper: 'Shipper',
+        consignee: 'Consignee',
+        routing: 'Ruta',
+        charges: 'Cargos',
+        rateItems: 'Ítems de tarifa',
+      },
     },
     pricing: {
       label: 'Precios',
       title: 'Precios simples y transparentes',
       sub: 'Empieza gratis. Mejora cuando estés listo.',
       trial: '7 días de prueba · Cancela cuando quieras · Pagos procesados por Paddle',
+      mostPopular: 'Más popular',
     },
     finalCta: {
       title: '¿Listo para modernizar tu documentación de carga aérea?',
@@ -54,7 +116,41 @@ const es = {
       privacy: 'Política de privacidad',
       terms: 'Términos de servicio',
       refunds: 'Política de reembolso',
+      editor: 'Editor',
+      tagline: 'Generación profesional de Air Waybills para freight forwarders modernos.',
+      compliance: 'Diseñado para cumplir con IATA Resolution 600a',
       copyright: '© 2025 Thovex Software Factory. Todos los derechos reservados.',
+    },
+  },
+
+  plans: {
+    free: {
+      name: 'Gratis',
+      period: 'siempre',
+      description: 'Prueba la generación real de PDFs AWB sin costo',
+      features: ['10 descargas PDF de AWB/mes', 'Guardar y editar AWBs', 'Watermark DRAFT', 'Formulario AWB básico', '1 usuario'],
+      cta: 'Empezar gratis',
+    },
+    starter: {
+      name: 'Starter',
+      period: 'mes',
+      description: 'Para freight forwarders pequeños',
+      features: ['Descargas PDF de AWB ilimitadas', 'Sin watermark', 'Logo de carrier personalizado', 'Validación de dígito AWB', '2 usuarios', 'Soporte por email'],
+      cta: 'Probar 7 días',
+    },
+    pro: {
+      name: 'Pro',
+      period: 'mes',
+      description: 'Para freight forwarders activos',
+      features: ['Todo lo de Starter', 'HAWB + DGD + Manifest', 'Exportación de manifiesto de vuelo', '5 usuarios', 'Soporte prioritario'],
+      cta: 'Probar 7 días',
+    },
+    enterprise: {
+      name: 'Empresa',
+      period: '',
+      description: 'Para aerolíneas y agencias grandes',
+      features: ['Todo lo de Pro', 'Usuarios ilimitados', 'Acceso API', 'Exportación Cargo-IMP / CUSCAR', 'Dominio personalizado', 'SSO / SAML', 'Soporte dedicado'],
+      cta: 'Contactar ventas',
     },
   },
 
