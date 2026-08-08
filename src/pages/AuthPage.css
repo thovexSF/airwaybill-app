@@ -30,6 +30,18 @@
   font-size: 14px;
 }
 
+.auth-benefits {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: #5a3a3a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.auth-benefits li + li {
+  margin-top: 4px;
+}
+
 .auth-form {
   margin-top: 20px;
   display: flex;
@@ -59,6 +71,11 @@
 .auth-field input:focus {
   outline: none;
   border-color: #8b0000;
+}
+
+.auth-helper {
+  color: #777;
+  font-size: 12px;
 }
 
 .auth-error {

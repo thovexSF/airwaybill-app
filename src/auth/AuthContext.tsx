@@ -33,8 +33,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
       if (event === 'SIGNED_IN' && s?.user) {
         posthog?.identify(s.user.id, { email: s.user.email })
+        const pendingSignupProvider = sessionStorage.getItem('posthog_pending_signup_provider')
         const pendingProvider = sessionStorage.getItem('posthog_pending_login')
-        if (pendingProvider) {
+        if (pendingSignupProvider) {
+          const source = sessionStorage.getItem('posthog_pending_signup_source') ?? 'direct'
+          const intent = sessionStorage.getItem('posthog_pending_signup_intent')
+          const fromPath = sessionStorage.getItem('posthog_pending_signup_from_path')
+          sessionStorage.removeItem('posthog_pending_signup_provider')
+          sessionStorage.removeItem('posthog_pending_signup_source')
+          sessionStorage.removeItem('posthog_pending_signup_intent')
+          sessionStorage.removeItem('posthog_pending_signup_from_path')
+          sessionStorage.removeItem('posthog_pending_login')
+          posthog?.capture('user_signed_up', {
+            method: pendingSignupProvider,
+            source,
+            intent,
+            from_path: fromPath,
+          })
+        } else if (pendingProvider) {
           sessionStorage.removeItem('posthog_pending_login')
           posthog?.capture('user_logged_in', { method: pendingProvider })
         }
