@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { PLANS } from '../data/plans'
 import './LandingPage.css'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { usePostHog } from '@posthog/react'
 
 const FEATURES = [
   {
@@ -48,8 +49,17 @@ const STEPS = [
 
 export function LandingPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const { user, orgName, logout } = useAuth()
   const tryPath = user ? '/editor' : '/demo'
+  const signupPath = '/signup?source=homepage&intent=create_first_awb'
+
+  function trackHomepageClick(placement: string, destination: string) {
+    posthog?.capture('homepage_cta_clicked', {
+      placement,
+      destination,
+    })
+  }
 
   return (
     <div className="lp">
@@ -72,8 +82,8 @@ export function LandingPage() {
               </>
             ) : (
               <>
-                <Link to={tryPath} className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
-                <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+                <Link to={tryPath} onClick={() => trackHomepageClick('nav_demo', 'demo')} className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
+                <Link to={signupPath} onClick={() => trackHomepageClick('nav_signup', 'signup')} className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
               </>
             )}
             <LangSwitcher variant="light" />
@@ -92,7 +102,7 @@ export function LandingPage() {
             {t('landing.hero.subtitle')}
           </p>
           <div className="lp-hero-ctas">
-            <Link to={tryPath} className="lp-cta-primary">
+            <Link to={tryPath} onClick={() => trackHomepageClick('hero_primary', user ? 'editor' : 'demo')} className="lp-cta-primary">
               {t('landing.hero.cta')}
             </Link>
             <a href="#how" className="lp-cta-ghost">{t('landing.steps.cta')}</a>
@@ -101,7 +111,7 @@ export function LandingPage() {
         </div>
 
         {/* Mockup — clickable, opens demo editor */}
-        <Link to={tryPath} className="lp-hero-mockup" aria-label={t('landing.hero.cta')}>
+        <Link to={tryPath} onClick={() => trackHomepageClick('hero_mockup', user ? 'editor' : 'demo')} className="lp-hero-mockup" aria-label={t('landing.hero.cta')}>
           <div className="lp-mockup-bar">
             <span /><span /><span />
             <div className="lp-mockup-url">airwaybill.app/demo</div>
@@ -145,7 +155,7 @@ export function LandingPage() {
           <p className="lp-section-sub">{t('landing.features.sub')}</p>
           <div className="lp-features-grid">
             {FEATURES.map(f => (
-              <Link key={f.title} to={tryPath} className="lp-feature-card">
+              <Link key={f.title} to={tryPath} onClick={() => trackHomepageClick('feature_card', user ? 'editor' : 'demo')} className="lp-feature-card">
                 <div className="lp-feature-icon">{f.icon}</div>
                 <h3>{f.title}</h3>
                 <p>{f.desc}</p>
@@ -170,7 +180,7 @@ export function LandingPage() {
             ))}
           </div>
           <div className="lp-how-cta">
-            <Link to={tryPath} className="lp-cta-primary">{t('landing.steps.cta')}</Link>
+            <Link to={tryPath} onClick={() => trackHomepageClick('how_it_works', user ? 'editor' : 'demo')} className="lp-cta-primary">{t('landing.steps.cta')}</Link>
           </div>
         </div>
       </section>
@@ -182,28 +192,32 @@ export function LandingPage() {
           <h2 className="lp-section-title">{t('landing.pricing.title')}</h2>
           <p className="lp-section-sub">{t('landing.pricing.sub')}</p>
           <div className="lp-plans">
-            {PLANS.map(plan => (
-              <div key={plan.name} className={`lp-plan ${plan.highlight ? 'lp-plan-highlight' : ''}`}>
-                {plan.highlight && <div className="lp-plan-badge">Most Popular</div>}
-                <div className="lp-plan-name">{plan.name}</div>
-                <div className="lp-plan-price">
-                  {plan.priceDisplay}
-                  {plan.period && <span>/{plan.period}</span>}
+            {PLANS.map(plan => {
+              const planDestination = plan.ctaLink === '/signup' ? signupPath : plan.ctaLink ?? '/pricing'
+              return (
+                <div key={plan.name} className={`lp-plan ${plan.highlight ? 'lp-plan-highlight' : ''}`}>
+                  {plan.highlight && <div className="lp-plan-badge">Most Popular</div>}
+                  <div className="lp-plan-name">{plan.name}</div>
+                  <div className="lp-plan-price">
+                    {plan.priceDisplay}
+                    {plan.period && <span>/{plan.period}</span>}
+                  </div>
+                  <div className="lp-plan-desc">{plan.description}</div>
+                  <ul className="lp-plan-features">
+                    {plan.features.map(f => (
+                      <li key={f}><span>✓</span> {f}</li>
+                    ))}
+                  </ul>
+                  <Link
+                    to={planDestination}
+                    onClick={() => trackHomepageClick(`pricing_${plan.id}`, planDestination)}
+                    className={`lp-plan-cta ${plan.highlight ? 'lp-plan-cta-primary' : 'lp-plan-cta-ghost'}`}
+                  >
+                    {plan.cta}
+                  </Link>
                 </div>
-                <div className="lp-plan-desc">{plan.description}</div>
-                <ul className="lp-plan-features">
-                  {plan.features.map(f => (
-                    <li key={f}><span>✓</span> {f}</li>
-                  ))}
-                </ul>
-                <Link
-                  to={plan.ctaLink ?? '/pricing'}
-                  className={`lp-plan-cta ${plan.highlight ? 'lp-plan-cta-primary' : 'lp-plan-cta-ghost'}`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>
@@ -213,7 +227,7 @@ export function LandingPage() {
         <div className="lp-section-inner" style={{ textAlign: 'center' }}>
           <h2>{t('landing.finalCta.title')}</h2>
           <p>{t('landing.finalCta.sub')}</p>
-          <Link to={tryPath} className="lp-cta-primary lp-cta-lg">
+          <Link to={tryPath} onClick={() => trackHomepageClick('final_cta', user ? 'editor' : 'demo')} className="lp-cta-primary lp-cta-lg">
             {t('landing.finalCta.cta')}
           </Link>
         </div>

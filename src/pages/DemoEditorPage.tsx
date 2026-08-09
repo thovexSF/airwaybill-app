@@ -23,7 +23,13 @@ export function DemoEditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
   const [data, setDataRaw] = useState<AWBData>({ ...exampleAWB, isDraft: true })
+  const firstEditTrackedRef = useRef(false)
+  const signupPath = '/signup?source=demo&intent=download_awb_pdf'
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
+    if (!firstEditTrackedRef.current) {
+      firstEditTrackedRef.current = true
+      posthog?.capture('demo_first_edit')
+    }
     setDataRaw(prev => {
       const updated = typeof next === 'function' ? next(prev) : next
       return { ...updated, isDraft: true }
@@ -52,7 +58,14 @@ export function DemoEditorPage() {
 
   useEffect(() => {
     posthog?.capture('demo_viewed')
-  }, [])
+  }, [posthog])
+
+  function trackSignupClick(placement: string) {
+    posthog?.capture('demo_signup_cta_clicked', {
+      placement,
+      intent: 'download_awb_pdf',
+    })
+  }
 
   useEffect(() => {
     const onResize = () => {
@@ -108,7 +121,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupPath}
+          state={{ from: '/demo', source: 'demo', intent: 'download_awb_pdf' }}
+          onClick={() => trackSignupClick('banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -136,7 +154,12 @@ export function DemoEditorPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
-          <Link to="/signup" state={{ from: '/demo' }} className="btn-download">
+          <Link
+            to={signupPath}
+            state={{ from: '/demo', source: 'demo', intent: 'download_awb_pdf' }}
+            onClick={() => trackSignupClick('download_button')}
+            className="btn-download"
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>
