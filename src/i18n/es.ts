@@ -75,6 +75,7 @@ const es = {
     },
     signup: {
       sub: 'Crea tu cuenta gratis: 10 descargas PDF de AWB/mes, sin tarjeta de credito.',
+      demoSub: 'Crea tu cuenta gratis para guardar y descargar el PDF de AWB que acabas de probar. 10 descargas PDF/mes, sin tarjeta de credito.',
       google: 'Registrarse con Google',
       github: 'Registrarse con GitHub',
       orEmail: 'o con email',

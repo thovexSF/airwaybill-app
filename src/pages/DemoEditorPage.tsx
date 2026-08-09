@@ -23,7 +23,18 @@ export function DemoEditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
   const [data, setDataRaw] = useState<AWBData>({ ...exampleAWB, isDraft: true })
+  const editedRef = useRef(false)
+  const signupClickedRef = useRef(false)
+
+  const markEdited = useCallback((source: string) => {
+    if (editedRef.current) return
+    editedRef.current = true
+    ;(window as any).clarity?.('event', 'demo_first_edit')
+    posthog?.capture('demo_first_edit', { source })
+  }, [posthog])
+
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
+    markEdited('form_or_overlay')
     setDataRaw(prev => {
       const updated = typeof next === 'function' ? next(prev) : next
       return { ...updated, isDraft: true }
@@ -52,7 +63,22 @@ export function DemoEditorPage() {
 
   useEffect(() => {
     posthog?.capture('demo_viewed')
-  }, [])
+  }, [posthog])
+
+  useEffect(() => {
+    const trackAbandonedDemo = () => {
+      if (!editedRef.current || signupClickedRef.current) return
+      signupClickedRef.current = true
+      ;(window as any).clarity?.('event', 'demo_abandoned_after_edit')
+      posthog?.capture('demo_abandoned_after_edit')
+    }
+
+    window.addEventListener('pagehide', trackAbandonedDemo)
+    return () => {
+      window.removeEventListener('pagehide', trackAbandonedDemo)
+      trackAbandonedDemo()
+    }
+  }, [posthog])
 
   useEffect(() => {
     const onResize = () => {
@@ -90,8 +116,15 @@ export function DemoEditorPage() {
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
       console.error('PDF generation error:', e)
+      posthog?.capture('demo_pdf_generation_failed')
     }
     setGenerating(false)
+  }
+
+  function trackSignupCta(placement: 'banner' | 'download') {
+    signupClickedRef.current = true
+    ;(window as any).clarity?.('event', `demo_signup_cta_${placement}`)
+    posthog?.capture('demo_signup_cta_clicked', { placement, edited_before_click: editedRef.current })
   }
 
   return (
@@ -108,7 +141,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to="/signup"
+          state={{ from: '/demo', intent: 'create_account' }}
+          onClick={() => trackSignupCta('banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -130,13 +168,25 @@ export function DemoEditorPage() {
 
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button type="button" className="btn-example" onClick={() => setData({ ...exampleAWB, isDraft: true })}>
+          <button
+            type="button"
+            className="btn-example"
+            onClick={() => {
+              posthog?.capture('demo_example_loaded')
+              setData({ ...exampleAWB, isDraft: true })
+            }}
+          >
             {t('editor.example')}
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
-          <Link to="/signup" state={{ from: '/demo' }} className="btn-download">
+          <Link
+            to="/signup"
+            state={{ from: '/demo', intent: 'download_awb_pdf' }}
+            onClick={() => trackSignupCta('download')}
+            className="btn-download"
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>
@@ -151,7 +201,10 @@ export function DemoEditorPage() {
             {isWideViewport && (
               <button
                 type="button"
-                onClick={() => setOverlayMode(m => !m)}
+                onClick={() => {
+                  posthog?.capture('demo_edit_mode_toggled', { next_mode: overlayMode ? 'form' : 'overlay' })
+                  setOverlayMode(m => !m)
+                }}
                 style={{ background: overlayMode ? '#8b0000' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
               >
                 {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}

@@ -54,7 +54,39 @@ export function EditorPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const editedRef = useRef(false)
+  const outputCreatedRef = useRef(false)
+  const exitTrackedRef = useRef(false)
+  const currentIdRef = useRef<string | null>(docId)
+  const latestDataRef = useRef<AWBData>(initialData)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
+
+  function markEdited(source: string) {
+    if (editedRef.current) return
+    editedRef.current = true
+    ;(window as any).clarity?.('event', 'awb_editor_first_edit')
+    posthog?.capture('awb_editor_first_edit', {
+      source,
+      doc_type: latestDataRef.current.docType ?? 'awb',
+      is_existing_doc: Boolean(currentIdRef.current),
+    })
+  }
+
+  function handleDataChange(next: AWBData) {
+    markEdited('form_or_overlay')
+    setData(next)
+  }
+
+  function trackEditorExitWithoutOutput(reason: 'pagehide' | 'unmount') {
+    if (exitTrackedRef.current || !editedRef.current || outputCreatedRef.current) return
+    exitTrackedRef.current = true
+    ;(window as any).clarity?.('event', 'awb_editor_left_without_output')
+    posthog?.capture('awb_editor_left_without_output', {
+      reason,
+      doc_type: latestDataRef.current.docType ?? 'awb',
+      is_existing_doc: Boolean(currentIdRef.current),
+    })
+  }
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -65,6 +97,29 @@ export function EditorPage() {
     pageWrapRef.current = node
     if (node) requestAnimationFrame(updatePageWidth)
   }, [updatePageWidth])
+
+  useEffect(() => {
+    currentIdRef.current = currentId
+  }, [currentId])
+
+  useEffect(() => {
+    latestDataRef.current = data
+  }, [data])
+
+  useEffect(() => {
+    posthog?.capture('awb_editor_opened', {
+      doc_type: latestDataRef.current.docType ?? 'awb',
+      is_existing_doc: Boolean(currentIdRef.current),
+      source: docId ? 'saved_document' : 'new_document',
+    })
+
+    const onPageHide = () => trackEditorExitWithoutOutput('pagehide')
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      window.removeEventListener('pagehide', onPageHide)
+      trackEditorExitWithoutOutput('unmount')
+    }
+  }, [])
 
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
@@ -167,11 +222,16 @@ export function EditorPage() {
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
       console.error('PDF generation error:', e)
+      posthog?.capture('awb_pdf_generation_failed', { doc_type: d.docType ?? 'awb' })
     }
     setGenerating(false)
   }
 
   async function handleSave() {
+    posthog?.capture('awb_save_clicked', {
+      doc_type: data.docType ?? 'awb',
+      is_existing_doc: Boolean(currentId),
+    })
     setSaving(true)
     setSaveMsg(null)
     try {
@@ -182,9 +242,14 @@ export function EditorPage() {
       setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
       ;(window as any).clarity?.('event', 'awb_saved')
+      outputCreatedRef.current = true
       posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: !currentId })
     } catch {
       setSaveMsg(t('editor.saveError'))
+      posthog?.capture('awb_save_failed', {
+        doc_type: data.docType ?? 'awb',
+        is_existing_doc: Boolean(currentId),
+      })
     }
     setSaving(false)
   }
@@ -201,6 +266,12 @@ export function EditorPage() {
 
   async function handleDownloadPdf() {
     if (!pdfUrl || downloading || planLoading) return
+    posthog?.capture('awb_download_clicked', {
+      doc_type: data.docType ?? 'awb',
+      awb_number: awbFull,
+      plan,
+      is_saved_before_click: Boolean(currentId),
+    })
     if (atLimit) {
       setSaveMsg(t('editor.limitReached'))
       setTimeout(() => setSaveMsg(null), 5000)
@@ -228,6 +299,7 @@ export function EditorPage() {
           posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source: 'download' })
         } catch (error) {
           console.error('PDF save before download failed:', error)
+          posthog?.capture('awb_save_before_download_failed', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
         }
       }
 
@@ -272,11 +344,13 @@ export function EditorPage() {
       }
 
       ;(window as any).clarity?.('event', 'awb_downloaded')
+      outputCreatedRef.current = true
       posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
       supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
     } catch {
       setSaveMsg(t('editor.downloadError'))
       setTimeout(() => setSaveMsg(null), 5000)
+      posthog?.capture('awb_download_failed', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
     } finally {
       setDownloading(false)
     }
@@ -334,8 +408,8 @@ export function EditorPage() {
       {/* Row 2 — Document actions */}
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.exampleConfirm'))) setData(exampleAWB) }}>{t('editor.example')}</button>
-          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { setData(defaultAWBData); setCurrentId(null); setDownloadCountedAt(null) } }}>{t('editor.clear')}</button>
+          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.exampleConfirm'))) { markEdited('example_button'); posthog?.capture('awb_example_loaded'); setData(exampleAWB) } }}>{t('editor.example')}</button>
+          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { markEdited('clear_button'); posthog?.capture('awb_cleared'); setData(defaultAWBData); setCurrentId(null); setDownloadCountedAt(null) } }}>{t('editor.clear')}</button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
@@ -371,7 +445,7 @@ export function EditorPage() {
         {!overlayMode && (
           <>
             <div className="form-panel-wrap" style={{ width: formWidth }}>
-              <AWBFormPanel data={data} onChange={setData} />
+              <AWBFormPanel data={data} onChange={handleDataChange} />
               {/* Mobile-only: sticky download bar */}
               <div className="mobile-pdf-strip">
                 {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, flex: 1 }}>{t('editor.generating')}</span>}
@@ -399,7 +473,10 @@ export function EditorPage() {
             {isWideViewport && (
               <button
                 type="button"
-                onClick={() => setOverlayMode(m => !m)}
+                onClick={() => {
+                  posthog?.capture('awb_edit_mode_toggled', { next_mode: overlayMode ? 'form' : 'overlay' })
+                  setOverlayMode(m => !m)
+                }}
                 style={{ background: overlayMode ? '#8b0000' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
               >
                 {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}
@@ -425,7 +502,7 @@ export function EditorPage() {
                         loading={null}
                         onRenderSuccess={updatePageWidth}
                       />
-                      {pageWidthPx > 0 && <AWBOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />}
+                      {pageWidthPx > 0 && <AWBOverlay data={data} onChange={handleDataChange} pageWidthPx={pageWidthPx} />}
                     </div>
                   ) : (
                     <Page
