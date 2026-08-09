@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { PLANS } from '../data/plans'
 import './LandingPage.css'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { usePostHog } from '@posthog/react'
 
 const FEATURES = [
   {
@@ -47,9 +48,17 @@ const STEPS = [
 
 
 export function LandingPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const posthog = usePostHog()
   const { user, orgName, logout } = useAuth()
   const tryPath = user ? '/editor' : '/demo'
+  const showSpanishHelp = i18n.language?.startsWith('es')
+
+  React.useEffect(() => {
+    if (showSpanishHelp) {
+      posthog?.capture('landing_spanish_help_shown')
+    }
+  }, [posthog, showSpanishHelp])
 
   return (
     <div className="lp">
@@ -98,6 +107,16 @@ export function LandingPage() {
             <a href="#how" className="lp-cta-ghost">{t('landing.steps.cta')}</a>
           </div>
           <p className="lp-hero-note">{t('landing.hero.note')}</p>
+          {showSpanishHelp && (
+            <Link
+              to="/contact"
+              className="lp-spanish-help"
+              onClick={() => posthog?.capture('landing_spanish_help_clicked')}
+            >
+              <span>{t('landing.hero.spanishHelp')}</span>
+              <strong>{t('landing.hero.spanishHelpCta')}</strong>
+            </Link>
+          )}
         </div>
 
         {/* Mockup — clickable, opens demo editor */}

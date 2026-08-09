@@ -90,6 +90,28 @@
 }
 .lp-hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .lp-hero-note { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 14px; }
+.lp-spanish-help {
+  margin: 18px auto 0;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 13px;
+  text-align: left;
+  transition: background .15s, border-color .15s;
+}
+.lp-spanish-help:hover {
+  background: rgba(255,255,255,0.13);
+  border-color: rgba(255,255,255,0.35);
+}
+.lp-spanish-help span { color: rgba(255,255,255,0.76); }
+.lp-spanish-help strong { color: #fff; white-space: nowrap; }
 
 /* ── MOCKUP ── */
 .lp-hero-mockup {
