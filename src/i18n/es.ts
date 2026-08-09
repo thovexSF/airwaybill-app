@@ -75,6 +75,13 @@ const es = {
     },
     signup: {
       sub: 'Crea tu cuenta gratis: 10 descargas PDF de AWB/mes, sin tarjeta de credito.',
+      demoIntro: {
+        title: 'Tu AWB de demo esta listo para el siguiente paso.',
+        sub: 'Crea una cuenta gratis para convertir la previsualizacion con marca de agua en un flujo de PDF limpio.',
+        save: 'Guarda y reutiliza los datos de tus AWB',
+        downloads: 'Descarga 10 PDFs de AWB/mes en el plan gratis',
+        noCard: 'Sin tarjeta de credito',
+      },
       google: 'Registrarse con Google',
       github: 'Registrarse con GitHub',
       orEmail: 'o con email',
@@ -210,6 +217,12 @@ const es = {
     downloadCta: 'Registrate para descargar PDF',
     sub: 'Demo en vivo — sin registrarte',
     modeLabel: 'Demo',
+    conversion: {
+      eyebrow: '¿Listo para exportar?',
+      title: 'Crea una cuenta gratis para descargar un PDF AWB limpio.',
+      sub: 'Sigue con el flujo: AWBs guardados, 10 descargas PDF gratis/mes y sin tarjeta.',
+      cta: 'Continuar desde la demo',
+    },
   },
 
   feedback: {
