@@ -54,6 +54,7 @@ export function EditorPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const onboardingSeenRef = useRef(false)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
 
   const updatePageWidth = useCallback(() => {
@@ -288,6 +289,43 @@ export function EditorPage() {
     : (data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : 'AWB')
   const atLimit = plan === 'free' && !canDownloadAWB && !downloadCountedAt
   const hawbBlocked = false
+  const hasShipmentStarted = Boolean(
+    data.awbSerial ||
+    data.consigneeNameAndAddress ||
+    data.airportOfDestination ||
+    data.rateItems.some(item => item.pieces || item.grossWeight || item.natureAndQuantity),
+  )
+  const shouldShowFirstAwbGuide = !docId && !currentId && !hasShipmentStarted
+
+  useEffect(() => {
+    posthog?.capture('awb_editor_opened', {
+      doc_type: data.docType ?? 'awb',
+      has_doc_id: Boolean(docId),
+      plan,
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!shouldShowFirstAwbGuide || onboardingSeenRef.current) return
+    onboardingSeenRef.current = true
+    ;(window as any).clarity?.('event', 'awb_editor_onboarding_shown')
+    posthog?.capture('awb_editor_onboarding_shown', { doc_type: data.docType ?? 'awb', plan })
+  }, [shouldShowFirstAwbGuide, posthog, data.docType, plan])
+
+  function captureOnboardingAction(action: string) {
+    ;(window as any).clarity?.('event', `awb_editor_onboarding_${action}`)
+    posthog?.capture('awb_editor_onboarding_action', { action, doc_type: data.docType ?? 'awb', plan })
+  }
+
+  function handleLoadExampleFromGuide() {
+    captureOnboardingAction('load_example')
+    setData(exampleAWB)
+  }
+
+  function handleOpenFormFromGuide() {
+    captureOnboardingAction('open_form')
+    setOverlayMode(false)
+  }
 
   return (
     <div className="app">
@@ -364,6 +402,34 @@ export function EditorPage() {
         <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{t('editor.limitBanner')}</span>
           <Link to="/pricing" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none' }}>{t('editor.upgradeNow')}</Link>
+        </div>
+      )}
+
+      {shouldShowFirstAwbGuide && (
+        <div className="editor-onboarding" role="region" aria-label={t('editor.onboarding.title')}>
+          <div className="editor-onboarding-copy">
+            <div className="editor-onboarding-eyebrow">{t('editor.onboarding.eyebrow')}</div>
+            <strong>{t('editor.onboarding.title')}</strong>
+            <span>{t('editor.onboarding.body')}</span>
+          </div>
+          <ol className="editor-onboarding-steps">
+            <li>{t('editor.onboarding.steps.awbNumber')}</li>
+            <li>{t('editor.onboarding.steps.parties')}</li>
+            <li>{t('editor.onboarding.steps.download')}</li>
+          </ol>
+          <div className="editor-onboarding-actions">
+            <button type="button" className="editor-onboarding-primary" onClick={handleLoadExampleFromGuide}>
+              {t('editor.onboarding.loadExampleCta')}
+            </button>
+            {overlayMode && (
+              <button type="button" className="editor-onboarding-secondary" onClick={handleOpenFormFromGuide}>
+                {t('editor.onboarding.openFormCta')}
+              </button>
+            )}
+            <Link to="/settings" className="editor-onboarding-link" onClick={() => captureOnboardingAction('open_settings')}>
+              {t('editor.onboarding.settingsCta')}
+            </Link>
+          </div>
         </div>
       )}
 

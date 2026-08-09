@@ -127,6 +127,19 @@ const en = {
     previewLoading: 'Generating preview…',
     updating: 'Updating…',
     zoomReset: 'Reset',
+    onboarding: {
+      eyebrow: 'New AWB',
+      title: 'Create your first Air Waybill',
+      body: 'Start with the shipment basics, then save or download the PDF when the preview looks right.',
+      steps: {
+        awbNumber: 'Add AWB number and routing',
+        parties: 'Fill shipper, consignee, and cargo',
+        download: 'Save or download the final PDF',
+      },
+      loadExampleCta: 'Load example',
+      openFormCta: 'Open guided form',
+      settingsCta: 'Prefill company defaults',
+    },
   },
 
   // My AWBs
