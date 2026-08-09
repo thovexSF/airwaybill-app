@@ -54,6 +54,11 @@ export function DemoEditorPage() {
     posthog?.capture('demo_viewed')
   }, [])
 
+  const handleCreateOwnAwbClick = () => {
+    ;(window as any).clarity?.('event', 'demo_create_own_awb_clicked')
+    posthog?.capture('demo_create_own_awb_clicked', { destination: 'signup' })
+  }
+
   useEffect(() => {
     const onResize = () => {
       const wide = window.innerWidth >= 900
@@ -96,20 +101,18 @@ export function DemoEditorPage() {
 
   return (
     <div className="app">
-      <div style={{
-        background: '#fff3cd',
-        borderBottom: '1px solid #ffc107',
-        padding: '10px 20px',
-        fontSize: 13,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-        flexWrap: 'wrap',
-      }}>
-        <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-          {t('demo.signupCta')} →
+      <div className="demo-conversion-banner">
+        <div className="demo-conversion-copy">
+          <strong>{t('demo.bannerTitle')}</strong>
+          <span>{t('demo.banner')}</span>
+        </div>
+        <Link
+          to="/signup"
+          state={{ from: '/demo', intent: 'create_awb' }}
+          className="demo-primary-cta"
+          onClick={handleCreateOwnAwbClick}
+        >
+          {t('demo.createOwnCta')} →
         </Link>
       </div>
 
@@ -136,6 +139,14 @@ export function DemoEditorPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
+          <Link
+            to="/signup"
+            state={{ from: '/demo', intent: 'create_awb' }}
+            className="btn-download demo-action-primary"
+            onClick={handleCreateOwnAwbClick}
+          >
+            {t('demo.createOwnCta')}
+          </Link>
           <Link to="/signup" state={{ from: '/demo' }} className="btn-download">
             {t('demo.downloadCta')}
           </Link>

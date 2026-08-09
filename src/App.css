@@ -40,6 +40,57 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
 }
 .btn-download:hover { background: #ffe8e8; transform: translateY(-1px); }
 
+.btn-download.demo-action-primary {
+  background: #ffc107;
+  color: #3a2100;
+}
+.btn-download.demo-action-primary:hover { background: #ffd45a; }
+
+.demo-conversion-banner {
+  flex-shrink: 0;
+  background: #fff3cd;
+  border-bottom: 1px solid #ffc107;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 30;
+}
+
+.demo-conversion-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  font-size: 13px;
+  color: #4b3500;
+}
+
+.demo-conversion-copy strong {
+  font-size: 14px;
+  color: #2d1d00;
+}
+
+.demo-primary-cta {
+  flex-shrink: 0;
+  background: var(--red);
+  color: #fff;
+  padding: 9px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(139,0,0,0.28);
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.demo-primary-cta:hover {
+  background: #6f0000;
+  transform: translateY(-1px);
+}
+
 .btn-save {
   background: #fff; color: var(--red); border: none;
   padding: 6px 16px; border-radius: 4px; font-size: 12px; font-weight: 700;
@@ -238,6 +289,17 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
   /* Action bar: scrollable row */
   .action-bar { padding: 0 10px !important; overflow-x: auto; }
   .action-bar > div { flex-shrink: 0; }
+
+  .demo-conversion-banner {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .demo-primary-cta {
+    text-align: center;
+    width: 100%;
+  }
 
   /* Form sections: full width inputs */
   .field-row { flex-direction: column !important; }

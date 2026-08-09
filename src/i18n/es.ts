@@ -205,8 +205,9 @@ const es = {
   },
 
   demo: {
-    banner: 'Demo — previsualiza y edita con watermark DRAFT. Registrate gratis para descargar 10 PDFs de AWB/mes.',
-    signupCta: 'Crear cuenta gratis',
+    bannerTitle: '¿Listo para crear tu propio Air Waybill?',
+    banner: 'Empieza con un editor en blanco y descarga 10 PDFs de AWB/mes en el plan gratis.',
+    createOwnCta: 'Crear mi propio AWB',
     downloadCta: 'Registrate para descargar PDF',
     sub: 'Demo en vivo — sin registrarte',
     modeLabel: 'Demo',
