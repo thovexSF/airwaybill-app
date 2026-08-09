@@ -73,7 +73,7 @@ export function LandingPage() {
             ) : (
               <>
                 <Link to={tryPath} className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
-                <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+                <Link to="/signup?source=homepage&intent=create_awb_pdf" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
               </>
             )}
             <LangSwitcher variant="light" />

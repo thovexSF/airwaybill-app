@@ -10,11 +10,40 @@ type AuthContextValue = {
   orgName: string | null
   signup: (input: { companyName: string; email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
   login: (input: { email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
-  loginWithProvider: (provider: 'google' | 'github') => Promise<void>
+  loginWithProvider: (provider: 'google' | 'github', options?: AuthRedirectOptions) => Promise<void>
   logout: () => Promise<void>
 }
 
+type AuthRedirectOptions = {
+  flow?: 'login' | 'signup'
+  source?: string
+  intent?: string
+}
+
+type PendingAuthRedirect = AuthRedirectOptions & {
+  provider: 'google' | 'github'
+}
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+
+function readPendingAuthRedirect(): PendingAuthRedirect | null {
+  const raw = sessionStorage.getItem('posthog_pending_auth')
+  if (raw) {
+    try {
+      return JSON.parse(raw) as PendingAuthRedirect
+    } catch {
+      return null
+    }
+  }
+
+  const legacyProvider = sessionStorage.getItem('posthog_pending_login') as 'google' | 'github' | null
+  return legacyProvider ? { provider: legacyProvider, flow: 'login' } : null
+}
+
+function clearPendingAuthRedirect() {
+  sessionStorage.removeItem('posthog_pending_auth')
+  sessionStorage.removeItem('posthog_pending_login')
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const posthog = usePostHog()
@@ -33,10 +62,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
       if (event === 'SIGNED_IN' && s?.user) {
         posthog?.identify(s.user.id, { email: s.user.email })
-        const pendingProvider = sessionStorage.getItem('posthog_pending_login')
-        if (pendingProvider) {
-          sessionStorage.removeItem('posthog_pending_login')
-          posthog?.capture('user_logged_in', { method: pendingProvider })
+        const pendingAuth = readPendingAuthRedirect()
+        if (pendingAuth) {
+          clearPendingAuthRedirect()
+          const eventName = pendingAuth.flow === 'signup' ? 'user_signed_up' : 'user_logged_in'
+          posthog?.capture(eventName, {
+            method: pendingAuth.provider,
+            source: pendingAuth.source,
+            intent: pendingAuth.intent,
+            auth_redirect: true,
+          })
         }
       }
     })
@@ -84,8 +119,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { ok: true }
     },
 
-    loginWithProvider: async (provider) => {
-      sessionStorage.setItem('posthog_pending_login', provider)
+    loginWithProvider: async (provider, options = {}) => {
+      sessionStorage.setItem('posthog_pending_auth', JSON.stringify({
+        provider,
+        flow: options.flow ?? 'login',
+        source: options.source,
+        intent: options.intent,
+      }))
       await supabase.auth.signInWithOAuth({
         provider,
         options: { redirectTo: window.location.origin + '/editor' },
