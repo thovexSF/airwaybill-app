@@ -127,6 +127,19 @@ const en = {
     previewLoading: 'Generating preview…',
     updating: 'Updating…',
     zoomReset: 'Reset',
+    firstGuide: {
+      title: 'Finish your first AWB faster',
+      body: 'Complete the minimum fields below, then Download PDF. Downloading also saves the AWB to your account.',
+      steps: {
+        awbNumber: 'AWB number',
+        parties: 'Shipper and consignee',
+        route: 'Departure and destination',
+        cargo: 'Cargo details',
+      },
+      loadExample: 'Load sample AWB',
+      editOnPdf: 'Edit on PDF',
+      useForm: 'Use side form',
+    },
   },
 
   // My AWBs

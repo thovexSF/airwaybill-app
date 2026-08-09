@@ -154,6 +154,56 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
 .plan-downgrade-tooltip a:hover { color: rgba(255,255,255,0.9); }
 .plan-badge-wrap:hover .plan-downgrade-tooltip { display: block; }
 
+/* ── First AWB guide ── */
+.first-awb-guide {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 20px;
+  background: #fff8e5;
+  border-bottom: 1px solid #f2d48a;
+  font-size: 12px;
+}
+
+.first-awb-guide-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 210px;
+}
+
+.first-awb-guide-copy strong { color: var(--red); font-size: 13px; }
+.first-awb-guide-copy span { color: #5f5538; }
+
+.first-awb-guide-steps {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.first-awb-guide-steps span {
+  border: 1px solid #ead7a6;
+  border-radius: 999px;
+  color: #5f5538;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.first-awb-guide-steps span.done {
+  border-color: #b9d9a7;
+  background: #edf8e8;
+  color: #28601f;
+}
+
+.first-awb-guide-actions { display: flex; gap: 6px; }
+.first-awb-guide .btn-example {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+.first-awb-guide .btn-example:hover { background: #6b0000; }
+
 /* ── Rate table ── */
 .rate-table { padding: 8px 12px; overflow-x: auto; }
 .rate-inner { min-width: 560px; }
@@ -238,6 +288,16 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
   /* Action bar: scrollable row */
   .action-bar { padding: 0 10px !important; overflow-x: auto; }
   .action-bar > div { flex-shrink: 0; }
+
+  .first-awb-guide {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .first-awb-guide-copy { min-width: 0; }
+  .first-awb-guide-actions { width: 100%; }
 
   /* Form sections: full width inputs */
   .field-row { flex-direction: column !important; }
