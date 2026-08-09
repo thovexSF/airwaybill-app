@@ -22,6 +22,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 export function DemoEditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
+  const firstEditTrackedRef = useRef(false)
   const [data, setDataRaw] = useState<AWBData>({ ...exampleAWB, isDraft: true })
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
     setDataRaw(prev => {
@@ -39,6 +40,7 @@ export function DemoEditorPage() {
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const signupTo = '/signup?source=demo&intent=create_first_awb'
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -53,6 +55,22 @@ export function DemoEditorPage() {
   useEffect(() => {
     posthog?.capture('demo_viewed')
   }, [])
+
+  function trackSignupClick(placement: string) {
+    ;(window as any).clarity?.('event', 'demo_signup_cta_clicked')
+    posthog?.capture('demo_signup_cta_clicked', {
+      placement,
+      intent: 'create_first_awb',
+    })
+  }
+
+  function handleDemoChange(next: AWBData | ((prev: AWBData) => AWBData)) {
+    if (!firstEditTrackedRef.current) {
+      firstEditTrackedRef.current = true
+      posthog?.capture('demo_first_edit', { intent: 'create_first_awb' })
+    }
+    setData(next)
+  }
 
   useEffect(() => {
     const onResize = () => {
@@ -108,7 +126,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupTo}
+          state={{ from: '/demo', intent: 'create_first_awb' }}
+          onClick={() => trackSignupClick('banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -136,7 +159,12 @@ export function DemoEditorPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
-          <Link to="/signup" state={{ from: '/demo' }} className="btn-download">
+          <Link
+            to={signupTo}
+            state={{ from: '/demo', intent: 'create_first_awb' }}
+            className="btn-download"
+            onClick={() => trackSignupClick('download_bar')}
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>
@@ -167,13 +195,56 @@ export function DemoEditorPage() {
                     i === 0 && overlayMode ? (
                       <div key={i + 1} ref={setPageWrap} style={{ position: 'relative' }}>
                         <Page pageNumber={1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} loading={null} onRenderSuccess={updatePageWidth} />
-                        {pageWidthPx > 0 && <AWBOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />}
+                        {pageWidthPx > 0 && <AWBOverlay data={data} onChange={handleDemoChange} pageWidthPx={pageWidthPx} />}
                       </div>
                     ) : (
                       <Page key={i + 1} pageNumber={i + 1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} loading={null} />
                     )
                   ))}
                 </Document>
+              </div>
+              <div style={{
+                width: 'min(100%, 760px)',
+                background: '#fff',
+                border: '1px solid #ead8d8',
+                borderRadius: 12,
+                padding: '18px 20px',
+                boxShadow: '0 10px 24px rgba(0,0,0,0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 16,
+                flexWrap: 'wrap',
+              }}>
+                <div style={{ maxWidth: 480 }}>
+                  <div style={{ color: '#8b0000', fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4 }}>
+                    {t('demo.nextStepKicker')}
+                  </div>
+                  <h2 style={{ fontSize: 20, lineHeight: 1.2, margin: '0 0 6px', color: '#221' }}>
+                    {t('demo.nextStepTitle')}
+                  </h2>
+                  <p style={{ fontSize: 13, color: '#555', lineHeight: 1.45, margin: 0 }}>
+                    {t('demo.nextStepBody')}
+                  </p>
+                </div>
+                <Link
+                  to={signupTo}
+                  state={{ from: '/demo', intent: 'create_first_awb' }}
+                  onClick={() => trackSignupClick('preview_end_card')}
+                  style={{
+                    background: '#8b0000',
+                    color: '#fff',
+                    textDecoration: 'none',
+                    borderRadius: 8,
+                    padding: '12px 16px',
+                    fontWeight: 800,
+                    fontSize: 14,
+                    boxShadow: '0 4px 12px rgba(139,0,0,0.25)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {t('demo.nextStepCta')} →
+                </Link>
               </div>
             </div>
           ) : (
@@ -183,7 +254,7 @@ export function DemoEditorPage() {
 
         {!overlayMode && (
           <div className="form-panel-wrap form-panel-wrap-fallback">
-            <AWBFormPanel data={data} onChange={setData} lockDraftWatermark />
+            <AWBFormPanel data={data} onChange={handleDemoChange} lockDraftWatermark />
           </div>
         )}
       </div>
