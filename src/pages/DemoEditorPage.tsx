@@ -23,12 +23,6 @@ export function DemoEditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
   const [data, setDataRaw] = useState<AWBData>({ ...exampleAWB, isDraft: true })
-  const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
-    setDataRaw(prev => {
-      const updated = typeof next === 'function' ? next(prev) : next
-      return { ...updated, isDraft: true }
-    })
-  }
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [numPages, setNumPages] = useState(1)
@@ -39,6 +33,33 @@ export function DemoEditorPage() {
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const firstChangeTrackedRef = useRef(false)
+  const firstPdfTrackedRef = useRef(false)
+  const signupPath = '/signup?source=demo&intent=download_awb_pdf'
+
+  const captureDemoEvent = useCallback((event: string, properties?: Record<string, unknown>) => {
+    const base = {
+      path: window.location.pathname,
+      source: 'demo',
+      intent: 'download_awb_pdf',
+      viewport_width: window.innerWidth,
+      viewport_height: window.innerHeight,
+    }
+    posthog?.capture(event, { ...base, ...properties })
+    ;(window as any).clarity?.('event', event)
+  }, [posthog])
+
+  const setData = useCallback((next: AWBData | ((prev: AWBData) => AWBData)) => {
+    setDataRaw(prev => {
+      const updated = typeof next === 'function' ? next(prev) : next
+      return { ...updated, isDraft: true }
+    })
+
+    if (!firstChangeTrackedRef.current) {
+      firstChangeTrackedRef.current = true
+      captureDemoEvent('demo_first_change', { overlay_mode: overlayMode })
+    }
+  }, [captureDemoEvent, overlayMode])
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -51,8 +72,11 @@ export function DemoEditorPage() {
   }, [updatePageWidth])
 
   useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
+    captureDemoEvent('demo_viewed', {
+      initial_overlay_mode: overlayMode,
+      referrer: document.referrer || undefined,
+    })
+  }, [captureDemoEvent])
 
   useEffect(() => {
     const onResize = () => {
@@ -88,10 +112,19 @@ export function DemoEditorPage() {
       const blob = await pdf(<AWBDocument data={d} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
+      if (!firstPdfTrackedRef.current) {
+        firstPdfTrackedRef.current = true
+        captureDemoEvent('demo_pdf_generated', { overlay_mode: overlayMode })
+      }
     } catch (e) {
       console.error('PDF generation error:', e)
+      captureDemoEvent('demo_pdf_generation_failed', { error_name: e instanceof Error ? e.name : 'unknown' })
     }
     setGenerating(false)
+  }
+
+  const trackSignupClick = (placement: string) => {
+    captureDemoEvent('demo_signup_cta_clicked', { placement, overlay_mode: overlayMode })
   }
 
   return (
@@ -108,7 +141,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupPath}
+          state={{ from: '/demo', source: 'demo', intent: 'download_awb_pdf' }}
+          onClick={() => trackSignupClick('top_banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -130,13 +168,25 @@ export function DemoEditorPage() {
 
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button type="button" className="btn-example" onClick={() => setData({ ...exampleAWB, isDraft: true })}>
+          <button
+            type="button"
+            className="btn-example"
+            onClick={() => {
+              captureDemoEvent('demo_example_loaded', { overlay_mode: overlayMode })
+              setData({ ...exampleAWB, isDraft: true })
+            }}
+          >
             {t('editor.example')}
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
-          <Link to="/signup" state={{ from: '/demo' }} className="btn-download">
+          <Link
+            to={signupPath}
+            state={{ from: '/demo', source: 'demo', intent: 'download_awb_pdf' }}
+            className="btn-download"
+            onClick={() => trackSignupClick('download_button')}
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>
@@ -151,7 +201,11 @@ export function DemoEditorPage() {
             {isWideViewport && (
               <button
                 type="button"
-                onClick={() => setOverlayMode(m => !m)}
+                onClick={() => {
+                  const nextOverlayMode = !overlayMode
+                  setOverlayMode(nextOverlayMode)
+                  captureDemoEvent('demo_overlay_mode_toggled', { enabled: nextOverlayMode })
+                }}
                 style={{ background: overlayMode ? '#8b0000' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
               >
                 {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}
