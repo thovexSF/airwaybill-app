@@ -8,6 +8,9 @@ import { usePostHog } from '@posthog/react'
 const ENABLED = import.meta.env.VITE_FEEDBACK_ENABLED !== 'false'
 
 type Step = 'form' | 'sending' | 'done' | 'error'
+type FeedbackCategory = 'bug' | 'feature' | 'question'
+
+const FEEDBACK_CATEGORIES: FeedbackCategory[] = ['bug', 'feature', 'question']
 
 export function FeedbackWidget() {
   const { t } = useTranslation()
@@ -19,6 +22,7 @@ export function FeedbackWidget() {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [email, setEmail] = useState('')
+  const [category, setCategory] = useState<FeedbackCategory | null>(null)
   const [step, setStep] = useState<Step>('form')
   const [errorKey, setErrorKey] = useState<string | null>(null)
 
@@ -40,6 +44,7 @@ export function FeedbackWidget() {
     setOpen(false)
     setStep('form')
     setText('')
+    setCategory(null)
     setErrorKey(null)
   }
 
@@ -54,15 +59,23 @@ export function FeedbackWidget() {
     setStep('sending')
     setErrorKey(null)
 
+    const context: Record<string, unknown> = {}
+    if (user?.id) context.user_id = user.id
+    if (category) context.feedback_category = category
+
     const result = await submitFeedback({
       text: trimmed,
       page: location.pathname + location.search,
       user_email: email.trim() || user?.email || undefined,
-      context: user?.id ? { user_id: user.id } : undefined,
+      context: Object.keys(context).length > 0 ? context : undefined,
     })
 
     if (result.ok) {
-      posthog?.capture('feedback_submitted', { page: location.pathname })
+      posthog?.capture('feedback_submitted', {
+        page: location.pathname,
+        category: category ?? 'uncategorized',
+        text_length: trimmed.length,
+      })
       setStep('done')
       setText('')
       window.setTimeout(resetAndClose, 1400)
@@ -175,6 +188,44 @@ export function FeedbackWidget() {
                   <p style={{ margin: '0 0 12px', fontSize: 11, color: '#8b0000', fontWeight: 600 }}>
                     {t('feedback.directNote')}
                   </p>
+
+                  <fieldset
+                    style={{
+                      border: 'none',
+                      padding: 0,
+                      margin: '0 0 12px',
+                    }}
+                    disabled={step === 'sending'}
+                  >
+                    <legend style={{ marginBottom: 8, fontSize: 12, color: '#555', fontWeight: 700 }}>
+                      {t('feedback.categoryLabel')}
+                    </legend>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {FEEDBACK_CATEGORIES.map((item) => {
+                        const selected = category === item
+                        return (
+                          <button
+                            key={item}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() => setCategory(selected ? null : item)}
+                            style={{
+                              border: `1px solid ${selected ? '#8b0000' : '#ddd'}`,
+                              borderRadius: 999,
+                              background: selected ? '#fff2f2' : '#fff',
+                              color: selected ? '#8b0000' : '#444',
+                              cursor: step === 'sending' ? 'wait' : 'pointer',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              padding: '6px 10px',
+                            }}
+                          >
+                            {t(`feedback.categories.${item}`)}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </fieldset>
 
                   <textarea
                     ref={textareaRef}
