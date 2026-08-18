@@ -244,13 +244,26 @@ export function DGDPage() {
                 <Field label="Airport of Departure" value={data.airportOfDeparture} onChange={set('airportOfDeparture')} placeholder="SCL" />
                 <Field label="Airport of Destination" value={data.airportOfDestination} onChange={set('airportOfDestination')} placeholder="MIA" />
               </Row>
-              <div className="field">
-                <label>Shipment Type</label>
-                <select value={data.shipmentType} onChange={e => set('shipmentType')(e.target.value)}>
-                  <option value="cargo_only">Cargo Aircraft Only</option>
-                  <option value="passenger_and_cargo">Passenger and Cargo Aircraft</option>
-                </select>
-              </div>
+              <Row>
+                <div className="field">
+                  <label>Aircraft Limitation</label>
+                  <select value={data.shipmentType} onChange={e => set('shipmentType')(e.target.value)}>
+                    <option value="cargo_only">Cargo Aircraft Only</option>
+                    <option value="passenger_and_cargo">Passenger and Cargo Aircraft</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Shipment Type</label>
+                  <label className="toggle" style={{ marginTop: 6 }}>
+                    <input
+                      type="checkbox"
+                      checked={!!data.isRadioactive}
+                      onChange={e => set('isRadioactive')(e.target.checked)}
+                    />
+                    <span>Radioactive</span>
+                  </label>
+                </div>
+              </Row>
             </Section>
 
             <Section title="Dangerous Goods">

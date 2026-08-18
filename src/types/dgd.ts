@@ -24,6 +24,8 @@ export interface DGDData {
   airportOfDeparture: string
   airportOfDestination: string
   shipmentType: 'passenger_and_cargo' | 'cargo_only'
+  /** The form carries a second either/or: non-radioactive vs radioactive. */
+  isRadioactive: boolean
 
   // Dangerous goods table
   items: DGDItem[]
@@ -51,6 +53,7 @@ export const defaultDGDData: DGDData = {
   airportOfDeparture: '',
   airportOfDestination: '',
   shipmentType: 'cargo_only',
+  isRadioactive: false,
   items: [
     { id: '1', unIdNo: '', properShippingName: '', classDivision: '', subsidiaryRisk: '', packingGroup: '', quantity: '', packingInstruction: '', authorization: '' },
   ],
