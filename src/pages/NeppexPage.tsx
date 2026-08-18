@@ -9,7 +9,10 @@ import { NeppexDocument } from '../pdf/NeppexDocument'
 import { saveNeppex, getNeppex } from '../lib/neppexService'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
+import { usePdfDownloadGuard } from '../lib/pdfQuota'
+import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -57,6 +60,8 @@ function Check({ label, checked, onChange }: { label: string; checked: boolean; 
 export function NeppexPage() {
   const { user, logout, orgName } = useAuth()
   const { plan } = usePlan()
+  const quota = usePdfDownloadGuard()
+  const demo = useDemoMode()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const docId = searchParams.get('id')
@@ -171,40 +176,78 @@ export function NeppexPage() {
     }))
   }
 
+  /** Save first (a saved id lets the quota de-duplicate re-downloads), then charge one unit. */
+  async function authorizeDownload() {
+    let id = currentId
+    if (!id) {
+      try {
+        const doc = await saveNeppex(data, undefined)
+        id = doc.id
+        setCurrentId(doc.id)
+        navigate(`/neppex?id=${doc.id}`, { replace: true })
+      } catch (e) {
+        console.error('Save before download failed:', e)
+      }
+    }
+    return quota.authorize(id)
+  }
+
+  function onDownloadRefused(message: string) {
+    setSaveMsg(message)
+    setTimeout(() => setSaveMsg(null), 5000)
+  }
+
   return (
     <div className="app">
       <div className="topbar" style={{ background: '#0d4a6b' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>← My Docs</Link>
+          <Link to={demo ? '/demo' : '/my-awbs'} style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{demo ? '← All documents' : '← My Docs'}</Link>
           <div>
             <Link to="/" style={{ color: '#fff', textDecoration: 'none' }} className="topbar-logo">✈ AIRWAYBILL APP</Link>
             <div className="topbar-sub">SERNAPESCA · F15 NEPPEX (A4)</div>
           </div>
         </div>
         <div className="topbar-actions">
-          <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{orgName ?? user?.email}</span>
-          {plan !== 'free' && (
-            <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize' }}>
-              {plan}
-            </span>
+          {demo ? (
+            <>
+              <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>Demo</span>
+              <LangSwitcher />
+              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Create free account</Link>
+            </>
+          ) : (
+            <>
+              <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{orgName ?? user?.email}</span>
+              {plan !== 'free' && (
+                <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize' }}>
+                  {plan}
+                </span>
+              )}
+              <LangSwitcher />
+              <button className="btn-example" onClick={logout}>Sign Out</button>
+            </>
           )}
-          <LangSwitcher />
-          <button className="btn-example" onClick={logout}>Sign Out</button>
         </div>
       </div>
 
       <div style={{ background: '#08374f', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
         {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Generating…</span>}
         {saveMsg && <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{saveMsg}</span>}
-        <button className="btn-example" onClick={handleSave} disabled={saving} style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700 }}>
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-        {pdfUrl && (
-          <a className="btn-download" href={pdfUrl}
-            download={`NEPPEX_${data.neppexNumber || data.rutExportador || 'document'}.pdf`}
-            onClick={() => track('neppex_downloaded')}>
-            Download PDF (A4)
-          </a>
+        {!demo && (
+          <button className="btn-example" onClick={handleSave} disabled={saving} style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700 }}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        )}
+        {demo ? (
+          <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Sign up to download PDF</Link>
+        ) : pdfUrl && (
+          <DownloadPdfButton
+            pdfUrl={pdfUrl}
+            fileName={`NEPPEX_${data.neppexNumber || data.rutExportador || 'document'}.pdf`}
+            authorize={authorizeDownload}
+            onRefused={onDownloadRefused}
+            onDownloaded={() => track('neppex_downloaded')}
+            label="Download PDF (A4)"
+          />
         )}
       </div>
 
@@ -349,13 +392,18 @@ export function NeppexPage() {
             </Section>
           </div>
           <div className="mobile-pdf-strip">
-            {pdfUrl
-              ? <a className="btn-download" href={pdfUrl}
-                  download={`NEPPEX_${data.neppexNumber || 'document'}.pdf`}
+            {demo
+              ? <Link to="/signup" className="btn-download" style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>Sign up to download PDF</Link>
+              : pdfUrl
+              ? <DownloadPdfButton
+                  pdfUrl={pdfUrl}
+                  fileName={`NEPPEX_${data.neppexNumber || 'document'}.pdf`}
+                  authorize={authorizeDownload}
+                  onRefused={onDownloadRefused}
+                  onDownloaded={() => track('neppex_downloaded')}
+                  label="↓ Download NEPPEX PDF"
                   style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}
-                  onClick={() => track('neppex_downloaded')}>
-                  ↓ Download NEPPEX PDF
-                </a>
+                />
               : <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>
             }
           </div>

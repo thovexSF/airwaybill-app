@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
@@ -22,7 +22,12 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 export function DemoEditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
-  const [data, setDataRaw] = useState<AWBData>({ ...exampleAWB, isDraft: true })
+  // Reached as /demo/awb or /demo/hawb from the demo picker; both use this
+  // editor because only the AWB has the form-over-PDF overlay.
+  const { docType } = useParams<{ docType?: string }>()
+  const demoDocType: 'awb' | 'hawb' = docType === 'hawb' ? 'hawb' : 'awb'
+  const initialData: AWBData = { ...exampleAWB, docType: demoDocType, isDraft: true }
+  const [data, setDataRaw] = useState<AWBData>(initialData)
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
     setDataRaw(prev => {
       const updated = typeof next === 'function' ? next(prev) : next
@@ -115,7 +120,7 @@ export function DemoEditorPage() {
 
       <div className="topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{t('common.home')}</Link>
+          <Link to="/demo" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>← All documents</Link>
           <div>
             <Link to="/" style={{ color: '#fff', textDecoration: 'none' }} className="topbar-logo">✈ AIRWAYBILL APP</Link>
             <div className="topbar-sub">{t('demo.sub')}</div>
@@ -130,13 +135,13 @@ export function DemoEditorPage() {
 
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button type="button" className="btn-example" onClick={() => setData({ ...exampleAWB, isDraft: true })}>
+          <button type="button" className="btn-example" onClick={() => setData(initialData)}>
             {t('editor.example')}
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
-          <Link to="/signup" state={{ from: '/demo' }} className="btn-download">
+          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
             {t('demo.downloadCta')}
           </Link>
         </div>

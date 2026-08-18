@@ -25,6 +25,8 @@ import { FWBPage, FHLPage, FFRPage } from './pages/EDIPages'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { DevPreviewPage } from './pages/DevPreviewPage'
 import { DemoEditorPage } from './pages/DemoEditorPage'
+import { DemoPickerPage } from './pages/DemoPickerPage'
+import { DemoDocPage } from './pages/DemoDocPage'
 import { FeedbackWidget } from './components/FeedbackWidget'
 
 export default function App() {
@@ -33,7 +35,8 @@ export default function App() {
       <FeedbackWidget />
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/demo" element={<DemoEditorPage />} />
+        <Route path="/demo" element={<DemoPickerPage />} />
+        <Route path="/demo/:docType" element={<DemoDocPage />} />
         <Route
           path="/editor"
           element={(

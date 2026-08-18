@@ -6,7 +6,9 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
+import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
+import { useDemoMode } from './DemoMode'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -28,6 +30,7 @@ export function DocEditorShell<T>({
   saving,
   saveMsg,
   onDownload,
+  authorizeDownload,
   extraActions,
   children,
 }: {
@@ -40,11 +43,16 @@ export function DocEditorShell<T>({
   saving: boolean
   saveMsg: string | null
   onDownload?: () => void
+  /** Charges the monthly document quota; the download is refused when it returns not-ok. */
+  authorizeDownload?: () => Promise<DownloadAuthorization>
   extraActions?: React.ReactNode
   children: React.ReactNode
 }) {
+  const demo = useDemoMode()
   const { user, logout, orgName } = useAuth()
-  const { plan } = usePlan()
+  const { plan, docsUsedThisMonth, docLimit } = usePlan()
+  const [downloading, setDownloading] = useState(false)
+  const [downloadMsg, setDownloadMsg] = useState<string | null>(null)
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
@@ -81,6 +89,31 @@ export function DocEditorShell<T>({
   // Release the last preview URL when the editor unmounts.
   useEffect(() => () => { setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null }) }, [])
 
+  async function handleDownload() {
+    if (!pdfUrl || downloading) return
+    setDownloadMsg(null)
+    setDownloading(true)
+    try {
+      if (authorizeDownload) {
+        const auth = await authorizeDownload()
+        if (!auth.ok) {
+          setDownloadMsg(auth.message ?? 'Download not allowed')
+          setTimeout(() => setDownloadMsg(null), 5000)
+          return
+        }
+      }
+      const link = document.createElement('a')
+      link.href = pdfUrl
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      onDownload?.()
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   async function regenerate(d: T) {
     setGenerating(true)
     try {
@@ -98,41 +131,68 @@ export function DocEditorShell<T>({
       {/* ── Topbar ── */}
       <div className="topbar" style={{ background: accent }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>← My Docs</Link>
+          <Link to={demo ? '/demo' : '/my-awbs'} style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
+            {demo ? '← All documents' : '← My Docs'}
+          </Link>
           <div>
             <Link to="/" style={{ color: '#fff', textDecoration: 'none' }} className="topbar-logo">✈ AIRWAYBILL APP</Link>
             <div className="topbar-sub">{subtitle}</div>
           </div>
         </div>
         <div className="topbar-actions">
-          <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{orgName ?? user?.email}</span>
-          {plan !== 'free' && (
-            <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize' }}>
-              {plan}
-            </span>
+          {demo ? (
+            <>
+              <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>
+                Demo
+              </span>
+              <LangSwitcher />
+              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Create free account</Link>
+            </>
+          ) : (
+            <>
+              <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{orgName ?? user?.email}</span>
+              {plan !== 'free' && (
+                <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize' }}>
+                  {plan}
+                </span>
+              )}
+              <LangSwitcher />
+              <button className="btn-example" onClick={logout}>Sign Out</button>
+            </>
           )}
-          <LangSwitcher />
-          <button className="btn-example" onClick={logout}>Sign Out</button>
         </div>
       </div>
 
       {/* ── Action bar ── */}
       <div style={{ background: '#122845', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+        {!demo && plan === 'free' && docLimit !== null && (
+          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+            {docsUsedThisMonth}/{docLimit} PDF downloads
+          </span>
+        )}
         {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Generating…</span>}
-        {saveMsg && <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{saveMsg}</span>}
-        {extraActions}
-        <button
-          className="btn-example"
-          onClick={onSave}
-          disabled={saving}
-          style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700 }}
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-        {pdfUrl && (
-          <a className="btn-download" href={pdfUrl} download={fileName} onClick={onDownload}>
-            Download PDF
-          </a>
+        {(saveMsg || downloadMsg) && (
+          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{downloadMsg ?? saveMsg}</span>
+        )}
+        {!demo && extraActions}
+        {!demo && (
+          <button
+            className="btn-example"
+            onClick={onSave}
+            disabled={saving}
+            style={{ background: 'rgba(255,255,255,0.15)', fontWeight: 700 }}
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        )}
+        {demo ? (
+          <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>
+            Sign up to download PDF
+          </Link>
+        ) : pdfUrl && (
+          <button className="btn-download" onClick={handleDownload} disabled={downloading}>
+            {downloading ? 'Preparing…' : 'Download PDF'}
+          </button>
         )}
       </div>
 
@@ -141,12 +201,16 @@ export function DocEditorShell<T>({
         <div className="form-panel-wrap" style={{ width: formWidth }}>
           <div className="form-panel">{children}</div>
           <div className="mobile-pdf-strip">
-            {pdfUrl
-              ? <a className="btn-download" href={pdfUrl} download={fileName}
-                   style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}
-                   onClick={onDownload}>
-                  ↓ Download PDF
-                </a>
+            {demo
+              ? <Link to="/signup" className="btn-download"
+                   style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>
+                  Sign up to download PDF
+                </Link>
+              : pdfUrl
+              ? <button className="btn-download" onClick={handleDownload} disabled={downloading}
+                   style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}>
+                  ↓ {downloading ? 'Preparing…' : 'Download PDF'}
+                </button>
               : <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>}
           </div>
         </div>

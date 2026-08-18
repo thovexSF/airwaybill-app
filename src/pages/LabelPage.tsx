@@ -9,7 +9,7 @@ import { buildLabelZpl, sendLabelToZebra } from '../lib/labelZpl'
 import { track } from '../lib/analytics'
 
 export function LabelPage() {
-  const { data, set, saving, saveMsg, save } = useDocEditor<LabelData>('label', defaultLabelData, '/label')
+  const { data, set, saving, saveMsg, save, authorizeDownload } = useDocEditor<LabelData>('label', defaultLabelData, '/label')
   const [zplMsg, setZplMsg] = useState<string | null>(null)
 
   const awb = labelAwbNumber(data)
@@ -45,6 +45,7 @@ export function LabelPage() {
       onSave={save}
       saving={saving}
       saveMsg={saveMsg ?? zplMsg}
+      authorizeDownload={authorizeDownload}
       onDownload={() => track('label_downloaded')}
       extraActions={
         <button className="btn-example" onClick={handleZebra} title="Send ZPL to a Zebra printer, or download the .zpl file">

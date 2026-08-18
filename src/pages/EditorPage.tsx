@@ -13,6 +13,7 @@ import { exampleAWB } from '../data/example'
 import { useAuth } from '../auth/AuthContext'
 import { saveAWB, getAWB } from '../lib/awbService'
 import { usePlan } from '../lib/usePlan'
+import { recordPdfDownload } from '../lib/pdfQuota'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { usePostHog } from '@posthog/react'
@@ -26,7 +27,7 @@ export function EditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
-  const { plan, orgId, canDownloadAWB, awbUsedThisMonth, awbLimit, loading: planLoading, refreshUsage } = usePlan()
+  const { plan, orgId, canDownloadDocument, docsUsedThisMonth, docLimit, loading: planLoading, refreshUsage } = usePlan()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const docId = searchParams.get('id')
@@ -204,8 +205,8 @@ export function EditorPage() {
     if (atLimit) {
       setSaveMsg(t('editor.limitReached'))
       setTimeout(() => setSaveMsg(null), 5000)
-      ;(window as any).clarity?.('event', 'free_awb_pdf_limit_reached')
-      posthog?.capture('free_awb_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
+      ;(window as any).clarity?.('event', 'free_pdf_limit_reached')
+      posthog?.capture('free_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
       return
     }
 
@@ -231,44 +232,21 @@ export function EditorPage() {
         }
       }
 
-      if (orgId && docIdForDownload && !countedAt) {
-        try {
-          const { data: result, error } = await supabase.rpc('record_awb_pdf_download', {
-            p_org_id: orgId,
-            p_awb_document_id: docIdForDownload,
-          })
-          if (error) throw error
-          if (result === 'limit_reached') {
-            setSaveMsg(t('editor.limitReached'))
-            setTimeout(() => setSaveMsg(null), 5000)
-            ;(window as any).clarity?.('event', 'free_awb_pdf_limit_reached')
-            posthog?.capture('free_awb_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
-            return
-          }
-          if (result === 'ok' || result === 'already_counted') {
-            setDownloadCountedAt(new Date().toISOString())
-            await refreshUsage()
-          }
-        } catch (error) {
-          console.error('PDF usage tracking failed:', error)
+      try {
+        const result = await recordPdfDownload(orgId, docIdForDownload, countedAt)
+        if (result === 'limit_reached') {
+          setSaveMsg(t('editor.limitReached'))
+          setTimeout(() => setSaveMsg(null), 5000)
+          ;(window as any).clarity?.('event', 'free_pdf_limit_reached')
+          posthog?.capture('free_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
+          return
         }
-      } else if (orgId && !docIdForDownload && !countedAt) {
-        try {
-          const { data: result, error } = await supabase.rpc('increment_awb_usage', {
-            p_org_id: orgId,
-          })
-          if (error) throw error
-          if (result === 'limit_reached') {
-            setSaveMsg(t('editor.limitReached'))
-            setTimeout(() => setSaveMsg(null), 5000)
-            ;(window as any).clarity?.('event', 'free_awb_pdf_limit_reached')
-            posthog?.capture('free_awb_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
-            return
-          }
-          if (result === 'ok') await refreshUsage()
-        } catch (error) {
-          console.error('PDF usage fallback tracking failed:', error)
+        if (result === 'ok' || result === 'already_counted') {
+          setDownloadCountedAt(new Date().toISOString())
+          await refreshUsage()
         }
+      } catch (error) {
+        console.error('PDF usage tracking failed:', error)
       }
 
       ;(window as any).clarity?.('event', 'awb_downloaded')
@@ -286,7 +264,7 @@ export function EditorPage() {
   const awbFull = isHawb
     ? (data.hawbNumber || 'HAWB')
     : (data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : 'AWB')
-  const atLimit = plan === 'free' && !canDownloadAWB && !downloadCountedAt
+  const atLimit = plan === 'free' && !canDownloadDocument && !downloadCountedAt
   const hawbBlocked = false
 
   return (
@@ -303,8 +281,8 @@ export function EditorPage() {
         <div className="topbar-actions">
           <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
             {orgName ?? user?.email}
-            {plan === 'free' && awbLimit !== null && (
-              <span style={{ marginLeft: 6, opacity: 0.7 }}>· {awbUsedThisMonth}/{awbLimit} PDF downloads</span>
+            {plan === 'free' && docLimit !== null && (
+              <span style={{ marginLeft: 6, opacity: 0.7 }}>· {docsUsedThisMonth}/{docLimit} {t('editor.pdfDownloads')}</span>
             )}
           </span>
           {/* Plan badge — simple label for paid users */}

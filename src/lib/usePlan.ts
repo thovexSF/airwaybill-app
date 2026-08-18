@@ -7,9 +7,10 @@ export type Plan = 'free' | 'starter' | 'pro' | 'enterprise'
 export interface PlanInfo {
   plan: Plan
   orgId: string | null
-  awbUsedThisMonth: number
-  awbLimit: number | null  // null = unlimited
-  canDownloadAWB: boolean
+  /** Documents of any type downloaded as PDF this month (the free-plan unit). */
+  docsUsedThisMonth: number
+  docLimit: number | null  // null = unlimited
+  canDownloadDocument: boolean
   loading: boolean
   refreshUsage: () => Promise<void>
 }
@@ -68,7 +69,7 @@ export function usePlan(): PlanInfo {
   }, [user?.id])
 
   const limit = LIMITS[plan]
-  const canDownloadAWB = limit === null || used < limit
+  const canDownloadDocument = limit === null || used < limit
   const refreshUsage = async () => {
     if (orgId) await loadUsage(orgId)
   }
@@ -76,9 +77,9 @@ export function usePlan(): PlanInfo {
   return {
     plan,
     orgId,
-    awbUsedThisMonth: used,
-    awbLimit: limit,
-    canDownloadAWB,
+    docsUsedThisMonth: used,
+    docLimit: limit,
+    canDownloadDocument,
     loading,
     refreshUsage,
   }

@@ -47,7 +47,7 @@ export function TermsPage() {
 
         <h2>4. Subscription Plans and Billing</h2>
         <ul>
-          <li>The Free plan allows up to 10 AWB documents per calendar month at no cost.</li>
+          <li>The Free plan allows up to 10 documents of any type per calendar month at no cost.</li>
           <li>Paid plans (Starter, Pro, Enterprise) are billed monthly or annually via Paddle,
               our payment processor. Prices are displayed on our{' '}
               <Link to="/pricing">Pricing page</Link> and may change with 30 days' notice.</li>

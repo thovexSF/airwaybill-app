@@ -43,6 +43,14 @@
 }
 .lp-btn-ghost:hover { border-color: var(--red); color: var(--red); }
 
+/* Sign in — text-weight action, sits between the ghost demo button
+   and the solid signup CTA so the primary action stays unambiguous. */
+.lp-btn-login {
+  padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 700;
+  color: var(--red); transition: background .15s;
+}
+.lp-btn-login:hover { background: #fbeaea; }
+
 .lp-btn-primary, .lp-cta-primary {
   padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 700;
   background: var(--red); color: #fff !important;

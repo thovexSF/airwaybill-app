@@ -22,7 +22,7 @@ const es = {
       subtitle: 'Documentos AWB profesionales en formato IATA — directamente en tu navegador. Sin instalación.',
       cta: 'Pruébalo gratis — sin registrarte →',
       demo: 'Ver demo',
-      note: 'Sin registro para probar · 10 AWBs gratis/mes al crear cuenta',
+      note: 'Sin registro para probar · 10 documentos gratis/mes al crear cuenta',
     },
     features: {
       label: 'Funciones',
@@ -65,6 +65,7 @@ const es = {
       google: 'Continuar con Google',
       github: 'Continuar con GitHub',
       orEmail: 'o con email',
+      orSocial: 'o continúa con',
       email: 'Email',
       password: 'Contraseña',
       submit: 'Iniciar sesión',
@@ -72,6 +73,7 @@ const es = {
       forgotPassword: '¿Olvidaste tu contraseña?',
       noAccount: '¿No tienes cuenta?',
       createAccount: 'Crear cuenta gratis',
+      tryFree: 'O pruébalo gratis, sin crear cuenta →',
     },
     signup: {
       sub: 'Crea tu cuenta gratis: 10 descargas PDF de AWB/mes, sin tarjeta de credito.',
@@ -121,9 +123,10 @@ const es = {
     downloading: 'Preparando descarga...',
     downloadError: 'No se pudo descargar el PDF',
     downloadPdf: '⬇ Descargar PDF',
-    limitBanner: 'Alcanzaste las 10 descargas PDF de AWB incluidas en el plan Free este mes.',
+    limitBanner: 'Alcanzaste las 10 descargas PDF de documentos incluidas en el plan Free este mes.',
     upgradeNow: 'Actualizar a Starter →',
-    limitReached: 'Limite del plan Free: 10 descargas PDF de AWB/mes',
+    pdfDownloads: 'descargas PDF',
+    limitReached: 'Limite del plan Free: 10 descargas PDF de documentos/mes',
     previewLoading: 'Generando vista previa…',
     updating: 'Actualizando…',
     zoomReset: 'Reset',
@@ -206,10 +209,12 @@ const es = {
   },
 
   demo: {
-    banner: 'Demo — previsualiza y edita con watermark DRAFT. Registrate gratis para descargar 10 PDFs de AWB/mes.',
+    banner: 'Demo — previsualiza y edita con watermark DRAFT. Registrate gratis para descargar 10 PDFs de documentos/mes.',
     signupCta: 'Crear cuenta gratis',
     downloadCta: 'Registrate para descargar PDF',
     sub: 'Demo en vivo — sin registrarte',
+    pickTitle: 'Elige un documento para probar',
+    pickSub: 'Todos los tipos de documento, gratis y sin cuenta. Regístrate cuando quieras descargar.',
     modeLabel: 'Demo',
   },
 
