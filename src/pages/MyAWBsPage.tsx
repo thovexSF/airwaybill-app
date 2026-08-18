@@ -6,6 +6,7 @@ import { usePlan } from '../lib/usePlan'
 import { listAWBs, deleteAWB, AWBDocument } from '../lib/awbService'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { ImportModal } from '../components/ImportModal'
+import { DOC_TYPES, docTypeMeta } from '../lib/docTypes'
 import { usePostHog } from '@posthog/react'
 
 type ViewMode = 'cards' | 'table'
@@ -53,28 +54,18 @@ export function MyAWBsPage() {
 
   function rowOf(doc: AWBDocument) {
     const d = doc.data as any
-    const isHawb     = d.docType === 'hawb'
-    const isDgd      = d.docType === 'dgd'
-    const isManifest = d.docType === 'manifest'
-    const awbNum = isDgd
-      ? (d.awbNo || 'DGD')
-      : isManifest
-        ? (d.flightNumber ? `${d.flightNumber} ${d.flightDate || ''}`.trim() : 'Manifest')
-        : isHawb
-          ? (d.hawbNumber || '—')
-          : (d.awbPrefix && d.awbSerial ? `${d.awbPrefix}-${d.awbSerial}` : '—')
-    const shipper = d.shipperNameAndAddress?.split('\n')[0] || '—'
-    const consignee = d.consigneeNameAndAddress?.split('\n')[0] || '—'
-    const origin = d.airportOfDeparture || d.originStation || ''
-    const dest = d.airportOfDestination || d.destinationStation || ''
+    const meta = docTypeMeta(d.docType)
+    const awbNum = meta.title(d) || '—'
+    const shipper = d.shipperNameAndAddress?.split('\n')[0] || d.shipper?.split('\n')[0] || d.razonSocialExportador || d.seller || '—'
+    const consignee = d.consigneeNameAndAddress?.split('\n')[0] || d.consignee?.split('\n')[0] || d.consignatario || d.buyer || '—'
+    const origin = d.airportOfDeparture || d.originStation || d.puertoEmbarque || d.origin || d.portOfLoading || d.departure || ''
+    const dest = d.airportOfDestination || d.destinationStation || d.puertoDestino || d.destination || d.portOfDischarge || ''
     const route = origin && dest ? `${origin} → ${dest}` : origin || dest || '—'
-    const weight = d.rateItems?.reduce((s: number, r: any) => s + (parseFloat(r.chargeableWeight) || 0), 0) || 0
-    const editPath = isDgd
-      ? `/dgd?id=${doc.id}`
-      : isManifest
-        ? `/manifest?id=${doc.id}`
-        : `/editor?id=${doc.id}`
-    return { awbNum, shipper, consignee, route, weight, status: doc.status, isHawb, isDgd, isManifest, editPath }
+    const weight = d.rateItems?.reduce((s: number, r: any) => s + (parseFloat(r.chargeableWeight) || 0), 0)
+      || parseFloat(d.totalKgNetos) || 0
+    // AWB and HAWB share the /editor route, so the id alone identifies them.
+    const editPath = `${meta.route}?id=${doc.id}`
+    return { awbNum, shipper, consignee, route, weight, status: doc.status, meta, editPath }
   }
 
   const filtered = useMemo(() => {
@@ -133,11 +124,55 @@ export function MyAWBsPage() {
 
   const isPro = plan === 'pro' || plan === 'enterprise'
 
+  /** "New document" menu covering every type in the suite except the plain AWB,
+   *  which keeps its own primary button. */
+  function NewDocMenu() {
+    const [open, setOpen] = useState(false)
+    const types = DOC_TYPES.filter(t => t.type !== 'awb')
+    return (
+      <div style={{ position: 'relative' }}>
+        <button
+          onClick={() => setOpen(o => !o)}
+          style={{ background: '#1a3a5c', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
+        >
+          {t('myAwbs.newDoc')} ▾
+        </button>
+        {open && (
+          <>
+            <div
+              onClick={() => setOpen(false)}
+              style={{ position: 'fixed', inset: 0, zIndex: 20 }}
+            />
+            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: '#fff', border: '1px solid #ddd', borderRadius: 8, boxShadow: '0 6px 20px rgba(0,0,0,0.12)', zIndex: 21, minWidth: 280, overflow: 'hidden' }}>
+              {types.map(t => (
+                <Link
+                  key={t.type}
+                  to={t.type === 'hawb' ? '/editor?docType=hawb' : t.route}
+                  onClick={() => setOpen(false)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', fontSize: 13, color: '#333', textDecoration: 'none', borderBottom: '1px solid #f2f2f2' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#faf5f5')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+                >
+                  <span style={{ background: t.color, color: '#fff', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, minWidth: 62, textAlign: 'center' }}>
+                    {t.badge}
+                  </span>
+                  {t.name}
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
   function DocBadge({ r }: { r: ReturnType<typeof rowOf> }) {
-    if (r.isDgd)      return <span style={{ background: '#7a3a00', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>DGD</span>
-    if (r.isHawb)     return <span style={{ background: '#1a3a5c', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>HAWB</span>
-    if (r.isManifest) return <span style={{ background: '#1a5c3a', color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>MANIFEST</span>
-    return null
+    if (r.meta.type === 'awb') return null
+    return (
+      <span style={{ background: r.meta.color, color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+        {r.meta.badge}
+      </span>
+    )
   }
 
   return (
@@ -209,28 +244,7 @@ export function MyAWBsPage() {
             >
               ↑ Import Excel
             </button>
-            {isPro && (
-              <>
-                <Link
-                  to="/manifest"
-                  style={{ background: '#1a5c3a', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
-                >
-                  + New Manifest
-                </Link>
-                <Link
-                  to="/dgd"
-                  style={{ background: '#7a3a00', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
-                >
-                  + New DGD
-                </Link>
-                <Link
-                  to="/editor?docType=hawb"
-                  style={{ background: '#1a3a5c', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
-                >
-                  + New HAWB
-                </Link>
-              </>
-            )}
+            {isPro && <NewDocMenu />}
             <Link
               to="/editor"
               style={{ background: '#8b0000', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
@@ -304,7 +318,7 @@ export function MyAWBsPage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 15, color: '#222', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <DocBadge r={r} />
-                      {r.isManifest ? r.awbNum : (r.isDgd || r.isHawb) ? r.awbNum : <>AWB {r.awbNum}</>}
+                      {r.meta.type === 'awb' ? <>AWB {r.awbNum}</> : r.awbNum}
                     </div>
                     <div style={{ fontSize: 12, color: '#888', marginTop: 3 }}>
                       {r.shipper} → {r.consignee}

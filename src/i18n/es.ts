@@ -133,6 +133,7 @@ const es = {
   myAwbs: {
     title: 'Mis Air Waybills',
     newAwb: '+ Nuevo AWB',
+    newDoc: '+ Nuevo documento',
     empty: {
       title: 'No tienes AWBs guardados aún.',
       sub: 'Crea tu primer Air Waybill para comenzar.',

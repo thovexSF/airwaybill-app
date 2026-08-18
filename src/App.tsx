@@ -15,6 +15,13 @@ import { PrivacyPage } from './pages/PrivacyPage'
 import { RefundsPage } from './pages/RefundsPage'
 import { DGDPage } from './pages/DGDPage'
 import { ManifestPage } from './pages/ManifestPage'
+import { NeppexPage } from './pages/NeppexPage'
+import { LabelPage } from './pages/LabelPage'
+import { ProformaPage } from './pages/ProformaPage'
+import { BLPage } from './pages/BLPage'
+import { BLManifestPage } from './pages/BLManifestPage'
+import { IMODGDPage } from './pages/IMODGDPage'
+import { FWBPage, FHLPage, FFRPage } from './pages/EDIPages'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { DevPreviewPage } from './pages/DevPreviewPage'
 import { DemoEditorPage } from './pages/DemoEditorPage'
@@ -51,6 +58,15 @@ export default function App() {
             </ProtectedRoute>
           )}
         />
+        <Route path="/neppex" element={<ProtectedRoute><NeppexPage /></ProtectedRoute>} />
+        <Route path="/label" element={<ProtectedRoute><LabelPage /></ProtectedRoute>} />
+        <Route path="/proforma" element={<ProtectedRoute><ProformaPage /></ProtectedRoute>} />
+        <Route path="/bl" element={<ProtectedRoute><BLPage /></ProtectedRoute>} />
+        <Route path="/bl-manifest" element={<ProtectedRoute><BLManifestPage /></ProtectedRoute>} />
+        <Route path="/imo-dgd" element={<ProtectedRoute><IMODGDPage /></ProtectedRoute>} />
+        <Route path="/edi/fwb" element={<ProtectedRoute><FWBPage /></ProtectedRoute>} />
+        <Route path="/edi/fhl" element={<ProtectedRoute><FHLPage /></ProtectedRoute>} />
+        <Route path="/edi/ffr" element={<ProtectedRoute><FFRPage /></ProtectedRoute>} />
         <Route
           path="/manifest"
           element={(

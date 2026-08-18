@@ -23,10 +23,31 @@ alternative static-hosting path.
 
 ## Architecture
 
-This is a Vite + React SPA that generates IATA-compliant air cargo documents
-(Air Waybill, Dangerous Goods Declaration, Cargo Manifest) as PDFs in the
-browser via `@react-pdf/renderer`, with Supabase for auth/storage/DB, Paddle
-for billing, and PostHog for analytics.
+This is a Vite + React SPA that generates IATA-compliant air cargo and
+freight-forwarding documents as PDFs in the browser via `@react-pdf/renderer`,
+with Supabase for auth/storage/DB, Paddle for billing, and PostHog for
+analytics.
+
+The document suite (see `src/lib/docTypes.ts`, the single registry every list
+and menu reads from):
+
+| Type | Route | Renderer |
+| --- | --- | --- |
+| AWB / HAWB | `/editor` | `AWBDocument` + `awbLayout.ts` |
+| DGD (air) | `/dgd` | `DGDDocument` |
+| Cargo Manifest | `/manifest` | `ManifestDocument` |
+| Air cargo label (4×5″, Zebra) | `/label` | `LabelDocument` |
+| Proforma Invoice | `/proforma` | `ProformaDocument` |
+| House Bill of Lading | `/bl` | `BLDocument` |
+| B/L Consolidation Manifest | `/bl-manifest` | `BLManifestDocument` |
+| IMO / IMDG DG form | `/imo-dgd` | `IMODGDDocument` |
+| NEPPEX (SERNAPESCA F15) | `/neppex` | `NeppexDocument` |
+| FWB / FHL / FFR (Cargo-IMP) | `/edi/*` | `EDIDocument` + `lib/ediMessage.ts` |
+
+Everything except AWB/HAWB, DGD and Manifest was ported from the AWB module of
+the sister `b2b` repo, adapted from its MUI + Redux + axios stack to this one:
+plain React with the `App.css` form styles, Supabase persistence, and vector
+PDFs instead of `b2b`'s scanned-template overlays.
 
 ### PDF documents: coordinate-schema + renderer + live overlay
 
@@ -54,7 +75,33 @@ most fully developed for the AWB:
 
 `src/pdf/DGDDocument.tsx` and `src/pdf/ManifestDocument.tsx` are the
 equivalent renderers for the other two document types, defined more directly
-(no separate layout-schema file).
+(no separate layout-schema file). Every document ported from the `b2b` suite
+follows that simpler shape too — a single `*Document.tsx` drawing vector boxes,
+with no coordinate-schema file and no live overlay.
+
+### Shared editor shell
+
+Only the AWB editor has the form-over-PDF overlay. Every other editor is built
+from three shared pieces, so a new document type is a types file, a renderer
+and a thin page:
+
+- **`src/components/DocEditorShell.tsx`** — topbar, action bar, resizable form
+  panel and the debounced PDF preview. Takes `data` plus a `renderDocument`
+  callback and owns the regenerate/zoom/download loop.
+- **`src/components/DocForm.tsx`** — `Section`/`Row`/`Field`/`TextArea`/
+  `Select`/`Check`/`CodeChecks` and the `GridTable`/`GridRow` pair for
+  repeating rows, all wrapping the existing `App.css` classes.
+- **`src/lib/useDocEditor.ts`** — load-by-`?id=`, save and the `set(key)`
+  field-patch helper, over `src/lib/documentService.ts` (generic CRUD on
+  `awb_documents`, keyed by the `docType` inside the JSON `data` column).
+
+### Cargo-IMP messages are drafts
+
+`src/lib/ediMessage.ts` serialises the FWB/FHL/FFR forms to Cargo-IMP text.
+Cargo-IMP grammar varies by carrier, so the output is explicitly a draft: the
+editor shows the message body inline and the PDF carries a validate-before-
+sending note. Do not wire it into a live Type B queue without checking it
+against the receiving airline's implementation guide.
 
 ### Design decision: vector-drawn AWB, not an image-based template
 
@@ -75,12 +122,15 @@ confirming the source is properly licensed for redistribution.
 
 - `src/pages/` — one component per route (see `src/App.tsx` for the route
   table). `EditorPage`/`DemoEditorPage` host the AWB editor (PDF preview +
-  `AWBOverlay`); `DGDPage`/`ManifestPage` are the other document editors;
-  `MyAWBsPage` lists saved AWBs.
+  `AWBOverlay`); `DGDPage`/`ManifestPage`/`LabelPage`/`ProformaPage`/`BLPage`/
+  `BLManifestPage`/`IMODGDPage`/`NeppexPage`/`EDIPages` are the other document
+  editors; `MyAWBsPage` lists every saved document.
 - `src/lib/*Service.ts` — one file per Supabase-backed domain (`awbService`,
-  `dgdService`, `manifestService`, `importService`, `feedbackService`,
-  `paddleService`). `src/lib/usePlan.ts` reads the user's plan/usage from
-  Supabase and enforces the free-tier AWB download limit.
+  `dgdService`, `manifestService`, `neppexService`, `importService`,
+  `feedbackService`, `paddleService`); `documentService.ts` is the generic
+  replacement used by every document type ported from `b2b`.
+  `src/lib/usePlan.ts` reads the user's plan/usage from Supabase and enforces
+  the free-tier AWB download limit.
 - `src/auth/` — `AuthContext` (Supabase session) + `ProtectedRoute` gate used
   in `App.tsx`.
 - `src/i18n/` — `react-i18next` setup; `en.ts`/`es.ts` hold the translation
