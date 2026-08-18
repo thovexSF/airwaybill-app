@@ -6,6 +6,7 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { AWBFormPanel } from '../components/AWBFormPanel'
+import { FormDialog } from '../components/FormDialog'
 import { AWBOverlay } from '../components/AWBOverlay'
 import { AWBDocument } from '../pdf/AWBDocument'
 import { AWBData } from '../types/awb'
@@ -18,6 +19,15 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url,
 ).toString()
+
+/** The sheet is wider than a phone at 100%, so start fitted to the viewport. */
+function initialZoom(): number {
+  if (typeof window === 'undefined') return 1.0
+  const PAGE_PT = 612
+  const RENDER_SCALE = 1.5
+  if (window.innerWidth >= 768) return 1.0
+  return Math.max(0.4, Math.min(1, (window.innerWidth - 16) / (PAGE_PT * RENDER_SCALE)))
+}
 
 export function DemoEditorPage() {
   const { t } = useTranslation()
@@ -37,10 +47,14 @@ export function DemoEditorPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [numPages, setNumPages] = useState(1)
-  const [zoom, setZoom] = useState(1.0)
+  const [zoom, setZoom] = useState(initialZoom())
   const [generating, setGenerating] = useState(false)
   const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
   const [overlayMode, setOverlayMode] = useState(() => window.innerWidth >= 900)
+  // On narrow screens the sheet stays on screen and the form moves into a
+  // dialog; edits are buffered there so Cancel discards them.
+  const [formDialogOpen, setFormDialogOpen] = useState(false)
+  const [draft, setDraft] = useState<AWBData | null>(null)
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
@@ -100,7 +114,7 @@ export function DemoEditorPage() {
   }
 
   return (
-    <div className="app">
+    <div className="app sheet-editor">
       <div style={{
         background: '#fff3cd',
         borderBottom: '1px solid #ffc107',
@@ -191,6 +205,25 @@ export function DemoEditorPage() {
             <AWBFormPanel data={data} onChange={setData} lockDraftWatermark />
           </div>
         )}
+
+        {/* Mobile: the form lives in a dialog over the sheet */}
+        <button
+          type="button"
+          className="edit-fab"
+          onClick={() => { setDraft(data); setFormDialogOpen(true) }}
+        >
+          ✎ {t('editor.editFields')}
+        </button>
+        <FormDialog
+          open={formDialogOpen}
+          title={demoDocType === 'hawb' ? 'HAWB' : 'AWB'}
+          onCancel={() => { setDraft(null); setFormDialogOpen(false) }}
+          onSave={() => { if (draft) setData(draft); setDraft(null); setFormDialogOpen(false) }}
+          cancelLabel={t('common.cancel')}
+          saveLabel={t('editor.applyChanges')}
+        >
+          <AWBFormPanel data={draft ?? data} onChange={setDraft} lockDraftWatermark />
+        </FormDialog>
       </div>
     </div>
   )

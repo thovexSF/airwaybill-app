@@ -125,6 +125,8 @@ const en = {
     downloadPdf: '⬇ Download PDF',
     limitBanner: 'You\'ve reached the 10 document PDF downloads included in the Free plan this month.',
     upgradeNow: 'Upgrade to Starter →',
+    editFields: 'Edit fields',
+    applyChanges: 'Apply',
     pdfDownloads: 'PDF downloads',
     limitReached: 'Free plan limit: 10 document PDF downloads/month',
     previewLoading: 'Generating preview…',

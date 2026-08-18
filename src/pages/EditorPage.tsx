@@ -6,6 +6,7 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { AWBFormPanel } from '../components/AWBFormPanel'
+import { FormDialog } from '../components/FormDialog'
 import { AWBOverlay } from '../components/AWBOverlay'
 import { AWBDocument } from '../pdf/AWBDocument'
 import { AWBData, defaultAWBData } from '../types/awb'
@@ -22,6 +23,15 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url,
 ).toString()
+
+/** The sheet is wider than a phone at 100%, so start fitted to the viewport. */
+function initialZoom(): number {
+  if (typeof window === 'undefined') return 1.0
+  const PAGE_PT = 612
+  const RENDER_SCALE = 1.5
+  if (window.innerWidth >= 768) return 1.0
+  return Math.max(0.4, Math.min(1, (window.innerWidth - 16) / (PAGE_PT * RENDER_SCALE)))
+}
 
 export function EditorPage() {
   const { t } = useTranslation()
@@ -41,7 +51,7 @@ export function EditorPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [numPages, setNumPages] = useState<number>(1)
-  const [zoom, setZoom] = useState<number>(1.0)
+  const [zoom, setZoom] = useState<number>(initialZoom())
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [downloading, setDownloading] = useState(false)
@@ -51,6 +61,10 @@ export function EditorPage() {
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
   const [overlayMode, setOverlayMode] = useState(() => window.innerWidth >= 900)
+  // On narrow screens the sheet stays on screen and the form moves into a
+  // dialog; edits are buffered there so Cancel discards them.
+  const [formDialogOpen, setFormDialogOpen] = useState(false)
+  const [draft, setDraft] = useState<AWBData | null>(null)
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
@@ -260,6 +274,14 @@ export function EditorPage() {
     }
   }
 
+  function openFormDialog() { setDraft(data); setFormDialogOpen(true) }
+  function cancelFormDialog() { setDraft(null); setFormDialogOpen(false) }
+  function applyFormDialog() {
+    if (draft) setData(draft)
+    setDraft(null)
+    setFormDialogOpen(false)
+  }
+
   const isHawb = data.docType === 'hawb'
   const awbFull = isHawb
     ? (data.hawbNumber || 'HAWB')
@@ -268,7 +290,7 @@ export function EditorPage() {
   const hawbBlocked = false
 
   return (
-    <div className="app">
+    <div className="app sheet-editor">
       {/* Row 1 — Brand + account */}
       <div className="topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -366,6 +388,21 @@ export function EditorPage() {
             <div className="resize-handle" onMouseDown={onDragStart} title="Drag to resize" />
           </>
         )}
+        {/* Mobile: the form lives in a dialog over the sheet */}
+        <button type="button" className="edit-fab" onClick={openFormDialog}>
+          ✎ {t('editor.editFields')}
+        </button>
+        <FormDialog
+          open={formDialogOpen}
+          title={`${isHawb ? 'HAWB' : 'AWB'}${awbFull ? ` · ${awbFull}` : ''}`}
+          onCancel={cancelFormDialog}
+          onSave={applyFormDialog}
+          cancelLabel={t('common.cancel')}
+          saveLabel={t('editor.applyChanges')}
+        >
+          <AWBFormPanel data={draft ?? data} onChange={setDraft} />
+        </FormDialog>
+
         <div className={`preview-panel ${overlayMode ? 'preview-panel-full' : ''}`}>
           {/* Zoom + PDF text size controls */}
           <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#2a2a2a', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #444' }}>
@@ -373,7 +410,7 @@ export function EditorPage() {
             <button onClick={() => setZoom(z => Math.max(z - 0.1, 0.4))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>−</button>
             <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
             <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>+</button>
-            <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>{t('editor.zoomReset')}</button>
+            <button onClick={() => setZoom(initialZoom())} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>{t('editor.zoomReset')}</button>
             {isWideViewport && (
               <button
                 type="button"

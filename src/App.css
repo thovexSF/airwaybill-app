@@ -224,9 +224,14 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
     overflow-y: visible !important; max-height: none !important;
   }
 
-  /* Hide PDF preview and resize handle on mobile */
+  /* Hide PDF preview and resize handle on mobile.
+     The AWB editor opts out (.sheet-editor): it keeps the sheet on screen and
+     moves its form into a modal dialog instead. */
   .preview-panel { display: none !important; }
   .resize-handle { display: none !important; }
+
+  .sheet-editor .preview-panel { display: flex !important; }
+  .sheet-editor .form-panel-wrap { display: none !important; }
 
   /* Topbar: hide secondary info, keep logo + sign out */
   .topbar { padding: 0 12px !important; }
@@ -254,3 +259,81 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
 
 /* Hidden on desktop, shown on mobile */
 .mobile-pdf-strip { display: none; }
+
+
+/* ── Form dialog (mobile document editing) ────────────────────────────────
+   Hosts a document's form over the sheet on narrow screens, mirroring the
+   dialog the sister b2b app uses for the same job. */
+.form-dialog-backdrop {
+  /* Above the floating feedback widget (z-index 1000), which would otherwise
+     cover the dialog's Save button on a phone. */
+  position: fixed; inset: 0; z-index: 1200;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 12px;
+}
+
+.form-dialog {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%; max-width: 720px;
+  height: 94vh; max-height: 94vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+}
+
+.form-dialog-title {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700; font-size: 15px; color: var(--red);
+  flex: 0 0 auto;
+}
+
+.form-dialog-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 24px; line-height: 1; color: #888; padding: 0 4px;
+}
+.form-dialog-close:hover { color: #333; }
+
+.form-dialog-body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.form-dialog-actions {
+  flex: 0 0 auto;
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: #fafafa;
+}
+
+.form-dialog-btn {
+  border: 1px solid #ccc; background: #fff; color: #333;
+  border-radius: 8px; padding: 9px 18px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.form-dialog-btn:hover { background: #f2f2f2; }
+
+.form-dialog-btn.primary {
+  background: var(--red); border-color: var(--red); color: #fff;
+}
+.form-dialog-btn.primary:hover { background: var(--red2); }
+
+/* Opens the dialog on mobile; the desktop layout edits in place. */
+.edit-fab {
+  display: none;
+  position: fixed; right: 16px; bottom: 76px; z-index: 30;
+  background: var(--red); color: #fff;
+  border: none; border-radius: 24px;
+  padding: 12px 22px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 768px) {
+  .sheet-editor .edit-fab { display: block; }
+}

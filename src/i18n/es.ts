@@ -125,6 +125,8 @@ const es = {
     downloadPdf: '⬇ Descargar PDF',
     limitBanner: 'Alcanzaste las 10 descargas PDF de documentos incluidas en el plan Free este mes.',
     upgradeNow: 'Actualizar a Starter →',
+    editFields: 'Editar campos',
+    applyChanges: 'Aplicar',
     pdfDownloads: 'descargas PDF',
     limitReached: 'Limite del plan Free: 10 descargas PDF de documentos/mes',
     previewLoading: 'Generando vista previa…',
