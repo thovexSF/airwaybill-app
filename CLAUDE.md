@@ -33,7 +33,7 @@ and menu reads from):
 
 | Type | Route | Renderer |
 | --- | --- | --- |
-| AWB / HAWB | `/editor` | `AWBDocument` + `awbLayout.ts` |
+| AWB / HAWB | `/editor` | `AWBDocument` + `awbLayout.ts` over the blank IATA sheet |
 | DGD (air) | `/dgd` | `DGDDocument` |
 | Cargo Manifest | `/manifest` | `ManifestDocument` |
 | Air cargo label (4×5″, Zebra) | `/label` | `LabelDocument` |
@@ -46,38 +46,35 @@ and menu reads from):
 
 Everything except AWB/HAWB, DGD and Manifest was ported from the AWB module of
 the sister `b2b` repo, adapted from its MUI + Redux + axios stack to this one:
-plain React with the `App.css` form styles, Supabase persistence, and vector
-PDFs instead of `b2b`'s scanned-template overlays.
+plain React with the `App.css` form styles and Supabase persistence. Those
+ported documents are drawn as vectors; the AWB itself is laid over `b2b`'s
+blank IATA form (see below).
 
-### PDF documents: coordinate-schema + renderer + live overlay
+### AWB: coordinate schema + renderer + live overlay
 
-Each document type (AWB, DGD, Manifest) follows the same three-piece pattern,
-most fully developed for the AWB:
+The AWB is the only document with three pieces:
 
-- **`src/pdf/awbLayout.ts`** — the single source of truth for every box,
-  field, and static-text position, expressed as `FieldDef`/`BoxDef`/`BannerDef`
-  in PDF points on a fixed US-Letter page. This file is imported by **both**
-  `AWBDocument.tsx` (canonical PDF export) and `AWBOverlay.tsx` (live HTML
-  editing UI), so the two can never drift out of visual sync — never hardcode
-  a position in one without going through this schema.
-- **`src/pdf/AWBDocument.tsx`** — pure `@react-pdf/renderer` component that
-  draws the boxes, static text, and field values from the layout schema.
-  Includes the `CornerCut`/`Banner` components that render the pennant-style
-  chamfered-corner labels (e.g. "WEIGHT CHARGE", "TOTAL PREPAID") matching the
-  real IATA form's trapezoidal label banners — see `AWB_BANNERS` in
-  `awbLayout.ts` for how those are declared.
+- **`src/pdf/awbLayout.ts`** — the single source of truth for where every value
+  sits on the A4 form, as `FieldDef`s in millimetres. Imported by **both**
+  `AWBDocument.tsx` (the PDF export) and `AWBOverlay.tsx` (the live editing
+  UI), so the two can never drift out of visual sync — never hardcode a
+  position in one without going through this schema.
+- **`src/pdf/AWBDocument.tsx`** — `@react-pdf/renderer` component that draws
+  the blank form as a background image and places field values on it. It draws
+  no captions: the sheet already prints all 72 of them.
 - **`src/components/AWBOverlay.tsx`** — absolutely-positioned HTML `<input>`/
-  `<textarea>` elements layered on top of the rendered PDF preview in the
-  editor, using the same `awbLayout.ts` coordinates scaled to the rendered
-  page's pixel width, so typing feels like filling out the paper form
-  directly. Unlike the exported PDF (which auto-shrinks/clips text to fit
-  fixed boxes), the overlay always shows the full untruncated value.
+  `<textarea>` elements layered on top of the rendered PDF preview, using the
+  same `awbLayout.ts` coordinates scaled to the rendered page's pixel width, so
+  typing feels like filling out the paper form directly. Unlike the exported
+  PDF (which auto-shrinks/clips text to fit fixed boxes), the overlay always
+  shows the full untruncated value. It draws no labels either, for the same
+  reason.
 
-`src/pdf/DGDDocument.tsx` and `src/pdf/ManifestDocument.tsx` are the
-equivalent renderers for the other two document types, defined more directly
-(no separate layout-schema file). Every document ported from the `b2b` suite
-follows that simpler shape too — a single `*Document.tsx` drawing vector boxes,
-with no coordinate-schema file and no live overlay.
+`src/pdf/DGDDocument.tsx` and `src/pdf/ManifestDocument.tsx` are the renderers
+for the other two original document types, defined more directly (no separate
+layout-schema file, vector-drawn boxes). Every document ported from the `b2b`
+suite follows that simpler shape too — a single `*Document.tsx`, no coordinate
+schema and no live overlay.
 
 ### Shared editor shell
 
@@ -103,20 +100,30 @@ editor shows the message body inline and the PDF carries a validate-before-
 sending note. Do not wire it into a live Type B queue without checking it
 against the receiving airline's implementation guide.
 
-### Design decision: vector-drawn AWB, not an image-based template
+### The AWB renders on the blank IATA form
 
-The AWB is built entirely from vector boxes/lines/text (`awbLayout.ts` +
-`AWBDocument.tsx`), reproducing the official grid rather than overlaying
-fields on a scanned/rasterized real AWB. The box grid itself is a functional
-business form used industry-wide — reproducing measured box positions isn't
-gated by anything. What IS IATA-restricted is the official Resolution 600a
-*document* (sold inside the CSCRM manual, ~USD $320-343) and, more
-importantly, copying somebody else's actual finished artwork/scan wholesale
-(exact typography, exact printed expression) rather than your own
-measurements — see `docs/iata-reference/README.md` for the full picture and
-what was measured from a real production AWB instead.
-Do not embed a scanned/photographed real AWB as a background image without
-confirming the source is properly licensed for redistribution.
+`public/awb-template.svg` is a blank IATA air waybill drawn in Inkscape ("AWB
+BLANK TEMPLATE r3"), shared with the sister `b2b` repo — 522 vector paths and
+73 printed captions, no embedded raster. `awb-template-bg.png` is its A4
+rasterisation, used because `@react-pdf/renderer` cannot render arbitrary SVG.
+
+Because the sheet supplies every box, rule and caption, `awbLayout.ts` only
+positions *values*: it emits fields and no boxes, banners or static text, and
+`AWBDocument` draws the sheet as a full-page background image behind them.
+Give that image a height a hair under `PAGE_HEIGHT` — at exactly the page
+height react-pdf rounds it past the page and pushes every sibling onto page 2.
+
+Coordinates live in millimetres on the 210 × 297 mm template and were measured
+from the SVG itself (its paths reduced to horizontal/vertical rules, then
+cross-checked against the 72 captions), so they can be re-verified against the
+source at any time. `mm()` converts to points at the single point of use.
+
+This replaced an earlier vector redraw of the form on US Letter. If you ever go
+back to drawing the grid instead of using a licensed blank, do not substitute a
+scanned or photographed real AWB as the background: what is IATA-restricted is
+the official Resolution 600a *document* (sold inside the CSCRM manual, ~USD
+$320-343) and, more importantly, copying somebody else's finished artwork
+wholesale rather than your own measurements — see `docs/iata-reference/README.md`.
 
 ### App structure
 
@@ -129,8 +136,9 @@ confirming the source is properly licensed for redistribution.
   `dgdService`, `manifestService`, `neppexService`, `importService`,
   `feedbackService`, `paddleService`); `documentService.ts` is the generic
   replacement used by every document type ported from `b2b`.
-  `src/lib/usePlan.ts` reads the user's plan/usage from Supabase and enforces
-  the free-tier AWB download limit.
+  `src/lib/usePlan.ts` reads the user's plan/usage from Supabase and
+  `src/lib/pdfQuota.ts` enforces the free-tier limit of 10 document PDF
+  downloads per month, shared across every document type.
 - `src/auth/` — `AuthContext` (Supabase session) + `ProtectedRoute` gate used
   in `App.tsx`.
 - `src/i18n/` — `react-i18next` setup; `en.ts`/`es.ts` hold the translation

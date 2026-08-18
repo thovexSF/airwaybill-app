@@ -2,27 +2,88 @@ import { AWBData, RateItem, OtherCharge } from '../types/awb'
 
 /**
  * Shared coordinate schema for the AWB document — consumed by both the PDF
- * renderer (AWBDocument) and the HTML input overlay (AWBOverlay), so they
- * can never drift out of alignment.
+ * renderer (AWBDocument) and the HTML input overlay (AWBOverlay), so they can
+ * never drift out of alignment.
  *
- * Every coordinate is measured directly from the reference IATA AWB
- * (awbeditor.com format) by extracting its vector grid with pdfplumber:
- * the page is US Letter (612 x 792 pt), content runs from x=57 to x=590 with
- * an inner divider at x=316, and the horizontal bands sit at the exact y
- * values captured in `Y` below. This reproduces the reference layout 1:1
- * rather than approximating it.
+ * The sheet itself is `public/awb-template.svg` (rasterised to
+ * `awb-template-bg.png` for @react-pdf, which cannot render arbitrary SVG) —
+ * the blank IATA air waybill form drawn in Inkscape, shared with the sister
+ * `b2b` repo. Because the form supplies every box, rule and printed caption,
+ * this file only positions the *values*; it emits no boxes, banners or static
+ * text of its own.
+ *
+ * Every coordinate below is in millimetres on the A4 template and was measured
+ * from the SVG itself: the 522 path segments were reduced to their horizontal
+ * and vertical rules, and each band was cross-checked against the form's 72
+ * printed captions. Keeping the numbers in millimetres means they can be
+ * re-verified against the SVG directly; `mm()` converts to PDF points at the
+ * single point of use.
  */
 
-export const PAGE_WIDTH = 612
-export const PAGE_HEIGHT = 792
+/** A4 in PDF points — the template's page size. */
+export const PAGE_WIDTH = 595.276
+export const PAGE_HEIGHT = 841.89
 export const PAGE_PADDING = 0
 
-// Content grid bounds (measured): left margin 57, right edge 590, inner divider 316.
-const L = 57
-const R = 590
-const MID = 316
-const CONTENT_X = L
-const CONTENT_WIDTH = R - L
+/** Millimetres → PDF points (72 dpi over a 210 × 297 mm page). */
+const MM = 2.834646
+const mm = (v: number) => v * MM
+
+// ── Vertical rules (x, mm) ───────────────────────────────────────────────────
+const L = 15.1           // content left edge
+const R = 200.5          // content right edge
+const MID = 105.1        // main left/right column divider
+const ACCT = 60.0        // shipper/consignee name | account number divider
+const REF_END = 140.2    // reference number | optional shipping info divider
+
+// Routing band dividers
+const RT = { to1: 24.9, by1: 70.1, to2: 80.2, by2: 87.5, to3: 97.6 }
+// Charge-declaration band dividers
+const CD = { currEnd: 115.2, chgsEnd: 120.2, wtValMid: 125.1, wtValEnd: 130.2, otherMid: 135.3, otherEnd: 140.2, declCustoms: 170.3 }
+// Destination band dividers
+const DS = { destEnd: 60.0, flightMid: 81.8, insEnd: 132.7 }
+// Handling band
+const SCI_X = 178.0
+// Rate table columns
+const RC = { pcs: 24.9, gw: 42.6, unit: 44.8, unitEnd: 47.5, rcStart: 50.1, rcEnd: 67.5, cwStart: 70.1, cwEnd: 87.5, rateStart: 90.1, rateEnd: 110.1, totalStart: 112.6, totalEnd: 142.7, natStart: 145.1 }
+// Charges block columns
+const CH = { ppdEnd: 50.1, collEnd: 85.1 }
+
+// ── Horizontal rules (y, mm) ─────────────────────────────────────────────────
+const Y = {
+  awbTop: 6.2, awbBottom: 21.5,
+  shipBottom: 47.3,
+  carrierBottom: 41.0,
+  consBottom: 72.3,
+  agentBottom: 89.0,
+  iataBottom: 97.3,
+  depBottom: 105.6,
+  routeBottom: 113.9,
+  destBottom: 122.3,
+  handlingBottom: 139.1,
+  rateHdrBottom: 147.5,
+  rateBottom: 206.0,
+  chgWeight: 214.5,
+  chgValuation: 222.8,
+  chgTax: 231.0,
+  chgAgent: 239.6,
+  chgCarrier: 247.9,
+  chgReserved: 256.3,
+  totalsBottom: 264.7,
+  ccBottom: 273.0,
+  bottomBottom: 281.3,
+  sigShipper: 256.3,
+}
+
+/** Rows the rate table and Other Charges list render. */
+const RATE_ROWS = 6
+const OTHER_CHARGE_ROWS = 5
+
+/** Height reserved at the top of a cell for the caption already printed on the form. */
+const CAP = 3.4
+const TXT = 8
+const SM = 7
+const XS = 6
 
 export type FieldKey =
   | keyof AWBData
@@ -48,361 +109,150 @@ export type FieldDef = {
 
 type Rect = { x: number; y: number; width: number; height: number }
 
-/** Rectangle from absolute edge coordinates (x0,y0)-(x1,y1). */
-function r(x0: number, y0: number, x1: number, y1: number): Rect {
-  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
-}
-
-// ── Horizontal band boundaries (y, top-origin) measured from the reference grid ──
-const Y = {
-  top: 14,
-  awbBottom: 30,
-  shipLblBottom: 54,
-  shipBottom: 102,
-  consLblBottom: 126,
-  consBottom: 174,
-  agentBottom: 222,
-  iataBottom: 246,
-  depBottom: 270,
-  routeBottom: 294,
-  destBottom: 318,
-  handlingBottom: 366,
-  rateHdrBottom: 390,
-  rateRowsBottom: 534,
-  rateCarryBottom: 558,
-  chgRow1: 582, // Weight Charge
-  chgRow2: 606, // Valuation Charge
-  chgRow3: 630, // Tax
-  chgRow4: 654, // Total Other Charges Due Agent
-  chgRow5: 678, // Total Other Charges Due Carrier
-  chgBottom: 702,
-  totalsBottom: 726,
-  ccBottom: 750,
-  bottomBottom: 774,
-}
-
-// ── Vertical column boundaries (x) measured from the reference grid ──
-const X = {
-  acct: 187,          // shipper/consignee name | account divider
-  ref: 417,           // reference number | optional shipping divider
-  // routing grid
-  rTo1: 86, rBy1: 216, rTo2: 244, rBy2: 266, rTo3: 295,
-  curr: 345, chgs: 360, wtvalMid: 374, wtvalEnd: 388, otherMid: 403, otherEnd: 417,
-  declCustoms: 504,
-  // destination row
-  destFlight: 186, flightEnd: 316, insAmtEnd: 396,
-  // handling
-  sci: 504,
-  // rate table columns
-  cPcs: 86, cGw: 158, cRateClass: 216, cChg: 273, cRate: 338, cTotal: 432,
-  // charges
-  chgPpdEnd: 158, chgCollEnd: 259,
-  // currency/exec sub-columns
-  execPlace: 358, execSig: 470,
-  // bottom row
-  botCharges: 158, botCollect: 259, botCopy: 360,
-}
-
-const RATE_ROWS = 4          // visible data rows in the rate table (390→534, ~36pt each)
-const OTHER_CHARGE_ROWS = 5  // visible rows in the Other Charges mini-table
-
-const LBL = 5.5
-const TXT = 8
-const XS = 5
-
 export type BoxDef = Rect & { borderTop?: boolean; borderBottom?: boolean; borderLeft?: boolean; borderRight?: boolean }
 export type StaticTextDef = { key: string; x: number; y: number; width: number; height: number; fontSize: number; lineHeight: number; text: string; boldFrom?: string }
-
-/**
- * A pennant/banner-style row header, matching the chamfered-corner labels used
- * throughout the real AWB's charges & totals section ("WEIGHT CHARGE", "TAX",
- * "TOTAL PREPAID", etc.) instead of plain text laid over a straight grid line.
- * - `divider`: the label straddles a shared internal divider (e.g. Prepaid |
- *   Collect) — both facing corners are chamfered, opening a diamond notch.
- * - `side`: the label sits inside one cell, and only the corner nearest a wall
- *   it would otherwise collide with is chamfered.
- */
 export type BannerDef =
   | { kind: 'divider'; cx: number; y: number; text: string }
   | { kind: 'side'; x: number; y: number; width: number; text: string; cutSide: 'left' | 'right' }
 
-const fullBorder = { borderTop: true, borderBottom: true, borderLeft: true, borderRight: true }
+/**
+ * A value cell in millimetre edge coordinates, converted to points.
+ * `capped` leaves room for the caption the form already prints at the top.
+ */
+function cell(x0: number, y0: number, x1: number, y1: number, capped = true): Rect {
+  const top = y0 + (capped ? CAP : 0.8)
+  return {
+    x: mm(x0 + 1),
+    y: mm(top),
+    width: mm(x1 - x0 - 2),
+    height: mm(Math.max(y1 - top - 0.8, 2)),
+  }
+}
 
 function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: StaticTextDef[]; banners: BannerDef[] } {
   const fields: FieldDef[] = []
-  const boxes: BoxDef[] = []
-  const staticTexts: StaticTextDef[] = []
-  const banners: BannerDef[] = []
   const push = (f: FieldDef) => fields.push(f)
-  const box = (rect: Rect, borders: Partial<BoxDef> = fullBorder) => boxes.push({ ...rect, ...borders })
-  let st = 0
-  const text = (x: number, y: number, width: number, height: number, fontSize: number, txt: string, lineHeight = 1.2, boldFrom?: string) =>
-    staticTexts.push({ key: `s${st++}`, x, y, width, height, fontSize, lineHeight, text: txt, boldFrom })
 
-  // ── Header: AWB number bar (y 14–30) ──
-  box(r(L, Y.top, X.rTo1, Y.awbBottom))                 // prefix
-  box(r(X.rTo1, Y.top, 115, Y.awbBottom))               // airport
-  box(r(115, Y.top, X.acct, Y.awbBottom))               // serial
-  push({ key: 'awbPrefix',      ...cellIn(r(L, Y.top, X.rTo1, Y.awbBottom), 2), fontSize: 11, align: 'center' })
-  push({ key: 'awbAirportCode', ...cellIn(r(X.rTo1, Y.top, 115, Y.awbBottom), 2), fontSize: 11, align: 'center' })
-  push({ key: 'awbSerial',      ...cellIn(r(115, Y.top, X.acct, Y.awbBottom), 2), fontSize: 11, align: 'left' })
-  // full AWB number on the right is drawn dynamically by AWBDocument
+  // ── Master AWB number (top bar) ──
+  // Three ticks split the box into prefix | airport | serial.
+  push({ key: 'awbPrefix', ...cell(L, 13.5, 25.5, Y.awbBottom, false), fontSize: 11, align: 'center', label: 'Prefix' })
+  push({ key: 'awbAirportCode', ...cell(25.5, 13.5, 35.2, Y.awbBottom, false), fontSize: 11, align: 'center', label: 'Airport' })
+  push({ key: 'awbSerial', ...cell(35.2, 13.5, 105.0, Y.awbBottom, false), fontSize: 11, align: 'left', label: 'Serial' })
+  // The full number is repeated top-right by AWBDocument (CUSTOMS REF band).
 
-  // ── Shipper / Air Waybill (y 30–102) ──
-  box(r(L, Y.awbBottom, X.acct, Y.shipBottom))                // shipper name+address
-  box(r(X.acct, Y.awbBottom, MID, Y.shipBottom))              // shipper account number
-  box(r(MID, Y.awbBottom, R, Y.shipBottom))                   // Air Waybill / carrier
-  push({ key: 'shipperNameAndAddress', ...cellIn(r(L, Y.awbBottom, X.acct, Y.shipBottom), 3), fontSize: TXT, label: "Shipper's Name and Address", multiline: true, maxLines: 5 })
-  push({ key: 'shipperAccountNumber', ...cellIn(r(X.acct, Y.awbBottom, MID, Y.shipBottom), 3), fontSize: TXT, label: "Shipper's Account Number" })
-  text(MID + 4, Y.awbBottom + 3, 70, 9, XS, 'Not Negotiable')
-  text(MID + 4, Y.awbBottom + 13, 95, 18, 15, 'Air Waybill')
-  push({ key: 'carrierName', x: MID + 96, y: Y.awbBottom + 14, width: R - MID - 100, height: 12, fontSize: 10, align: 'left' })
-  push({ key: 'carrierAddress', x: MID + 96, y: Y.awbBottom + 28, width: R - MID - 100, height: 30, fontSize: TXT, multiline: true, maxLines: 4, label: 'Issued by' })
-  text(MID + 4, Y.shipBottom - 12, R - MID - 8, 10, XS, 'Copies 1, 2 and 3 of this Air Waybill are originals and have the same validity.')
+  // ── Shipper ──
+  push({ key: 'shipperNameAndAddress', ...cell(L, Y.awbBottom, ACCT, Y.shipBottom), fontSize: TXT, label: "Shipper's Name and Address", multiline: true, maxLines: 6 })
+  push({ key: 'shipperAccountNumber', ...cell(ACCT, Y.awbBottom, MID, 30.6), fontSize: SM, label: "Shipper's Account Number" })
 
-  // ── Consignee / Conditions of contract (y 102–174) ──
-  box(r(L, Y.shipBottom, X.acct, Y.consBottom))               // consignee name+address
-  box(r(X.acct, Y.shipBottom, MID, Y.consBottom))             // consignee account number
-  box(r(MID, Y.shipBottom, R, Y.consBottom))                  // IATA conditions
-  push({ key: 'consigneeNameAndAddress', ...cellIn(r(L, Y.shipBottom, X.acct, Y.consBottom), 3), fontSize: TXT, label: "Consignee's Name and Address", multiline: true, maxLines: 5 })
-  push({ key: 'consigneeAccountNumber', ...cellIn(r(X.acct, Y.shipBottom, MID, Y.consBottom), 3), fontSize: TXT, label: "Consignee's Account Number" })
-  text(MID + 4, Y.shipBottom + 3, R - MID - 8, Y.consBottom - Y.shipBottom - 6, 4.6, IATA_CONDITIONS, 1.32)
+  // ── Carrier (right of "Air Waybill / Issued By") ──
+  push({ key: 'carrierName', ...cell(150.0, 26.0, R, 33.0, false), fontSize: 10, label: 'Issued by (carrier)' })
+  push({ key: 'carrierAddress', ...cell(150.0, 33.0, R, Y.carrierBottom, false), fontSize: XS, multiline: true, maxLines: 3, label: 'Carrier address' })
 
-  // ── Issuing Carrier's Agent / Accounting Information (y 174–246) ──
-  box(r(L, Y.consBottom, MID, Y.agentBottom))                 // agent name and city
-  box(r(MID, Y.consBottom, R, Y.iataBottom))                  // accounting information (spans both rows)
-  push({ key: 'agentNameAndCity', ...cellIn(r(L, Y.consBottom, MID, Y.agentBottom), 3), fontSize: TXT, label: "Issuing Carrier's Agent Name and City", multiline: true, maxLines: 3 })
-  push({ key: 'accountingInformation', ...cellIn(r(MID, Y.consBottom, R, Y.iataBottom), 3), fontSize: TXT, label: 'Accounting Information', multiline: true, maxLines: 5 })
+  // ── Consignee ──
+  push({ key: 'consigneeNameAndAddress', ...cell(L, Y.shipBottom, ACCT, Y.consBottom), fontSize: TXT, label: "Consignee's Name and Address", multiline: true, maxLines: 6 })
+  push({ key: 'consigneeAccountNumber', ...cell(ACCT, Y.shipBottom, MID, 55.7), fontSize: SM, label: "Consignee's Account Number" })
 
-  // ── Agent's IATA Code / Account No. (y 222–246) ──
-  box(r(L, Y.agentBottom, X.acct, Y.iataBottom))
-  box(r(X.acct, Y.agentBottom, MID, Y.iataBottom))
-  push({ key: 'agentIataCode', ...cellIn(r(L, Y.agentBottom, X.acct, Y.iataBottom), 3), fontSize: TXT, label: "Agent's IATA Code" })
-  push({ key: 'agentAccountNumber', ...cellIn(r(X.acct, Y.agentBottom, MID, Y.iataBottom), 3), fontSize: TXT, label: 'Account No.' })
+  // ── Issuing carrier's agent / Accounting information ──
+  push({ key: 'agentNameAndCity', ...cell(L, Y.consBottom, MID, Y.agentBottom), fontSize: TXT, label: "Issuing Carrier's Agent Name and City", multiline: true, maxLines: 4 })
+  push({ key: 'accountingInformation', ...cell(MID, Y.consBottom, R, Y.iataBottom), fontSize: TXT, label: 'Accounting Information', multiline: true, maxLines: 5 })
+  push({ key: 'agentIataCode', ...cell(L, Y.agentBottom, ACCT, Y.iataBottom), fontSize: SM, label: "Agent's IATA Code" })
+  push({ key: 'agentAccountNumber', ...cell(ACCT, Y.agentBottom, MID, Y.iataBottom), fontSize: SM, label: 'Account No.' })
 
-  // ── Airport of Departure / Reference / Optional (y 246–270) ──
-  box(r(L, Y.iataBottom, MID, Y.depBottom))
-  box(r(MID, Y.iataBottom, X.ref, Y.depBottom))
-  // Optional Shipping Info — 3 boxes per IATA 5.2.16
-  const optW = Math.round((R - X.ref) / 3)
-  box(r(X.ref, Y.iataBottom, X.ref + optW, Y.depBottom))
-  box(r(X.ref + optW, Y.iataBottom, X.ref + optW * 2, Y.depBottom))
-  box(r(X.ref + optW * 2, Y.iataBottom, R, Y.depBottom))
-  push({ key: 'airportOfDeparture', ...cellIn(r(L, Y.iataBottom, MID, Y.depBottom), 3), fontSize: TXT, label: 'Airport of Departure (Addr. of First Carrier) and Requested Routing' })
-  push({ key: 'referenceNumber', ...cellIn(r(MID, Y.iataBottom, X.ref, Y.depBottom), 3), fontSize: TXT, label: 'Reference Number' })
-  // OSI: single label spanning all 3 boxes (§5.2.16 allows "without title"; spanning label matches official form)
-  text(X.ref + 2, Y.iataBottom + 2, R - X.ref - 4, LBL + 1, LBL - 0.5, 'Optional Shipping Information')
-  push({ key: 'optionalShippingInfo1', x: X.ref + 3, y: Y.iataBottom + LBL + 3, width: optW - 6, height: Y.depBottom - Y.iataBottom - LBL - 6, fontSize: TXT })
-  push({ key: 'optionalShippingInfo2', x: X.ref + optW + 3, y: Y.iataBottom + LBL + 3, width: optW - 6, height: Y.depBottom - Y.iataBottom - LBL - 6, fontSize: TXT })
-  push({ key: 'optionalShippingInfo3', x: X.ref + optW * 2 + 3, y: Y.iataBottom + LBL + 3, width: R - (X.ref + optW * 2) - 6, height: Y.depBottom - Y.iataBottom - LBL - 6, fontSize: TXT })
+  // ── Airport of departure / Reference / Optional shipping information ──
+  push({ key: 'airportOfDeparture', ...cell(L, Y.iataBottom, MID, Y.depBottom), fontSize: SM, label: 'Airport of Departure (Addr. of First Carrier) and Requested Routing' })
+  push({ key: 'referenceNumber', ...cell(MID, Y.iataBottom, REF_END, Y.depBottom), fontSize: SM, label: 'Reference Number' })
+  const osiW = (R - REF_END) / 3
+  push({ key: 'optionalShippingInfo1', ...cell(REF_END, Y.iataBottom, REF_END + osiW, Y.depBottom), fontSize: XS, label: 'Optional Shipping Information' })
+  push({ key: 'optionalShippingInfo2', ...cell(REF_END + osiW, Y.iataBottom, REF_END + osiW * 2, Y.depBottom), fontSize: XS, label: 'Optional Shipping Information' })
+  push({ key: 'optionalShippingInfo3', ...cell(REF_END + osiW * 2, Y.iataBottom, R, Y.depBottom), fontSize: XS, label: 'Optional Shipping Information' })
 
-  // ── Routing grid (y 270–294) ──
+  // ── Routing + charge declarations ──
+  const rowTop = Y.depBottom
+  const rowBot = Y.routeBottom
+  push({ key: 'routeTo1', ...cell(L, rowTop, RT.to1, rowBot), fontSize: SM, align: 'center', label: 'To' })
+  push({ key: 'routeBy1', ...cell(RT.to1, rowTop, RT.by1, rowBot), fontSize: SM, align: 'center', label: 'By First Carrier' })
+  push({ key: 'routeTo2', ...cell(RT.by1, rowTop, RT.to2, rowBot), fontSize: SM, align: 'center', label: 'to' })
+  push({ key: 'routeBy2', ...cell(RT.to2, rowTop, RT.by2, rowBot), fontSize: SM, align: 'center', label: 'by' })
+  push({ key: 'routeTo3', ...cell(RT.by2, rowTop, RT.to3, rowBot), fontSize: SM, align: 'center', label: 'to' })
+  push({ key: 'routeBy3', ...cell(RT.to3, rowTop, MID, rowBot), fontSize: SM, align: 'center', label: 'by' })
+  push({ key: 'currency', ...cell(MID, rowTop, CD.currEnd, rowBot), fontSize: SM, align: 'center', label: 'Currency' })
+  // WT/VAL and Other each carry a PPD and a COLL tick box. The form prints the
+  // PPD/COLL captions at y 110.1, so the X sits in the ~3.5 mm strip below them.
+  const tickTop = 110.3
+  const tick = (key: FieldKey, x0: number, x1: number, label: string) =>
+    push({ key, x: mm(x0), y: mm(tickTop), width: mm(x1 - x0), height: mm(rowBot - tickTop), fontSize: 8, align: 'center', label })
+  tick('wtValPPD', CD.chgsEnd, CD.wtValMid, 'WT/VAL PPD')
+  tick('wtValCOLL', CD.wtValMid, CD.wtValEnd, 'WT/VAL COLL')
+  tick('otherPPD', CD.wtValEnd, CD.otherMid, 'Other PPD')
+  tick('otherCOLL', CD.otherMid, CD.otherEnd, 'Other COLL')
+  push({ key: 'declaredValueCarriage', ...cell(CD.otherEnd, rowTop, CD.declCustoms, rowBot), fontSize: SM, align: 'center', label: 'Declared Value for Carriage' })
+  push({ key: 'declaredValueCustoms', ...cell(CD.declCustoms, rowTop, R, rowBot), fontSize: SM, align: 'center', label: 'Declared Value for Customs' })
+
+  // ── Airport of destination / Requested flight / Amount of insurance ──
+  push({ key: 'airportOfDestination', ...cell(L, Y.routeBottom, DS.destEnd, Y.destBottom), fontSize: TXT, align: 'center', label: 'Airport of Destination' })
+  push({ key: 'flightNumber', ...cell(DS.destEnd, Y.routeBottom, DS.flightMid, Y.destBottom), fontSize: SM, align: 'center', label: 'Requested Flight/Date' })
+  push({ key: 'flightDate', ...cell(DS.flightMid, Y.routeBottom, MID, Y.destBottom), fontSize: SM, align: 'center', label: 'Date' })
+  push({ key: 'insuranceAmount', ...cell(MID, Y.routeBottom, DS.insEnd, Y.destBottom), fontSize: SM, align: 'center', label: 'Amount of Insurance' })
+
+  // ── Handling information / SCI ──
+  push({ key: 'handlingInformation', ...cell(L, Y.destBottom, SCI_X, Y.handlingBottom), fontSize: TXT, label: 'Handling Information', multiline: true, maxLines: 5 })
+  push({ key: 'sci', ...cell(SCI_X, 130.8, R, Y.handlingBottom), fontSize: SM, align: 'center', label: 'SCI' })
+
+  // ── Rate table ──
   {
-    const yb = Y.routeBottom
-    box(r(L, Y.depBottom, X.rTo1, yb))
-    box(r(X.rTo1, Y.depBottom, X.rBy1, yb))
-    box(r(X.rBy1, Y.depBottom, X.rTo2, yb))
-    box(r(X.rTo2, Y.depBottom, X.rBy2, yb))
-    box(r(X.rBy2, Y.depBottom, X.rTo3, yb))
-    box(r(X.rTo3, Y.depBottom, MID, yb))
-    box(r(MID, Y.depBottom, X.curr, yb))
-    box(r(X.curr, Y.depBottom, X.chgs, yb))
-    box(r(X.chgs, Y.depBottom, X.otherEnd, yb))   // WT/VAL + Other (sub-divided below)
-    box(r(X.otherEnd, Y.depBottom, X.declCustoms, yb))
-    box(r(X.declCustoms, Y.depBottom, R, yb))
-    push({ key: 'routeTo1', ...cellIn(r(L, Y.depBottom, X.rTo1, yb), 2), fontSize: XS, label: 'To' })
-    push({ key: 'routeBy1', ...cellIn(r(X.rTo1, Y.depBottom, X.rBy1, yb), 2), fontSize: XS, label: 'By First Carrier' })
-    push({ key: 'routeTo2', ...cellIn(r(X.rBy1, Y.depBottom, X.rTo2, yb), 2), fontSize: XS, label: 'to' })
-    push({ key: 'routeBy2', ...cellIn(r(X.rTo2, Y.depBottom, X.rBy2, yb), 2), fontSize: XS, label: 'by' })
-    push({ key: 'routeTo3', ...cellIn(r(X.rBy2, Y.depBottom, X.rTo3, yb), 2), fontSize: XS, label: 'to' })
-    push({ key: 'routeBy3', ...cellIn(r(X.rTo3, Y.depBottom, MID, yb), 2), fontSize: XS, label: 'by' })
-    push({ key: 'currency', ...cellIn(r(MID, Y.depBottom, X.curr, yb), 2), fontSize: XS, label: 'Currency' })
-    // CHGS Code (own narrow cell, stacked) + WT/VAL & Other with PPD/COLL sub-columns and X marks below
-    text(X.curr + 1, Y.depBottom + 2, X.chgs - X.curr - 2, 12, 4, 'CHGS\nCode', 1.2)
-    // sub-column dividers within [chgs..otherEnd]
-    for (const vx of [X.wtvalMid, X.wtvalEnd, X.otherMid]) {
-      boxes.push({ x: vx, y: Y.depBottom, width: 0, height: yb - Y.depBottom, borderRight: true })
-    }
-    text(X.chgs + 1, Y.depBottom + 2, X.wtvalEnd - X.chgs - 1, 6, 4, 'WT/VAL', 1)
-    text(X.wtvalEnd + 1, Y.depBottom + 2, X.otherEnd - X.wtvalEnd - 1, 6, 4, 'Other', 1)
-    // PPD / COLL sub-labels, one per quarter cell
-    text(X.chgs, Y.depBottom + 8, X.wtvalMid - X.chgs, 5, 3.4, 'PPD')
-    text(X.wtvalMid, Y.depBottom + 8, X.wtvalEnd - X.wtvalMid, 5, 3.4, 'COLL')
-    text(X.wtvalEnd, Y.depBottom + 8, X.otherMid - X.wtvalEnd, 5, 3.4, 'PPD')
-    text(X.otherMid, Y.depBottom + 8, X.otherEnd - X.otherMid, 5, 3.4, 'COLL')
-    // X marks sit in their own row below the PPD/COLL labels
-    push({ key: 'wtValPPD',  x: X.chgs, y: Y.depBottom + 14, width: X.wtvalMid - X.chgs, height: 9, fontSize: XS, align: 'center' })
-    push({ key: 'wtValCOLL', x: X.wtvalMid, y: Y.depBottom + 14, width: X.wtvalEnd - X.wtvalMid, height: 9, fontSize: XS, align: 'center' })
-    push({ key: 'otherPPD',  x: X.wtvalEnd, y: Y.depBottom + 14, width: X.otherMid - X.wtvalEnd, height: 9, fontSize: XS, align: 'center' })
-    push({ key: 'otherCOLL', x: X.otherMid, y: Y.depBottom + 14, width: X.otherEnd - X.otherMid, height: 9, fontSize: XS, align: 'center' })
-    push({ key: 'declaredValueCarriage', ...cellIn(r(X.otherEnd, Y.depBottom, X.declCustoms, yb), 2), fontSize: XS, label: 'Declared Value for Carriage' })
-    push({ key: 'declaredValueCustoms', ...cellIn(r(X.declCustoms, Y.depBottom, R, yb), 2), fontSize: XS, label: 'Declared Value for Customs' })
-  }
-
-  // ── Destination / Flight / Insurance (y 294–318) ──
-  box(r(L, Y.routeBottom, X.destFlight, Y.destBottom))
-  box(r(X.destFlight, Y.routeBottom, X.flightEnd, Y.destBottom))
-  box(r(X.flightEnd, Y.routeBottom, X.insAmtEnd, Y.destBottom))
-  box(r(X.insAmtEnd, Y.routeBottom, R, Y.destBottom))
-  push({ key: 'airportOfDestination', ...cellIn(r(L, Y.routeBottom, X.destFlight, Y.destBottom), 3), fontSize: XS, label: 'Airport of Destination' })
-  push({ key: 'flightNumber', ...cellIn(r(X.destFlight, Y.routeBottom, X.flightEnd, Y.destBottom), 3), fontSize: XS, label: 'Requested Flight/Date' })
-  push({ key: 'insuranceAmount', ...cellIn(r(X.flightEnd, Y.routeBottom, X.insAmtEnd, Y.destBottom), 3), fontSize: XS, label: 'Amount of Insurance', align: 'center' })
-  text(X.insAmtEnd + 3, Y.routeBottom + 2, R - X.insAmtEnd - 6, Y.destBottom - Y.routeBottom - 4, 4.4, INSURANCE_TEXT, 1.3)
-
-  // ── Handling Information / SCI (y 318–366) ──
-  box(r(L, Y.destBottom, X.sci, Y.handlingBottom))
-  box(r(X.sci, Y.destBottom, R, Y.handlingBottom))
-  push({ key: 'handlingInformation', ...cellIn(r(L, Y.destBottom, X.sci, Y.handlingBottom), 3), fontSize: TXT, label: 'Handling Information', multiline: true, maxLines: 4 })
-  push({ key: 'sci', ...cellIn(r(X.sci, Y.destBottom, R, Y.handlingBottom), 3), fontSize: TXT, label: 'SCI' })
-
-  // ── Rate table (header y 366–390, rows 390–534, carry 534–558) ──
-  {
-    const cols = [L, X.cPcs, X.cGw, X.cRateClass, X.cChg, X.cRate, X.cTotal, R]
-    const headers = [
-      'No. of\nPieces\nRCP', 'Gross Weight\nkg lb', 'Rate Class\nCommodity\nItem No.',
-      'Chargeable\nWeight', 'Rate    Charge', 'Total', 'Nature and Quantity of Goods\n(incl. Dimensions or Volume)',
-    ]
-    // header row
-    box(r(L, Y.handlingBottom, R, Y.rateHdrBottom))
-    for (let c = 1; c < cols.length - 1; c++) {
-      boxes.push({ x: cols[c], y: Y.handlingBottom, width: 0, height: Y.rateHdrBottom - Y.handlingBottom, borderRight: true })
-    }
-    headers.forEach((h, i) => text(cols[i] + 2, Y.handlingBottom + 2, cols[i + 1] - cols[i] - 4, Y.rateHdrBottom - Y.handlingBottom - 4, 4.6, h, 1.15))
-
-    // data rows
-    const rowH = (Y.rateRowsBottom - Y.rateHdrBottom) / RATE_ROWS
+    const rowH = (Y.rateBottom - Y.rateHdrBottom) / RATE_ROWS
     for (let i = 0; i < RATE_ROWS; i++) {
-      const ry = Y.rateHdrBottom + i * rowH
-      box(r(L, ry, R, ry + rowH), { borderLeft: true, borderRight: true, borderBottom: true })
-      for (let c = 1; c < cols.length - 1; c++) {
-        boxes.push({ x: cols[c], y: ry, width: 0, height: rowH, borderRight: true })
-      }
-      const cy = ry + 2
-      push({ key: `rateItems.${i}.pieces`, x: cols[0] + 2, y: cy, width: cols[1] - cols[0] - 4, height: rowH - 4, fontSize: TXT, align: 'center', rowTemplate: true })
-      push({ key: `rateItems.${i}.grossWeight`, x: cols[1] + 2, y: cy, width: cols[2] - cols[1] - 4, height: rowH - 4, fontSize: TXT, align: 'center', rowTemplate: true })
-      push({ key: `rateItems.${i}.rateClass`, x: cols[2] + 2, y: cy, width: cols[3] - cols[2] - 4, height: rowH - 4, fontSize: TXT, align: 'center', rowTemplate: true })
-      push({ key: `rateItems.${i}.chargeableWeight`, x: cols[3] + 2, y: cy, width: cols[4] - cols[3] - 4, height: rowH - 4, fontSize: TXT, align: 'center', rowTemplate: true })
-      push({ key: `rateItems.${i}.rateCharge`, x: cols[4] + 2, y: cy, width: cols[5] - cols[4] - 4, height: rowH - 4, fontSize: TXT, align: 'right', rowTemplate: true })
-      push({ key: `rateItems.${i}.total`, x: cols[5] + 2, y: cy, width: cols[6] - cols[5] - 4, height: rowH - 4, fontSize: TXT, align: 'right', rowTemplate: true })
-      push({ key: `rateItems.${i}.natureAndQuantity`, x: cols[6] + 2, y: cy, width: cols[7] - cols[6] - 4, height: rowH - 4, fontSize: TXT, multiline: true, maxLines: 3, rowTemplate: true })
-    }
-    // carry-forward subtotal row
-    box(r(L, Y.rateRowsBottom, R, Y.rateCarryBottom), { borderLeft: true, borderRight: true, borderBottom: true })
-    for (let c = 1; c < cols.length - 1; c++) {
-      boxes.push({ x: cols[c], y: Y.rateRowsBottom, width: 0, height: Y.rateCarryBottom - Y.rateRowsBottom, borderRight: true })
+      const y0 = Y.rateHdrBottom + i * rowH
+      const y1 = y0 + rowH
+      const c = (x0: number, x1: number) => cell(x0, y0, x1, y1, false)
+      push({ key: `rateItems.${i}.pieces`, ...c(L, RC.pcs), fontSize: SM, align: 'center', rowTemplate: true })
+      push({ key: `rateItems.${i}.grossWeight`, ...c(RC.pcs, RC.gw), fontSize: SM, align: 'right', rowTemplate: true })
+      push({ key: `rateItems.${i}.weightUnit`, ...c(RC.gw, RC.unit), fontSize: XS, align: 'center', rowTemplate: true })
+      push({ key: `rateItems.${i}.rateClass`, ...c(RC.unitEnd, RC.rcStart), fontSize: XS, align: 'center', rowTemplate: true })
+      push({ key: `rateItems.${i}.commodityItemNo`, ...c(RC.rcStart, RC.rcEnd), fontSize: SM, align: 'center', rowTemplate: true })
+      push({ key: `rateItems.${i}.chargeableWeight`, ...c(RC.cwStart, RC.cwEnd), fontSize: SM, align: 'right', rowTemplate: true })
+      push({ key: `rateItems.${i}.rateCharge`, ...c(RC.rateStart, RC.rateEnd), fontSize: SM, align: 'right', rowTemplate: true })
+      push({ key: `rateItems.${i}.total`, ...c(RC.totalStart, RC.totalEnd), fontSize: SM, align: 'right', rowTemplate: true })
+      push({ key: `rateItems.${i}.natureAndQuantity`, ...c(RC.natStart, R), fontSize: SM, multiline: true, maxLines: 3, rowTemplate: true })
     }
   }
 
-  // ── Charges left column (y 558–702) ──
-  // Prepaid [57–158] | Collect [158–259] for Weight/Valuation/Tax; a single
-  // full-width row for the two Total Other Charges lines (they're lump sums,
-  // not split PPD/COLL — matches the real form, which has no divider there).
-  {
-    const lx = L, midx = X.chgPpdEnd, rx = X.chgCollEnd
-    const splitRows = [
-      { y0: Y.rateCarryBottom, y1: Y.chgRow1, label: 'WEIGHT CHARGE' },
-      { y0: Y.chgRow1, y1: Y.chgRow2, label: 'VALUATION CHARGE' },
-      { y0: Y.chgRow2, y1: Y.chgRow3, label: 'TAX' },
-    ]
-    splitRows.forEach((row) => {
-      box(r(lx, row.y0, midx, row.y1))
-      box(r(midx, row.y0, rx, row.y1))
-      banners.push({ kind: 'divider', cx: midx, y: row.y0, text: row.label })
-    })
-    const lumpRows = [
-      { y0: Y.chgRow3, y1: Y.chgRow4, label: 'TOTAL OTHER CHARGES DUE AGENT', key: 'totalOtherChargesDueAgent' as FieldKey },
-      { y0: Y.chgRow4, y1: Y.chgRow5, label: 'TOTAL OTHER CHARGES DUE CARRIER', key: 'totalOtherChargesDueCarrier' as FieldKey },
-    ]
-    lumpRows.forEach((row) => {
-      box(r(lx, row.y0, rx, row.y1))
-      banners.push({ kind: 'side', x: lx, y: row.y0, width: rx - lx, text: row.label, cutSide: 'right' })
-      push({ key: row.key, x: lx + 2, y: row.y0 + 12, width: rx - lx - 4, height: 11, fontSize: TXT })
-    })
-    // weight-charge sub-column labels
-    text(lx + 2, Y.rateCarryBottom + 1, midx - lx - 4, 8, 4.6, 'PREPAID')
-    text(midx + 2, Y.rateCarryBottom + 1, rx - midx - 4, 8, 4.6, 'COLLECT')
-    push({ key: 'weightChargePPD',  x: lx + 2, y: Y.rateCarryBottom + 14, width: midx - lx - 4, height: 11, fontSize: TXT })
-    push({ key: 'weightChargeCOLL', x: midx + 2, y: Y.rateCarryBottom + 14, width: rx - midx - 4, height: 11, fontSize: TXT })
-    // Valuation Charge / Tax PPD & COLL values
-    push({ key: 'valuationChargePPD', x: lx + 2, y: Y.chgRow1 + 12, width: midx - lx - 4, height: 11, fontSize: TXT })
-    push({ key: 'valuationChargeCOLL', x: midx + 2, y: Y.chgRow1 + 12, width: rx - midx - 4, height: 11, fontSize: TXT })
-    push({ key: 'taxPPD', x: lx + 2, y: Y.chgRow2 + 12, width: midx - lx - 4, height: 11, fontSize: TXT })
-    push({ key: 'taxCOLL', x: midx + 2, y: Y.chgRow2 + 12, width: rx - midx - 4, height: 11, fontSize: TXT })
+  // ── Charges: Prepaid | Collect ──
+  const chargeRow = (key: string, y0: number, y1: number, ppd: FieldKey, coll: FieldKey) => {
+    push({ key: ppd, ...cell(L, y0, CH.ppdEnd, y1), fontSize: TXT, align: 'right', label: `${key} (prepaid)` })
+    push({ key: coll, ...cell(CH.ppdEnd, y0, CH.collEnd, y1), fontSize: TXT, align: 'right', label: `${key} (collect)` })
   }
+  chargeRow('Weight Charge', Y.rateBottom, Y.chgWeight, 'weightChargePPD', 'weightChargeCOLL')
+  chargeRow('Valuation Charge', Y.chgWeight, Y.chgValuation, 'valuationChargePPD', 'valuationChargeCOLL')
+  chargeRow('Tax', Y.chgValuation, Y.chgTax, 'taxPPD', 'taxCOLL')
+  push({ key: 'totalOtherChargesDueAgent', ...cell(L, Y.chgTax, CH.collEnd, Y.chgAgent), fontSize: TXT, align: 'right', label: 'Total Other Charges Due Agent' })
+  push({ key: 'totalOtherChargesDueCarrier', ...cell(L, Y.chgAgent, CH.collEnd, Y.chgCarrier), fontSize: TXT, align: 'right', label: 'Total Other Charges Due Carrier' })
+  chargeRow('Total', Y.chgReserved, Y.totalsBottom, 'totalPrepaid', 'totalCollect')
+  push({ key: 'currencyConversionRates', ...cell(L, Y.totalsBottom, CH.ppdEnd, Y.ccBottom), fontSize: SM, align: 'center', label: 'Currency Conversion Rates' })
+  push({ key: 'ccChargesInDestCurrency', ...cell(CH.ppdEnd, Y.totalsBottom, CH.collEnd, Y.ccBottom), fontSize: SM, align: 'center', label: 'CC Charges in Dest. Currency' })
+  push({ key: 'chargesAtDestination', ...cell(CH.ppdEnd, Y.ccBottom, CH.collEnd, Y.bottomBottom), fontSize: SM, align: 'center', label: 'Charges at Destination' })
+  push({ key: 'totalCollectCharges', ...cell(CH.collEnd, Y.ccBottom, 132.0, Y.bottomBottom), fontSize: SM, align: 'center', label: 'Total Collect Charges' })
 
-  // ── Other Charges (right column, y 558–630) + shipper cert + signature (630–702) ──
+  // ── Other charges (right of the charges block) ──
   {
-    const ox = X.chgCollEnd
-    box(r(ox, Y.rateCarryBottom, R, Y.chgRow3))           // other charges box
-    box(r(ox, Y.chgRow3, R, Y.chgRow5))                   // shipper certification box
-    box(r(ox, Y.chgRow5, R, Y.chgBottom))                 // signature box
-    text(ox + 4, Y.rateCarryBottom + 1, R - ox - 8, 8, 4.6, 'Other Charges')
-    const top = Y.rateCarryBottom + 10
-    const rowH = (Y.chgRow3 - top) / OTHER_CHARGE_ROWS
+    const rowH = (Y.chgTax - Y.rateBottom) / OTHER_CHARGE_ROWS
     for (let i = 0; i < OTHER_CHARGE_ROWS; i++) {
-      const ry = top + i * rowH
-      push({ key: `otherCharges.${i}.description`, x: ox + 4, y: ry, width: 150, height: rowH, fontSize: TXT, rowTemplate: true })
-      push({ key: `otherCharges.${i}.amount`, x: R - 90, y: ry, width: 86, height: rowH, fontSize: TXT, align: 'right', rowTemplate: true })
+      const y0 = Y.rateBottom + 1.5 + i * rowH
+      const y1 = y0 + rowH
+      push({ key: `otherCharges.${i}.description`, ...cell(CH.collEnd, y0, 165.0, y1, false), fontSize: SM, rowTemplate: true })
+      push({ key: `otherCharges.${i}.amount`, ...cell(165.0, y0, R, y1, false), fontSize: SM, align: 'right', rowTemplate: true })
     }
-    // IATA Res. 600a: the part from "insofar…" (dangerous goods) must be printed in bold.
-    text(ox + 4, Y.chgRow3 + 2, R - ox - 8, Y.chgRow5 - Y.chgRow3 - 4, 4.6, SHIPPER_CERT, 1.32, 'insofar')
-    push({ key: 'signatureShipper', x: ox + 4, y: Y.chgRow5 + 4, width: R - ox - 8, height: 10, fontSize: TXT, align: 'center' })
-    text(ox + 4, Y.chgBottom - 9, R - ox - 8, 8, 4.6, 'Signature of Shipper or his Agent')
   }
 
-  // ── Totals (y 702–726) ── banner labels straddle the Charges/Collect divider, same as the split rows above
-  box(r(L, Y.chgBottom, X.botCharges, Y.totalsBottom))
-  box(r(X.botCharges, Y.chgBottom, X.botCollect, Y.totalsBottom))
-  box(r(X.botCollect, Y.chgBottom, R, Y.totalsBottom))
-  banners.push({ kind: 'side', x: L, y: Y.chgBottom, width: X.botCharges - L, text: 'TOTAL PREPAID', cutSide: 'right' })
-  banners.push({ kind: 'side', x: X.botCharges, y: Y.chgBottom, width: X.botCollect - X.botCharges, text: 'TOTAL COLLECT', cutSide: 'left' })
-  push({ key: 'totalPrepaid', x: L + 2, y: Y.chgBottom + 12, width: X.botCharges - L - 4, height: 11, fontSize: TXT })
-  push({ key: 'totalCollect', x: X.botCharges + 2, y: Y.chgBottom + 12, width: X.botCollect - X.botCharges - 4, height: 11, fontSize: TXT })
+  // ── Signatures / execution ──
+  push({ key: 'signatureShipper', ...cell(CH.collEnd, 248.5, R, 254.6, false), fontSize: SM, align: 'center', label: 'Signature of Shipper or his Agent' })
+  push({ key: 'executedOnDate', ...cell(CH.collEnd, 265.5, 126.0, 271.4, false), fontSize: SM, align: 'center', label: 'Executed on (date)' })
+  push({ key: 'executedAtPlace', ...cell(126.0, 265.5, 158.0, 271.4, false), fontSize: SM, align: 'center', label: 'at (place)' })
+  push({ key: 'signatureCarrier', ...cell(158.0, 265.5, R, 271.4, false), fontSize: SM, align: 'center', label: 'Signature of Issuing Carrier or its Agent' })
 
-  // ── Currency conversion / Execution (y 726–750) ──
-  box(r(L, Y.totalsBottom, X.botCharges, Y.ccBottom))
-  box(r(X.botCharges, Y.totalsBottom, X.botCollect, Y.ccBottom))
-  box(r(X.botCollect, Y.totalsBottom, R, Y.ccBottom))
-  banners.push({ kind: 'side', x: L, y: Y.totalsBottom, width: X.botCharges - L, text: 'CURRENCY CONVERSION RATES', cutSide: 'right' })
-  banners.push({ kind: 'side', x: X.botCharges, y: Y.totalsBottom, width: X.botCollect - X.botCharges, text: 'CC CHARGES IN DEST. CURRENCY', cutSide: 'left' })
-  push({ key: 'currencyConversionRates', x: L + 2, y: Y.totalsBottom + 12, width: X.botCharges - L - 4, height: 11, fontSize: XS })
-  push({ key: 'ccChargesInDestCurrency', x: X.botCharges + 2, y: Y.totalsBottom + 12, width: X.botCollect - X.botCharges - 4, height: 11, fontSize: XS })
-  push({ key: 'executedOnDate', ...cellIn(r(X.botCollect, Y.totalsBottom, X.execPlace, Y.ccBottom), 3), fontSize: TXT, label: 'Executed on (date)' })
-  push({ key: 'executedAtPlace', ...cellIn(r(X.execPlace, Y.totalsBottom, X.execSig, Y.ccBottom), 3), fontSize: TXT, label: 'at (place)' })
-  push({ key: 'signatureCarrier', x: X.execSig + 4, y: Y.totalsBottom + 4, width: R - X.execSig - 8, height: 14, fontSize: TXT, align: 'center' })
-  text(X.execSig + 4, Y.ccBottom - 9, R - X.execSig - 8, 8, 4.4, 'Signature of Issuing Carrier or its Agent')
-
-  // ── Bottom row (y 750–774) ──
-  box(r(L, Y.ccBottom, X.botCharges, Y.bottomBottom))
-  box(r(X.botCharges, Y.ccBottom, X.botCollect, Y.bottomBottom))
-  box(r(X.botCollect, Y.ccBottom, X.botCopy, Y.bottomBottom))
-  box(r(X.botCopy, Y.ccBottom, R, Y.bottomBottom))
-  text(L + 4, Y.ccBottom + 3, X.botCharges - L - 8, 18, 4.6, "For Carrier's Use only\nat Destination")
-  banners.push({ kind: 'side', x: X.botCharges, y: Y.ccBottom, width: X.botCollect - X.botCharges, text: 'CHARGES AT DESTINATION', cutSide: 'left' })
-  banners.push({ kind: 'side', x: X.botCollect, y: Y.ccBottom, width: X.botCopy - X.botCollect, text: 'TOTAL COLLECT CHARGES', cutSide: 'left' })
-  push({ key: 'chargesAtDestination', x: X.botCharges + 2, y: Y.ccBottom + 12, width: X.botCollect - X.botCharges - 4, height: 11, fontSize: XS })
-  push({ key: 'totalCollectCharges', x: X.botCollect + 2, y: Y.ccBottom + 12, width: X.botCopy - X.botCollect - 4, height: 11, fontSize: XS })
-  // copy label + repeated AWB number drawn dynamically by AWBDocument in [botCopy..R]
-
-  return { fields, boxes, staticTexts, banners }
+  // The template supplies every box, rule and caption, so nothing else is drawn.
+  return { fields, boxes: [], staticTexts: [], banners: [] }
 }
-
-function rectIn(rect: Rect, pad = 4): { x: number; y: number; width: number; height: number } {
-  return { x: rect.x + pad, y: rect.y + pad, width: rect.width - pad * 2, height: rect.height - pad * 2 }
-}
-
-function cellIn(rect: Rect, pad = 4) {
-  return rectIn(rect, pad)
-}
-
-const IATA_CONDITIONS =
-  'It is agreed that the goods described herein are accepted in apparent good order and condition (except as noted) for carriage SUBJECT TO THE CONDITIONS OF CONTRACT ON THE REVERSE HEREOF. ALL GOODS MAY BE CARRIED BY ANY OTHER MEANS INCLUDING ROAD OR ANY OTHER CARRIER UNLESS SPECIFIC CONTRARY INSTRUCTIONS ARE GIVEN HEREON BY THE SHIPPER, AND SHIPPER AGREES THAT THE SHIPMENT MAY BE CARRIED VIA INTERMEDIATE STOPPING PLACES WHICH THE CARRIER DEEMS APPROPRIATE. THE SHIPPER\'S ATTENTION IS DRAWN TO THE NOTICE CONCERNING CARRIER\'S LIMITATION OF LIABILITY. Shipper may increase such limitation of liability by declaring a higher value for carriage and paying a supplemental charge if required.'
-
-const INSURANCE_TEXT =
-  'INSURANCE – If carrier offers insurance, and such insurance is requested in accordance with the conditions thereof, indicate amount to be insured in figures in box marked "Amount of Insurance".'
-
-const SHIPPER_CERT =
-  'Shipper certifies that the particulars on the face hereof are correct and that insofar as any part of the consignment contains dangerous goods, such part is properly described by name and is in proper condition for carriage by air according to the applicable Dangerous Goods Regulations.'
 
 const built = buildLayout()
 
@@ -411,35 +261,36 @@ export const AWB_BOXES: BoxDef[] = built.boxes
 export const STATIC_TEXT_BLOCKS: StaticTextDef[] = built.staticTexts
 export const AWB_BANNERS: BannerDef[] = built.banners
 
+/** Rows the rate table and Other Charges list expose to the editor. */
+export const RATE_ROW_COUNT = RATE_ROWS
+export const OTHER_CHARGE_ROW_COUNT = OTHER_CHARGE_ROWS
+
 /**
- * Expand row-template entries to match the actual number of rate items / other
- * charges in the data, dropping unused template rows beyond what's needed and
- * keeping the table area visually fixed (extra rows beyond RATE_ROWS /
- * OTHER_CHARGE_ROWS clip in the PDF — same as a real airline form).
+ * Field defs for the given row counts — rows beyond what the document holds
+ * are dropped so the overlay does not render inputs for absent data.
  */
 export function getFieldDefs(rateItemCount: number, otherChargeCount: number): FieldDef[] {
   return AWB_LAYOUT.filter((f) => {
-    const m = /^rateItems\.(\d+)\./.exec(f.key as string)
-    if (m) return Number(m[1]) < Math.max(rateItemCount, RATE_ROWS)
-    const m2 = /^otherCharges\.(\d+)\./.exec(f.key as string)
-    if (m2) return Number(m2[1]) < Math.max(otherChargeCount, OTHER_CHARGE_ROWS)
+    const rate = /^rateItems\.(\d+)\./.exec(f.key as string)
+    if (rate) return Number(rate[1]) < Math.max(rateItemCount, 1)
+    const other = /^otherCharges\.(\d+)\./.exec(f.key as string)
+    if (other) return Number(other[1]) < otherChargeCount
     return true
   })
 }
 
-/** Immutable update of a (possibly nested dot-path) field, mirroring `set(key) -> onChange({...data, [key]: val})`. */
 export function setNestedField(data: AWBData, key: FieldKey, value: string | boolean): AWBData {
-  const rateMatch = /^rateItems\.(\d+)\.(.+)$/.exec(key as string)
-  if (rateMatch) {
-    const idx = Number(rateMatch[1])
-    const prop = rateMatch[2] as keyof RateItem
+  const rate = /^rateItems\.(\d+)\.(.+)$/.exec(key as string)
+  if (rate) {
+    const idx = Number(rate[1])
+    const prop = rate[2] as keyof RateItem
     const rateItems = data.rateItems.map((item, i) => (i === idx ? { ...item, [prop]: value } : item))
     return { ...data, rateItems }
   }
-  const chargeMatch = /^otherCharges\.(\d+)\.(.+)$/.exec(key as string)
-  if (chargeMatch) {
-    const idx = Number(chargeMatch[1])
-    const prop = chargeMatch[2] as keyof OtherCharge
+  const other = /^otherCharges\.(\d+)\.(.+)$/.exec(key as string)
+  if (other) {
+    const idx = Number(other[1])
+    const prop = other[2] as keyof OtherCharge
     const otherCharges = data.otherCharges.map((item, i) => (i === idx ? { ...item, [prop]: value } : item))
     return { ...data, otherCharges }
   }
