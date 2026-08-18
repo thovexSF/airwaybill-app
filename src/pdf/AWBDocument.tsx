@@ -1,11 +1,10 @@
 import React from 'react'
 import { Document, Page, View, Text, StyleSheet, Image } from '@react-pdf/renderer'
 import { AWBData } from '../types/awb'
-import { PAGE_PADDING, PAGE_WIDTH, PAGE_HEIGHT, FieldDef, getFieldDefs } from './awbLayout'
-
-/** Millimetres → PDF points, for the few marks placed directly on the sheet. */
-const MM = 2.834646
-const mm = (v: number) => v * MM
+import {
+  PAGE_PADDING, PAGE_HEIGHT, SHEET_LEFT, SHEET_WIDTH, sheetX, sheetY,
+  FieldDef, getFieldDefs,
+} from './awbLayout'
 
 const RED = '#8B0000'
 
@@ -13,7 +12,7 @@ const styles = StyleSheet.create({
   page: { padding: PAGE_PADDING, fontFamily: 'Helvetica', fontSize: 8, backgroundColor: '#fff' },
   // A hair under the true page height: at exactly PAGE_HEIGHT react-pdf's layout
   // rounds the absolute image past the page and pushes every sibling to page 2.
-  sheet: { position: 'absolute', top: 0, left: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT - 0.5 },
+  sheet: { position: 'absolute', top: 0, left: SHEET_LEFT, width: SHEET_WIDTH, height: PAGE_HEIGHT - 0.5 },
   box: { position: 'absolute', borderColor: RED, borderStyle: 'solid' },
   field: { position: 'absolute' },
   watermark: { position: 'absolute', top: 330, left: 95, fontSize: 100, color: 'rgba(180,0,0,0.07)', fontFamily: 'Helvetica-Bold', transform: 'rotate(-45deg)' },
@@ -126,7 +125,7 @@ export function AWBDocument({ data }: { data: AWBData; userScale?: 'sm' | 'md' |
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="LETTER" style={styles.page}>
         {/* The blank IATA form supplies every box, rule and caption. */}
         <Image src="/awb-template-bg.png" style={styles.sheet} />
 
@@ -143,25 +142,25 @@ export function AWBDocument({ data }: { data: AWBData; userScale?: 'sm' | 'md' |
         {data.carrierLogoUrl ? (
           <Image
             src={data.carrierLogoUrl}
-            style={{ position: 'absolute', left: mm(150), top: mm(21.9), width: mm(49), height: mm(4.2), objectFit: 'contain' }}
+            style={{ position: 'absolute', left: sheetX(150), top: sheetY(21.9), width: sheetY(49), height: sheetY(4.2), objectFit: 'contain' }}
           />
         ) : null}
 
         {/* Master AWB number repeated in the CUSTOMS REF band, top right */}
         {awbFull ? (
           <Text style={[styles.field, {
-            left: mm(112), top: mm(14), width: mm(87),
+            left: sheetX(112), top: sheetY(14), width: sheetY(87),
             fontSize: 11, fontFamily: 'Helvetica-Bold', textAlign: 'right',
           }]}>{awbFull}</Text>
         ) : null}
 
         {/* Copy label + repeated number, below the form */}
-        <View style={{ position: 'absolute', left: mm(105), top: mm(283), width: mm(95), alignItems: 'center' }}>
+        <View style={{ position: 'absolute', left: sheetX(105), top: sheetY(283), width: sheetY(95), alignItems: 'center' }}>
           <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: RED, textAlign: 'center' }}>{data.copyLabel}</Text>
           {awbFull ? <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: RED, marginTop: 2 }}>{awbFull}</Text> : null}
         </View>
 
-        <Text style={{ position: 'absolute', left: mm(15.1), top: mm(287), fontSize: 6, color: '#666' }}>AIRWAYBILL APP</Text>
+        <Text style={{ position: 'absolute', left: sheetX(15.1), top: sheetY(287), fontSize: 6, color: '#666' }}>AIRWAYBILL APP</Text>
       </Page>
     </Document>
   )

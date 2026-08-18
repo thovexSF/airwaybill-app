@@ -104,21 +104,28 @@ against the receiving airline's implementation guide.
 
 `public/awb-template.svg` is a blank IATA air waybill drawn in Inkscape ("AWB
 BLANK TEMPLATE r3"), shared with the sister `b2b` repo — 522 vector paths and
-73 printed captions, no embedded raster. `awb-template-bg.png` is its A4
+73 printed captions, no embedded raster. `awb-template-bg.png` is its
 rasterisation, used because `@react-pdf/renderer` cannot render arbitrary SVG.
 
 Because the sheet supplies every box, rule and caption, `awbLayout.ts` only
 positions *values*: it emits fields and no boxes, banners or static text, and
-`AWBDocument` draws the sheet as a full-page background image behind them.
-Give that image a height a hair under `PAGE_HEIGHT` — at exactly the page
-height react-pdf rounds it past the page and pushes every sibling onto page 2.
+`AWBDocument` draws the sheet as a background image behind them. Give that
+image a height a hair under `PAGE_HEIGHT` — at exactly the page height
+react-pdf rounds it past the page and pushes every sibling onto page 2.
+
+The page is US Letter but the template is A4, so the sheet is scaled to the
+page height and centred (`SHEET_SCALE` / `SHEET_LEFT`), leaving ~9 mm blank
+down each side. Keep the aspect ratio: stretching the form to fill Letter
+would distort every box on it. Coordinates stay in template millimetres and
+`sheetX()` / `sheetY()` apply the fit, so nothing in the schema has to know
+about the page size.
 
 Coordinates live in millimetres on the 210 × 297 mm template and were measured
 from the SVG itself (its paths reduced to horizontal/vertical rules, then
 cross-checked against the 72 captions), so they can be re-verified against the
-source at any time. `mm()` converts to points at the single point of use.
+source at any time.
 
-This replaced an earlier vector redraw of the form on US Letter. If you ever go
+This replaced an earlier vector redraw of the form. If you ever go
 back to drawing the grid instead of using a licensed blank, do not substitute a
 scanned or photographed real AWB as the background: what is IATA-restricted is
 the official Resolution 600a *document* (sold inside the CSCRM manual, ~USD

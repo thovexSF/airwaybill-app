@@ -20,14 +20,35 @@ import { AWBData, RateItem, OtherCharge } from '../types/awb'
  * single point of use.
  */
 
-/** A4 in PDF points — the template's page size. */
-export const PAGE_WIDTH = 595.276
-export const PAGE_HEIGHT = 841.89
+/** US Letter in PDF points — the size this app prints on. */
+export const PAGE_WIDTH = 612
+export const PAGE_HEIGHT = 792
 export const PAGE_PADDING = 0
 
-/** Millimetres → PDF points (72 dpi over a 210 × 297 mm page). */
+/** Millimetres → PDF points at 72 dpi. */
 const MM = 2.834646
-const mm = (v: number) => v * MM
+/** The template's own size, in millimetres (A4). */
+const SHEET_MM_W = 210
+const SHEET_MM_H = 297
+
+/**
+ * The blank form is A4 but the page is US Letter, which is shorter and wider.
+ * Fit the sheet to the page height and centre it, keeping its aspect ratio —
+ * stretching it to fill Letter would distort every box on the form. That
+ * leaves a small blank margin down each side, which is what you get printing
+ * an A4 form on Letter stock anyway.
+ */
+export const SHEET_SCALE = PAGE_HEIGHT / (SHEET_MM_H * MM)
+export const SHEET_WIDTH = SHEET_MM_W * MM * SHEET_SCALE
+export const SHEET_LEFT = (PAGE_WIDTH - SHEET_WIDTH) / 2
+
+/** A length on the template → points. */
+const mm = (v: number) => v * MM * SHEET_SCALE
+/** A horizontal position on the template → points on the page. */
+const mmX = (v: number) => SHEET_LEFT + mm(v)
+/** Exported so AWBDocument can place the few marks that sit outside a field. */
+export const sheetX = mmX
+export const sheetY = mm
 
 // ── Vertical rules (x, mm) ───────────────────────────────────────────────────
 const L = 15.1           // content left edge
@@ -122,7 +143,7 @@ export type BannerDef =
 function cell(x0: number, y0: number, x1: number, y1: number, capped = true): Rect {
   const top = y0 + (capped ? CAP : 0.8)
   return {
-    x: mm(x0 + 1),
+    x: mmX(x0 + 1),
     y: mm(top),
     width: mm(x1 - x0 - 2),
     height: mm(Math.max(y1 - top - 0.8, 2)),
@@ -180,7 +201,7 @@ function buildLayout(): { fields: FieldDef[]; boxes: BoxDef[]; staticTexts: Stat
   // PPD/COLL captions at y 110.1, so the X sits in the ~3.5 mm strip below them.
   const tickTop = 110.3
   const tick = (key: FieldKey, x0: number, x1: number, label: string) =>
-    push({ key, x: mm(x0), y: mm(tickTop), width: mm(x1 - x0), height: mm(rowBot - tickTop), fontSize: 8, align: 'center', label })
+    push({ key, x: mmX(x0), y: mm(tickTop), width: mm(x1 - x0), height: mm(rowBot - tickTop), fontSize: 8, align: 'center', label })
   tick('wtValPPD', CD.chgsEnd, CD.wtValMid, 'WT/VAL PPD')
   tick('wtValCOLL', CD.wtValMid, CD.wtValEnd, 'WT/VAL COLL')
   tick('otherPPD', CD.wtValEnd, CD.otherMid, 'Other PPD')
