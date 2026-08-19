@@ -21,10 +21,33 @@ Esta app es frontend Vite. Separamos ambientes con `VITE_APP_ENV` para evitar me
 
 ## Build / Start para Vite
 
-- Build command:
-  - `npm run build`
-- Start command:
-  - `npm run preview -- --host 0.0.0.0 --port $PORT`
+Ambos comandos viven en `railway.json`, versionado en el repo, para que un cambio
+en la UI de Railway no pueda dejar el servicio sin comando de arranque:
+
+- Build command: `npm ci --include=dev && npm run build`
+- Start command: `npm start` (`vite preview --host 0.0.0.0 --port ${PORT:-4173}`)
+- Healthcheck: `/`
+
+El `--include=dev` es deliberado. Si el ambiente define `NODE_ENV=production`,
+`npm ci` omite las devDependencies y el build muere con `tsc: not found` o
+`vite: not found`, porque el toolchain completo (TypeScript, Vite, el plugin de
+React) es devDependency. La versión de Node se fija en `.nvmrc` y en `engines`.
+
+### Hosts permitidos en el preview
+
+Desde Vite 5.4.12 el servidor de `vite preview` responde **403 "Blocked request.
+This host is not allowed."** a toda petición cuyo header `Host` no esté en
+`preview.allowedHosts`. El build pasa igual, así que el síntoma no es un error de
+compilación: el healthcheck de Railway (que llega con `Host: healthcheck.railway.app`)
+recibe 403 y el deploy se marca como fallido.
+
+`vite.config.ts` autoriza `.up.railway.app` y `.railway.app`. Para un dominio
+propio, agregar la variable de entorno `PREVIEW_ALLOWED_HOSTS` en el ambiente de
+Railway, con los dominios separados por comas:
+
+```
+PREVIEW_ALLOWED_HOSTS=airwaybill.app,www.airwaybill.app
+```
 
 Clickjacking protection (`X-Frame-Options: DENY`, `CSP frame-ancestors 'none'`) is set in
 `vite.config.ts` for the preview server and in `public/_headers` for static hosts (Cloudflare Pages).

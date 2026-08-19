@@ -21,6 +21,14 @@ browser profile. See `RAILWAY_ENVIRONMENTS.md` for the Railway deploy setup
 (branch `main` → production) and `DEPLOY_CLOUDFLARE_PAGES.md` for the
 alternative static-hosting path.
 
+The Railway build and start commands live in `railway.json`, not only in the
+Railway UI. Two things there are load-bearing and easy to undo by accident:
+the install must be `npm ci --include=dev` (the whole toolchain is a
+devDependency, so a `NODE_ENV=production` in the environment would strip it),
+and `preview.allowedHosts` in `vite.config.ts` must cover the serving domain —
+`vite preview` answers 403 to any other `Host`, which fails the healthcheck
+while the build still reports success.
+
 ## Architecture
 
 This is a Vite + React SPA that generates IATA-compliant air cargo and

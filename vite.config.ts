@@ -14,6 +14,20 @@ export default defineConfig({
   },
   preview: {
     headers: SECURITY_HEADERS,
+    // Desde Vite 5.4.12 el servidor de preview rechaza toda petición cuyo Host
+    // no esté en esta lista, con "Blocked request. This host is not allowed."
+    // En Railway eso no rompe el build: rompe el healthcheck, así que el deploy
+    // se marca como fallido aunque el bundle esté perfecto. Autorizamos los
+    // dominios de Railway y, para un dominio propio, la variable de entorno
+    // PREVIEW_ALLOWED_HOSTS (lista separada por comas) leída en build time.
+    allowedHosts: [
+      '.up.railway.app',
+      '.railway.app',
+      ...(process.env.PREVIEW_ALLOWED_HOSTS ?? '')
+        .split(',')
+        .map(h => h.trim())
+        .filter(Boolean),
+    ],
   },
   optimizeDeps: {
     include: [
