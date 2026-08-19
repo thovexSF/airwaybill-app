@@ -78,6 +78,26 @@ The AWB is the only document with three pieces:
   shows the full untruncated value. It draws no labels either, for the same
   reason.
 
+While the overlay is up the editor renders the PDF with `hideValues`, so the
+sheet underneath is blank. Both layers drawing the same value made every entry
+appear twice: the inputs are transparent, and the PDF's own copy — wrapped to a
+different width — showed through. The overlay owns the values on screen;
+download and print always regenerate with `hideValues` off, so the preview blob
+must never be reused as the downloaded file.
+
+The overlay only mounts above 900px of viewport width, which a phone reaches
+when the browser is in "desktop site" mode — that is how the duplication was
+first seen on a phone.
+
+`src/pdf/awbCopies.ts` lists the eight IATA copies with the paper colour each
+one is issued on; `AWBCopiesDocument` emits one page per selected copy and
+`src/components/CopiesDialog.tsx` is the picker, preview and print/download
+front end for it. `src/lib/airlines.ts` maps the AWB prefix to its carrier and
+brand colour: the editor fills the carrier block from it (never overwriting
+what was typed) and the renderer prints the carrier's name in that colour with
+a two-letter chip, standing in for a logo. Only add a prefix you have verified
+— a wrong mapping goes straight onto a printed waybill.
+
 `src/pdf/DGDDocument.tsx` and `src/pdf/ManifestDocument.tsx` are the renderers
 for the other two original document types, defined more directly (no separate
 layout-schema file, vector-drawn boxes). Every document ported from the `b2b`

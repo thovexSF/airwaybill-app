@@ -1,48 +1,58 @@
 import { AWBData } from '../types/awb'
 
-// Fictional demo data. Do not use real shipper, consignee, or cargo details here.
+/**
+ * Demo shipment: a temperature-controlled pharma consignment moving Frankfurt →
+ * Singapore on Lufthansa Cargo, which owns AWB prefix 020 — so the carrier
+ * block here is exactly what `applyAirlineForPrefix` resolves from the prefix.
+ *
+ * The shipper, consignee and agent are invented. Never put a real company's
+ * details in here: this data ships to every visitor of the public demo.
+ *
+ * The serial's last digit is the IATA check digit (the first seven digits mod
+ * 7), so the number validates the way a real one does: 4567890 mod 7 = 5.
+ */
 export const exampleAWB: AWBData = {
-  awbPrefix: '999',
-  awbAirportCode: 'SCL',
-  awbSerial: '12345675',
+  awbPrefix: '020',
+  awbAirportCode: 'FRA',
+  awbSerial: '45678905',
 
-  carrierName: 'GLOBAL AIR CARGO',
-  carrierAddress: '100 SKYWAY AVENUE, TORONTO, ON, CANADA',
+  carrierName: 'LUFTHANSA CARGO AG',
+  carrierAddress: 'FLUGHAFEN FRANKFURT, 60546 FRANKFURT AM MAIN, GERMANY',
 
   shipperAccountNumber: '',
   shipperNameAndAddress:
-    'ANDES EXPORTS SPA\nAV. LOS CERROS 1234\nLAS CONDES, SANTIAGO\nCHILE',
+    'NORDLICHT PHARMA GMBH\nINDUSTRIESTRASSE 47\n65479 RAUNHEIM\nGERMANY',
 
   consigneeAccountNumber: '',
   consigneeNameAndAddress:
-    'ALPINE IMPORTS AG\nWAREHOUSE 7, CARGO CENTER WEST\nCH-8058 ZURICH AIRPORT\nZURICH, SWITZERLAND\nPH: +41 44 000 0000',
+    'MERIDIAN HEALTHCARE PTE LTD\n12 AIRLINE ROAD, CARGO AGENT BUILDING C\nSINGAPORE 819834\nSINGAPORE\nPH: +65 6000 0000',
 
   agentNameAndCity:
-    'PACIFIC FREIGHT AGENCY\nCARGO TERMINAL 4\nSANTIAGO, CHILE PH: +56 2 2000 0000',
-  agentIataCode: '75-1-1234/0000',
+    'RHEIN AIR LOGISTICS GMBH\nCARGO CITY SUED, GEBAEUDE 556\nFRANKFURT, GERMANY PH: +49 69 000 0000',
+  agentIataCode: '81-2-4471/0006',
   agentAccountNumber: '',
 
   accountingInformation:
-    'FREIGHT PREPAID\nNOTIFY:\nALEX MORGAN\nPHONE +41 44 000 0001\nALEX.MORGAN@EXAMPLE.COM',
+    'FREIGHT PREPAID\nNOTIFY: MERIDIAN HEALTHCARE PTE LTD\nPHONE +65 6000 0001\nOPS@EXAMPLE.COM',
 
-  referenceNumber: '',
+  referenceNumber: 'NLP-2026-0413',
   optionalShippingInfo1: '',
   optionalShippingInfo2: '',
   optionalShippingInfo3: '',
 
-  airportOfDeparture: 'SANTIAGO DE CHILE (SCL/ZRH)',
-  routeTo1: 'YYZ',
-  routeBy1: 'AC',
-  routeTo2: 'ZRH',
-  routeBy2: 'AC',
+  airportOfDeparture: 'FRANKFURT AM MAIN (FRA)',
+  routeTo1: 'SIN',
+  routeBy1: 'LH',
+  routeTo2: '',
+  routeBy2: '',
   routeTo3: '',
   routeBy3: '',
 
-  airportOfDestination: 'ZURICH',
-  flightNumber: 'AC093/02-NOV AC880/02-NOV',
+  airportOfDestination: 'SINGAPORE CHANGI',
+  flightNumber: 'LH778/14-MAR',
   flightDate: '',
 
-  currency: 'USD',
+  currency: 'EUR',
   wtValPPD: true,
   wtValCOLL: false,
   otherPPD: true,
@@ -52,41 +62,40 @@ export const exampleAWB: AWBData = {
   insuranceAmount: 'XXX',
 
   handlingInformation:
-    'ALEX MORGAN WILL BE HANDLING THIS SHIPMENT AT ZURICH AIRPORT\nREF-DEMO-2024',
+    'TEMPERATURE CONTROLLED +2C/+8C - DO NOT FREEZE\nACTIVE COOL CONTAINER - KEEP UPRIGHT\nSHIPPER REF NLP-2026-0413',
   sci: '',
 
   rateItems: [
     {
       id: '1',
-      pieces: '1',
-      grossWeight: '10',
+      pieces: '6',
+      grossWeight: '148.0',
       weightUnit: 'K',
       rateClass: 'M',
       commodityItemNo: '',
-      chargeableWeight: '10',
-      rateCharge: '400.00',
-      total: '400.00',
-      natureAndQuantity: 'PRINTED BROCHURES\nREF-DEMO-2024\n30X30X50CM/1',
+      chargeableWeight: '210.0',
+      rateCharge: '4.85',
+      total: '1018.50',
+      natureAndQuantity: 'PHARMACEUTICAL PRODUCTS, NON-HAZARDOUS\nACTIVE COOL CONTAINER\n120X100X162CM/2',
     },
   ],
 
   otherCharges: [
-    { id: '1', description: 'SERVICE FEE',          amount: '250.00',  entitlement: 'DUE AGENT' },
-    { id: '2', description: 'AWB FEE',              amount: '150.00',  entitlement: 'DUE AGENT' },
-    { id: '3', description: 'TERMINAL',             amount: '217.00',  entitlement: 'DUE AGENT' },
-    { id: '4', description: 'HABILITACION TERMINAL',amount: '672.35',  entitlement: 'DUE AGENT' },
-    { id: '5', description: 'DOCUMENTATION FEE',     amount: '150.00',  entitlement: 'DUE AGENT' },
+    { id: '1', description: 'AWB FEE',             amount: '45.00',  entitlement: 'DUE AGENT' },
+    { id: '2', description: 'SECURITY SCREENING',  amount: '88.20',  entitlement: 'DUE CARRIER' },
+    { id: '3', description: 'COOL CHAIN HANDLING', amount: '240.00', entitlement: 'DUE CARRIER' },
+    { id: '4', description: 'FUEL SURCHARGE',      amount: '189.00', entitlement: 'DUE CARRIER' },
   ],
 
-  weightChargePPD: '400.00',
+  weightChargePPD: '1018.50',
   weightChargeCOLL: '',
   valuationChargePPD: '',
   valuationChargeCOLL: '',
   taxPPD: '',
   taxCOLL: '',
-  totalOtherChargesDueAgent: '1439.35',
-  totalOtherChargesDueCarrier: '',
-  totalPrepaid: '1839.35',
+  totalOtherChargesDueAgent: '45.00',
+  totalOtherChargesDueCarrier: '517.20',
+  totalPrepaid: '1580.70',
   totalCollect: '',
 
   currencyConversionRates: '',
@@ -94,9 +103,9 @@ export const exampleAWB: AWBData = {
   chargesAtDestination: '',
   totalCollectCharges: '',
 
-  executedOnDate: '02-NOV-2023',
-  executedAtPlace: 'SANTIAGO',
-  signatureShipper: 'ANDES EXPORTS SPA',
+  executedOnDate: '14-MAR-2026',
+  executedAtPlace: 'FRANKFURT',
+  signatureShipper: 'NORDLICHT PHARMA GMBH',
   signatureCarrier: '',
 
   isDraft: true,

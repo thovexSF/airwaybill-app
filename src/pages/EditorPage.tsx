@@ -7,10 +7,12 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { AWBFormPanel } from '../components/AWBFormPanel'
 import { FormDialog } from '../components/FormDialog'
+import { CopiesDialog } from '../components/CopiesDialog'
 import { AWBOverlay } from '../components/AWBOverlay'
 import { AWBDocument } from '../pdf/AWBDocument'
 import { AWBData, defaultAWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
+import { applyAirlineForPrefix } from '../lib/airlines'
 import { useAuth } from '../auth/AuthContext'
 import { saveAWB, getAWB } from '../lib/awbService'
 import { usePlan } from '../lib/usePlan'
@@ -64,6 +66,7 @@ export function EditorPage() {
   // On narrow screens the sheet stays on screen and the form moves into a
   // dialog; edits are buffered there so Cancel discards them.
   const [formDialogOpen, setFormDialogOpen] = useState(false)
+  const [copiesOpen, setCopiesOpen] = useState(false)
   const [draft, setDraft] = useState<AWBData | null>(null)
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -172,12 +175,12 @@ export function EditorPage() {
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => regenerate(data, pdfScale), 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, pdfScale])
+  }, [data, pdfScale, overlayMode])
 
   async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
     setGenerating(true)
     try {
-      const blob = await pdf(<AWBDocument data={d} userScale={scale} />).toBlob()
+      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
@@ -204,68 +207,96 @@ export function EditorPage() {
     setSaving(false)
   }
 
-  function downloadPdfFile() {
-    if (!pdfUrl) return
+  /**
+   * Always renders a fresh PDF that carries the values. The preview blob cannot
+   * be reused: while the overlay is up it is deliberately the blank sheet, with
+   * every value drawn by the HTML inputs instead.
+   */
+  async function downloadPdfFile() {
+    const blob = await pdf(<AWBDocument data={data} userScale={pdfScale} />).toBlob()
+    const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = pdfUrl
+    link.href = url
     link.download = `${isHawb ? 'HAWB' : 'AWB'}_${awbFull}.pdf`
     document.body.appendChild(link)
     link.click()
     link.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+
+  /**
+   * The free-tier gate. Returns false once the month's allowance is spent, so
+   * callers can stop before handing the user a file. Every route out of the
+   * app — the Download button and the copies dialog alike — goes through here.
+   */
+  function withinQuota(): boolean {
+    if (!atLimit) return true
+    setSaveMsg(t('editor.limitReached'))
+    setTimeout(() => setSaveMsg(null), 5000)
+    ;(window as any).clarity?.('event', 'free_pdf_limit_reached')
+    posthog?.capture('free_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
+    return false
+  }
+
+  /** Saves the document if it is still unsaved, then counts one PDF against the plan. */
+  async function countPdfDownload(source: string) {
+    let docIdForDownload = currentId
+    let countedAt = downloadCountedAt
+
+    if (!docIdForDownload) {
+      try {
+        const doc = await saveAWB(data, undefined, orgId ?? undefined)
+        docIdForDownload = doc.id
+        countedAt = doc.download_counted_at ?? null
+        setCurrentId(doc.id)
+        setDownloadCountedAt(countedAt)
+        navigate(`/editor?id=${doc.id}`, { replace: true })
+        ;(window as any).clarity?.('event', 'awb_saved')
+        posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source })
+      } catch (error) {
+        console.error('PDF save before download failed:', error)
+      }
+    }
+
+    try {
+      const result = await recordPdfDownload(orgId, docIdForDownload, countedAt)
+      if (result === 'limit_reached') {
+        setSaveMsg(t('editor.limitReached'))
+        setTimeout(() => setSaveMsg(null), 5000)
+        ;(window as any).clarity?.('event', 'free_pdf_limit_reached')
+        posthog?.capture('free_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
+        return false
+      }
+      if (result === 'ok' || result === 'already_counted') {
+        setDownloadCountedAt(new Date().toISOString())
+        await refreshUsage()
+      }
+    } catch (error) {
+      console.error('PDF usage tracking failed:', error)
+    }
+
+    ;(window as any).clarity?.('event', 'awb_downloaded')
+    posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan, source })
+    supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
+    return true
+  }
+
+  /** Gate handed to the copies dialog: check the plan, then count the issue. */
+  async function authorizeCopies(): Promise<boolean> {
+    if (planLoading) return false
+    if (!withinQuota()) return false
+    return countPdfDownload('copies')
   }
 
   async function handleDownloadPdf() {
     if (!pdfUrl || downloading || planLoading) return
-    if (atLimit) {
-      setSaveMsg(t('editor.limitReached'))
-      setTimeout(() => setSaveMsg(null), 5000)
-      ;(window as any).clarity?.('event', 'free_pdf_limit_reached')
-      posthog?.capture('free_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
-      return
-    }
+    if (!withinQuota()) return
 
     setSaveMsg(null)
     setDownloading(true)
-    downloadPdfFile()
+    await downloadPdfFile()
     try {
-      let docIdForDownload = currentId
-      let countedAt = downloadCountedAt
-
-      if (!docIdForDownload) {
-        try {
-          const doc = await saveAWB(data, undefined, orgId ?? undefined)
-          docIdForDownload = doc.id
-          countedAt = doc.download_counted_at ?? null
-          setCurrentId(doc.id)
-          setDownloadCountedAt(countedAt)
-          navigate(`/editor?id=${doc.id}`, { replace: true })
-          ;(window as any).clarity?.('event', 'awb_saved')
-          posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source: 'download' })
-        } catch (error) {
-          console.error('PDF save before download failed:', error)
-        }
-      }
-
-      try {
-        const result = await recordPdfDownload(orgId, docIdForDownload, countedAt)
-        if (result === 'limit_reached') {
-          setSaveMsg(t('editor.limitReached'))
-          setTimeout(() => setSaveMsg(null), 5000)
-          ;(window as any).clarity?.('event', 'free_pdf_limit_reached')
-          posthog?.capture('free_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
-          return
-        }
-        if (result === 'ok' || result === 'already_counted') {
-          setDownloadCountedAt(new Date().toISOString())
-          await refreshUsage()
-        }
-      } catch (error) {
-        console.error('PDF usage tracking failed:', error)
-      }
-
-      ;(window as any).clarity?.('event', 'awb_downloaded')
-      posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
-      supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
+      await countPdfDownload('download')
     } catch {
       setSaveMsg(t('editor.downloadError'))
       setTimeout(() => setSaveMsg(null), 5000)
@@ -274,10 +305,23 @@ export function EditorPage() {
     }
   }
 
+  /**
+   * Every user edit goes through here so the carrier block can follow the AWB
+   * prefix. It only fills fields the user has not written themselves — see
+   * `applyAirlineForPrefix`.
+   */
+  const applyData = useCallback((next: AWBData) => {
+    setData(prev => applyAirlineForPrefix(next, prev.awbPrefix))
+  }, [])
+
+  const applyDraft = useCallback((next: AWBData) => {
+    setDraft(prev => applyAirlineForPrefix(next, (prev ?? next).awbPrefix))
+  }, [])
+
   function openFormDialog() { setDraft(data); setFormDialogOpen(true) }
   function cancelFormDialog() { setDraft(null); setFormDialogOpen(false) }
   function applyFormDialog() {
-    if (draft) setData(draft)
+    if (draft) applyData(draft)
     setDraft(null)
     setFormDialogOpen(false)
   }
@@ -348,6 +392,9 @@ export function EditorPage() {
           >
             {saving ? t('editor.saving') : t('editor.saveDoc')}
           </button>
+          <button className="btn-example" type="button" onClick={() => setCopiesOpen(true)}>
+            🖨 {t('editor.copies')}
+          </button>
           {pdfUrl && (
             <button className="btn-download" type="button" onClick={handleDownloadPdf} disabled={downloading || planLoading}>
               {downloading ? t('editor.downloading') : t('editor.downloadPdf')}
@@ -371,7 +418,7 @@ export function EditorPage() {
         {!overlayMode && (
           <>
             <div className="form-panel-wrap" style={{ width: formWidth }}>
-              <AWBFormPanel data={data} onChange={setData} />
+              <AWBFormPanel data={data} onChange={applyData} />
               {/* Mobile-only: sticky download bar */}
               <div className="mobile-pdf-strip">
                 {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, flex: 1 }}>{t('editor.generating')}</span>}
@@ -392,6 +439,13 @@ export function EditorPage() {
         <button type="button" className="edit-fab" onClick={openFormDialog}>
           ✎ {t('editor.editFields')}
         </button>
+        <CopiesDialog
+          open={copiesOpen}
+          data={data}
+          onClose={() => setCopiesOpen(false)}
+          authorize={authorizeCopies}
+          fileName={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}`}
+        />
         <FormDialog
           open={formDialogOpen}
           title={`${isHawb ? 'HAWB' : 'AWB'}${awbFull ? ` · ${awbFull}` : ''}`}
@@ -400,7 +454,7 @@ export function EditorPage() {
           cancelLabel={t('common.cancel')}
           saveLabel={t('editor.applyChanges')}
         >
-          <AWBFormPanel data={draft ?? data} onChange={setDraft} />
+          <AWBFormPanel data={draft ?? data} onChange={applyDraft} />
         </FormDialog>
 
         <div className={`preview-panel ${overlayMode ? 'preview-panel-full' : ''}`}>
@@ -440,7 +494,7 @@ export function EditorPage() {
                         loading={null}
                         onRenderSuccess={updatePageWidth}
                       />
-                      {pageWidthPx > 0 && <AWBOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />}
+                      {pageWidthPx > 0 && <AWBOverlay data={data} onChange={applyData} pageWidthPx={pageWidthPx} />}
                     </div>
                   ) : (
                     <Page

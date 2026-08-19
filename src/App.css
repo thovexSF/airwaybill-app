@@ -337,3 +337,48 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
 @media (max-width: 768px) {
   .sheet-editor .edit-fab { display: block; }
 }
+
+/* --- Copies dialog: pick the IATA copies, preview and print them ---------- */
+
+.copies-dialog { max-width: 940px; }
+
+.copies-body { display: flex; gap: 0; align-items: stretch; }
+
+.copies-list {
+  flex: 0 0 300px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.copies-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 0;
+  font-size: 13px; cursor: pointer;
+}
+.copies-item input { width: 17px; height: 17px; accent-color: var(--red); flex: 0 0 auto; }
+
+.copies-swatch {
+  width: 15px; height: 15px; flex: 0 0 auto;
+  border-radius: 3px; border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.copies-hint { font-size: 12px; color: #777; margin: 12px 0 0; line-height: 1.45; }
+.copies-error { font-size: 12px; color: var(--red); margin: 10px 0 0; }
+
+.copies-preview {
+  flex: 1 1 auto; min-width: 0;
+  overflow-y: auto;
+  background: #3a3a3a;
+  padding: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.copies-preview .copies-hint { color: #bbb; }
+.copies-preview canvas { box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45); }
+
+@media (max-width: 768px) {
+  /* No room for two columns: the list goes on top, the preview below it. */
+  .copies-body { flex-direction: column; }
+  .copies-list { flex: 0 0 auto; border-right: none; border-bottom: 1px solid var(--border); }
+  .copies-preview { padding: 10px; }
+}

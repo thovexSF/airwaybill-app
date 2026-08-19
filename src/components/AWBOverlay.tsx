@@ -112,7 +112,10 @@ export function AWBOverlay({ data, onChange, pageWidthPx }: { data: AWBData; onC
           fontSize: px.fontSize, lineHeight: 1.15,
           fontFamily: 'Helvetica, Arial, sans-serif',
           textAlign: def.align ?? 'left',
-          border: 'none', outline: 'none', background: 'rgba(255,255,255,0.85)',
+          // Transparent: the PDF underneath is rendered with `hideValues`, so
+          // there is nothing to mask, and the sheet's own shaded boxes stay
+          // visible through the input.
+          border: 'none', outline: 'none', background: 'transparent',
           padding: 0, color: '#000', resize: 'none',
         }
 

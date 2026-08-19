@@ -126,6 +126,7 @@ const en = {
     limitBanner: 'You\'ve reached the 10 document PDF downloads included in the Free plan this month.',
     upgradeNow: 'Upgrade to Starter →',
     editFields: 'Edit fields',
+    copies: 'Copies',
     applyChanges: 'Apply',
     pdfDownloads: 'PDF downloads',
     limitReached: 'Free plan limit: 10 document PDF downloads/month',
@@ -235,6 +236,15 @@ const en = {
       too_short: 'Please write at least a few words.',
       send_failed: 'Could not send right now. Try again in a moment.',
     },
+  },
+  copies: {
+    title: 'Air waybill copies',
+    hint: 'Originals 1 to 3 all have the same validity. Each copy prints the colour of the paper it is issued on.',
+    pickOne: 'Pick at least one copy to preview it.',
+    error: 'The copies could not be rendered.',
+    popupBlocked: 'The browser blocked the print window. Download the PDF and print it from there.',
+    print: 'Print',
+    download: 'Download PDF',
   },
 } as const
 

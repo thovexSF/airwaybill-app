@@ -126,6 +126,7 @@ const es = {
     limitBanner: 'Alcanzaste las 10 descargas PDF de documentos incluidas en el plan Free este mes.',
     upgradeNow: 'Actualizar a Starter →',
     editFields: 'Editar campos',
+    copies: 'Copias',
     applyChanges: 'Aplicar',
     pdfDownloads: 'descargas PDF',
     limitReached: 'Limite del plan Free: 10 descargas PDF de documentos/mes',
@@ -235,6 +236,15 @@ const es = {
       too_short: 'Escribí al menos unas palabras.',
       send_failed: 'No se pudo enviar ahora. Probá de nuevo en un momento.',
     },
+  },
+  copies: {
+    title: 'Copias del air waybill',
+    hint: 'Los originales 1 a 3 tienen la misma validez. Cada copia imprime el color del papel en que se emite.',
+    pickOne: 'Elige al menos una copia para verla.',
+    error: 'No se pudieron generar las copias.',
+    popupBlocked: 'El navegador bloqueó la ventana de impresión. Descarga el PDF e imprímelo desde ahí.',
+    print: 'Imprimir',
+    download: 'Descargar PDF',
   },
 } as const
 

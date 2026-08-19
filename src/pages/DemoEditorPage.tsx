@@ -9,6 +9,8 @@ import { AWBFormPanel } from '../components/AWBFormPanel'
 import { FormDialog } from '../components/FormDialog'
 import { AWBOverlay } from '../components/AWBOverlay'
 import { AWBDocument } from '../pdf/AWBDocument'
+import { CopiesDialog } from '../components/CopiesDialog'
+import { applyAirlineForPrefix } from '../lib/airlines'
 import { AWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
 import { LangSwitcher } from '../components/LangSwitcher'
@@ -54,6 +56,7 @@ export function DemoEditorPage() {
   // On narrow screens the sheet stays on screen and the form moves into a
   // dialog; edits are buffered there so Cancel discards them.
   const [formDialogOpen, setFormDialogOpen] = useState(false)
+  const [copiesOpen, setCopiesOpen] = useState(false)
   const [draft, setDraft] = useState<AWBData | null>(null)
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -99,12 +102,21 @@ export function DemoEditorPage() {
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => regenerate(data), 700)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data])
+  }, [data, overlayMode])
+
+  /** See `EditorPage.applyData` — keeps the carrier block in step with the prefix. */
+  const applyData = useCallback((next: AWBData) => {
+    setData(prev => applyAirlineForPrefix(next, prev.awbPrefix))
+  }, [])
+
+  const applyDraft = useCallback((next: AWBData) => {
+    setDraft(prev => applyAirlineForPrefix(next, (prev ?? next).awbPrefix))
+  }, [])
 
   async function regenerate(d: AWBData) {
     setGenerating(true)
     try {
-      const blob = await pdf(<AWBDocument data={d} />).toBlob()
+      const blob = await pdf(<AWBDocument data={d} hideValues={overlayMode} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
@@ -155,6 +167,9 @@ export function DemoEditorPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
+          <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
+            🖨 {t('editor.copies')}
+          </button>
           <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
             {t('demo.downloadCta')}
           </Link>
@@ -186,7 +201,7 @@ export function DemoEditorPage() {
                     i === 0 && overlayMode ? (
                       <div key={i + 1} ref={setPageWrap} style={{ position: 'relative' }}>
                         <Page pageNumber={1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} loading={null} onRenderSuccess={updatePageWidth} />
-                        {pageWidthPx > 0 && <AWBOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />}
+                        {pageWidthPx > 0 && <AWBOverlay data={data} onChange={applyData} pageWidthPx={pageWidthPx} />}
                       </div>
                     ) : (
                       <Page key={i + 1} pageNumber={i + 1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} loading={null} />
@@ -202,7 +217,7 @@ export function DemoEditorPage() {
 
         {!overlayMode && (
           <div className="form-panel-wrap form-panel-wrap-fallback">
-            <AWBFormPanel data={data} onChange={setData} lockDraftWatermark />
+            <AWBFormPanel data={data} onChange={applyData} lockDraftWatermark />
           </div>
         )}
 
@@ -214,15 +229,22 @@ export function DemoEditorPage() {
         >
           ✎ {t('editor.editFields')}
         </button>
+        <CopiesDialog
+          open={copiesOpen}
+          data={data}
+          onClose={() => setCopiesOpen(false)}
+          fileName={demoDocType === 'hawb' ? 'HAWB' : 'AWB'}
+          allowDownload={false}
+        />
         <FormDialog
           open={formDialogOpen}
           title={demoDocType === 'hawb' ? 'HAWB' : 'AWB'}
           onCancel={() => { setDraft(null); setFormDialogOpen(false) }}
-          onSave={() => { if (draft) setData(draft); setDraft(null); setFormDialogOpen(false) }}
+          onSave={() => { if (draft) applyData(draft); setDraft(null); setFormDialogOpen(false) }}
           cancelLabel={t('common.cancel')}
           saveLabel={t('editor.applyChanges')}
         >
-          <AWBFormPanel data={draft ?? data} onChange={setDraft} lockDraftWatermark />
+          <AWBFormPanel data={draft ?? data} onChange={applyDraft} lockDraftWatermark />
         </FormDialog>
       </div>
     </div>
