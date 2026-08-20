@@ -57,12 +57,17 @@ This host is not allowed."** a toda petición cuyo header `Host` no esté en
 compilación: el healthcheck de Railway (que llega con `Host: healthcheck.railway.app`)
 recibe 403 y el deploy se marca como fallido.
 
-`vite.config.ts` autoriza `.up.railway.app` y `.railway.app`. Para un dominio
-propio, agregar la variable de entorno `PREVIEW_ALLOWED_HOSTS` en el ambiente de
-Railway, con los dominios separados por comas:
+`vite.config.ts` autoriza `airwaybill.app` y sus subdominios, más
+`.up.railway.app` y `.railway.app`. El dominio propio va en el código y no en
+una variable de entorno a propósito: si la variable se pierde, el sitio entero
+devuelve 403 y el síntoma —una página en blanco con un texto de Vite— no se
+parece en nada a la causa.
+
+Para un dominio adicional sin tocar el código existe igual la variable
+`PREVIEW_ALLOWED_HOSTS`, con los dominios separados por comas:
 
 ```
-PREVIEW_ALLOWED_HOSTS=airwaybill.app,www.airwaybill.app
+PREVIEW_ALLOWED_HOSTS=otrodominio.com,www.otrodominio.com
 ```
 
 Clickjacking protection (`X-Frame-Options: DENY`, `CSP frame-ancestors 'none'`) is set in

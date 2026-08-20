@@ -21,6 +21,11 @@ export default defineConfig({
     // dominios de Railway y, para un dominio propio, la variable de entorno
     // PREVIEW_ALLOWED_HOSTS (lista separada por comas) leída en build time.
     allowedHosts: [
+      // El dominio propio va acá, no en una variable de entorno: si se pierde
+      // la variable, el sitio devuelve 403 a todo el mundo y el síntoma no se
+      // parece en nada a la causa.
+      'airwaybill.app',
+      '.airwaybill.app',
       '.up.railway.app',
       '.railway.app',
       ...(process.env.PREVIEW_ALLOWED_HOSTS ?? '')
