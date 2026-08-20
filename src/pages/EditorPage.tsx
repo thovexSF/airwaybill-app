@@ -213,7 +213,7 @@ export function EditorPage() {
    * every value drawn by the HTML inputs instead.
    */
   async function downloadPdfFile() {
-    const blob = await pdf(<AWBDocument data={data} userScale={pdfScale} />).toBlob()
+    const blob = await pdf(<AWBDocument data={data} userScale={pdfScale} withConditions />).toBlob()
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url

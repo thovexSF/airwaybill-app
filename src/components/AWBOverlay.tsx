@@ -110,7 +110,9 @@ export function AWBOverlay({ data, onChange, pageWidthPx }: { data: AWBData; onC
           width: px.width,
           height: Math.max(px.height - labelH, 10),
           fontSize: px.fontSize, lineHeight: 1.15,
-          fontFamily: 'Helvetica, Arial, sans-serif',
+          // Courier en el PDF: la misma familia acá para que el ancho de lo
+          // tipeado sea el que va a imprimirse.
+          fontFamily: '"Courier New", Courier, ui-monospace, monospace',
           textAlign: def.align ?? 'left',
           // Transparent: the PDF underneath is rendered with `hideValues`, so
           // there is nothing to mask, and the sheet's own shaded boxes stay

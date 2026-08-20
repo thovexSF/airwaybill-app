@@ -99,9 +99,16 @@ when the browser is in "desktop site" mode — that is how the duplication was
 first seen on a phone.
 
 `src/pdf/awbCopies.ts` lists the eight IATA copies with the paper colour each
-one is issued on; `AWBCopiesDocument` emits one page per selected copy and
-`src/components/CopiesDialog.tsx` is the picker, preview and print/download
-front end for it. `src/lib/airlines.ts` maps the AWB prefix to its carrier and
+one is issued on; `AWBCopiesDocument` emits a face page and its reverse per
+selected copy, and `src/components/CopiesDialog.tsx` is the picker, preview and
+print/download front end for it.
+
+Values are set in **Courier**, because a waybill is a typed document and the
+reference sheet sets its own values in it. The auto-shrink in `renderFieldText`
+depends on that: Courier is monospaced, so `0.6 * fontSize` per character is the
+real advance width, not an estimate. Changing the face to a proportional font
+means changing that constant too, and `AWBOverlay` carries the matching CSS
+stack so what is typed measures the same on screen as it prints. `src/lib/airlines.ts` maps the AWB prefix to its carrier and
 brand colour: the editor fills the carrier block from it (never overwriting
 what was typed) and the renderer prints the carrier's name in that colour with
 a two-letter chip, standing in for a logo. Only add a prefix you have verified
@@ -143,6 +150,20 @@ against the receiving airline's implementation guide.
 BLANK TEMPLATE r3"), shared with the sister `b2b` repo — 522 vector paths and
 73 printed captions, no embedded raster. `awb-template-bg.png` is its
 rasterisation, used because `@react-pdf/renderer` cannot render arbitrary SVG.
+
+What the renderer actually draws is `awb-template-line.png`: the same raster
+rewritten as ink-on-transparent by `scripts/make-transparent-template.mjs`.
+Each of the eight copies is issued on its own colour of paper, so the sheet has
+to sit *over* a page background instead of carrying an opaque white one. Re-run
+that script whenever the SVG is re-exported; `awb-template-bg.png` stays in the
+repo as its input.
+
+The reverse of the sheet is `src/pdf/awbConditions.ts` — IATA Resolution 600b,
+held as text and typeset in two columns by `AwbConditionsPage`, not embedded as
+a picture of somebody else's printed page. `scripts/check-conditions.mjs` diffs
+it word for word against the text layer of a reference waybill (pass the PDF's
+path); it passes at 1413 words. Every copy carries its own reverse, so printing
+double-sided gives each sheet its contract.
 
 Because the sheet supplies every box, rule and caption, `awbLayout.ts` only
 positions *values*: it emits fields and no boxes, banners or static text, and

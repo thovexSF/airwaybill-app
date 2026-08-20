@@ -7,11 +7,14 @@ import {
 } from './awbLayout'
 import { airlineForPrefix } from '../lib/airlines'
 import { copyStyle } from './awbCopies'
+import {
+  CONDITIONS, CONDITIONS_NOTICE, CONDITIONS_NOTICE_TITLE, CONDITIONS_TITLE,
+} from './awbConditions'
 
 const RED = '#8B0000'
 
 const styles = StyleSheet.create({
-  page: { padding: PAGE_PADDING, fontFamily: 'Helvetica', fontSize: 8, backgroundColor: '#fff' },
+  page: { padding: PAGE_PADDING, fontFamily: 'Courier', fontSize: 8 },
   // A hair under the true page height: at exactly PAGE_HEIGHT react-pdf's layout
   // rounds the absolute image past the page and pushes every sibling to page 2.
   sheet: { position: 'absolute', top: 0, left: SHEET_LEFT, width: SHEET_WIDTH, height: PAGE_HEIGHT - 0.5 },
@@ -34,8 +37,9 @@ function renderFieldText(value: string, def: FieldDef, ink?: { color: string; bo
 
   let fontSize = def.fontSize
   const floor = 5
-  // Rough width estimate for Helvetica: ~0.52 * fontSize per character
-  while (fontSize > floor && longestLine.length * fontSize * 0.52 > def.width) {
+  // Courier is monospaced: every glyph advances exactly 0.6 em, so this is
+  // the real width, not an estimate.
+  while (fontSize > floor && longestLine.length * fontSize * 0.6 > def.width) {
     fontSize -= 0.5
   }
   const lineHeight = 1.15
@@ -49,7 +53,7 @@ function renderFieldText(value: string, def: FieldDef, ink?: { color: string; bo
         lineHeight,
         textAlign: def.align ?? 'left',
         color: ink?.color ?? '#000',
-        ...(ink?.bold ? { fontFamily: 'Helvetica-Bold' } : null),
+        ...(ink?.bold ? { fontFamily: 'Courier-Bold' } : null),
       }}
     >
       {visibleText}
@@ -77,7 +81,7 @@ function StaticText({ x, y, width, height, fontSize, lineHeight, text, boldFrom 
       {idx >= 0 ? (
         <>
           {text.slice(0, idx)}
-          <Text style={{ fontFamily: 'Helvetica-Bold' }}>{text.slice(idx)}</Text>
+          <Text style={{ fontFamily: 'Courier-Bold' }}>{text.slice(idx)}</Text>
         </>
       ) : (
         text
@@ -137,9 +141,12 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
   const copyLabel = copyKey ? copy.label : (data.copyLabel || copy.label)
 
   return (
-    <Page size="LETTER" style={styles.page}>
-      {/* The blank IATA form supplies every box, rule and caption. */}
-      <Image src="/awb-template-bg.png" style={styles.sheet} />
+    <Page size="LETTER" style={[styles.page, { backgroundColor: copy.paper }]}>
+      {/* The blank IATA form supplies every box, rule and caption. Its raster is
+          ink-on-transparent (see scripts/make-transparent-template.mjs), so the
+          copy's paper colour behind it reaches the whole sheet the way coloured
+          stock does — not just a stripe at the foot of the page. */}
+      <Image src="/awb-template-line.png" style={styles.sheet} />
 
       {data.isDraft && <Text style={styles.watermark}>DRAFT</Text>}
 
@@ -177,7 +184,7 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
       {awbFull ? (
         <Text style={[styles.field, {
           left: sheetX(112), top: sheetY(14), width: sheetY(87),
-          fontSize: 11, fontFamily: 'Helvetica-Bold', textAlign: 'right',
+          fontSize: 11, fontFamily: 'Courier-Bold', textAlign: 'right',
         }]}>{awbFull}</Text>
       ) : null}
 
@@ -198,20 +205,95 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
   )
 }
 
-export function AWBDocument({ data, hideValues }: { data: AWBData; userScale?: 'sm' | 'md' | 'lg'; hideValues?: boolean }) {
+/**
+ * The reverse of the sheet: IATA Resolution 600b, set in two columns the way it
+ * is printed on real stationery. Typeset from `awbConditions.ts` rather than
+ * dropped in as a picture of somebody else's printed page, for the same reason
+ * the face is drawn from measured coordinates.
+ */
+function AwbConditionsPage({ copyKey, paper }: { copyKey?: string; paper: string }) {
+  const column = (clauses: typeof CONDITIONS) => (
+    <View style={conditions.column}>
+      {clauses.map((c, i) => (
+        <View key={i} style={conditions.clause}>
+          <Text style={conditions.number}>{c.n}</Text>
+          <Text style={conditions.text}>{c.text}</Text>
+        </View>
+      ))}
+    </View>
+  )
+
+  // Split near the middle by character count, on a clause boundary, so the two
+  // columns come out roughly level whatever the wording does.
+  const total = CONDITIONS.reduce((sum, c) => sum + c.text.length, 0)
+  let running = 0
+  let split = CONDITIONS.length
+  for (let i = 0; i < CONDITIONS.length; i++) {
+    running += CONDITIONS[i].text.length
+    if (running >= total / 2) { split = i + 1; break }
+  }
+
+  return (
+    <Page size="LETTER" style={[styles.page, { backgroundColor: paper, paddingHorizontal: 26, paddingVertical: 22 }]}>
+      <Text style={conditions.noticeTitle}>{CONDITIONS_NOTICE_TITLE}</Text>
+      <Text style={conditions.notice}>{CONDITIONS_NOTICE}</Text>
+      <Text style={conditions.title}>{CONDITIONS_TITLE}</Text>
+      <View style={conditions.columns}>
+        {column(CONDITIONS.slice(0, split))}
+        {column(CONDITIONS.slice(split))}
+      </View>
+      {copyKey ? <Text style={conditions.foot}>{copyStyle(copyKey).label}</Text> : null}
+    </Page>
+  )
+}
+
+// Sized to fill the sheet the way the printed reverse does. Small, but this is
+// the one page nobody reads until something goes wrong, and then it has to be
+// readable — hence 6.8pt rather than the 5pt the source PDF crams it into.
+const conditions = StyleSheet.create({
+  noticeTitle: { fontFamily: 'Helvetica-Bold', fontSize: 8.5, textAlign: 'center', marginBottom: 3 },
+  notice: { fontFamily: 'Helvetica', fontSize: 6.8, lineHeight: 1.3, textAlign: 'justify', marginBottom: 7 },
+  title: { fontFamily: 'Helvetica-Bold', fontSize: 9, textAlign: 'center', marginBottom: 6 },
+  columns: { flexDirection: 'row', gap: 16, flex: 1 },
+  column: { flex: 1 },
+  clause: { flexDirection: 'row', marginBottom: 3 },
+  number: { fontFamily: 'Helvetica-Bold', fontSize: 6.8, width: 30 },
+  text: { fontFamily: 'Helvetica', fontSize: 6.8, lineHeight: 1.32, textAlign: 'justify', flex: 1 },
+  foot: { fontFamily: 'Helvetica-Bold', fontSize: 7, textAlign: 'center', marginTop: 6, color: '#555' },
+})
+
+/**
+ * One waybill. `withConditions` puts the contract on the back of the sheet, as
+ * it is on paper; the live editor leaves it off so a keystroke only re-lays out
+ * the page being edited.
+ */
+export function AWBDocument({ data, hideValues, withConditions }: {
+  data: AWBData
+  userScale?: 'sm' | 'md' | 'lg'
+  hideValues?: boolean
+  withConditions?: boolean
+}) {
   return (
     <Document>
       <AWBFacePage data={data} hideValues={hideValues} />
+      {withConditions && <AwbConditionsPage paper={copyStyle(data.copyNumber).paper} />}
     </Document>
   )
 }
 
-/** The same waybill issued as several numbered copies, one page each. */
+/**
+ * The same waybill issued as several numbered copies. Each copy is a face page
+ * followed by its own reverse, so printing double-sided gives every sheet its
+ * contract — "hoja por medio" — instead of one contract for the whole stack.
+ */
 export function AWBCopiesDocument({ data, copies }: { data: AWBData; copies: string[] }) {
   return (
     <Document>
       {copies.map((key) => (
-        <AWBFacePage key={key} data={data} copyKey={key} />
+        <React.Fragment key={key}>
+          <AWBFacePage data={data} copyKey={key} />
+          <AwbConditionsPage copyKey={key} paper={copyStyle(key).paper} />
+        </React.Fragment>
       ))}
     </Document>
   )
