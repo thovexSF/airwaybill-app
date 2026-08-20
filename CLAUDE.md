@@ -21,16 +21,22 @@ browser profile. See `RAILWAY_ENVIRONMENTS.md` for the Railway deploy setup
 (branch `main` → production) and `DEPLOY_CLOUDFLARE_PAGES.md` for the
 alternative static-hosting path.
 
-The Railway build and start commands live in `railway.json`, not only in the
-Railway UI, and `nixpacks.toml` pins the language provider to `node`. Three
-things there are load-bearing and easy to undo by accident: the install must be
-`npm ci --include=dev` (the whole toolchain is a devDependency, so a
-`NODE_ENV=production` in the environment would strip it); `preview.allowedHosts`
-in `vite.config.ts` must cover the serving domain, because `vite preview`
-answers 403 to any other `Host` and fails the healthcheck while the build still
-reports success; and the provider pin must stay, because Nixpacks otherwise
-detects Deno from the `https://deno.land/...` imports in `supabase/functions/`
-and builds an image with no npm in it.
+The Railway deploy is pinned in the repo, not only in the Railway UI:
+`nixpacks.toml` holds the language provider and the install phase,
+`railway.json` the build and start commands. Four things there are load-bearing
+and easy to undo by accident.
+
+- The provider pin (`providers = ["node"]`) must stay: Nixpacks otherwise
+  detects Deno from the `https://deno.land/...` imports in
+  `supabase/functions/` and builds an image with no npm in it.
+- The install must be `npm ci --include=dev` — the whole toolchain is a
+  devDependency, and npm's `production` config is on in that environment.
+- Nothing may install again in the build phase. Nixpacks mounts
+  `/app/node_modules/.cache` as a build cache, so a second `npm ci` wipes
+  `node_modules`, cannot `rmdir` that mount point and dies with `EBUSY`.
+- `preview.allowedHosts` in `vite.config.ts` must cover the serving domain:
+  `vite preview` answers 403 to any other `Host`, which fails the healthcheck
+  while the build still reports success.
 
 ## Architecture
 

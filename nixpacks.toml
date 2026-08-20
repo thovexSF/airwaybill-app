@@ -4,6 +4,17 @@
 # Deno. La app en sí no: es un SPA de Vite que se construye con npm.
 #
 # Sin este pin, la fase `setup` instalaba deno, npm no existía en la imagen y el
-# build moría con `npm: command not found` (exit 127) aunque los comandos de
-# build y start de `railway.json` fueran los correctos.
+# build moría con `npm: command not found` (exit 127).
 providers = ["node"]
+
+# La instalación va acá y en ningún otro lado. El `--include=dev` es
+# deliberado: todo el toolchain (TypeScript, Vite, el plugin de React) es
+# devDependency, y el ambiente trae la config `production` de npm activada, que
+# sin esto las omitiría y dejaría el build sin `vite`.
+#
+# El comando de build NO debe volver a instalar. Nixpacks monta
+# `/app/node_modules/.cache` como caché de build, y un segundo `npm ci` borra
+# node_modules entero, no puede hacer rmdir de ese punto de montaje y falla con
+# `EBUSY: resource busy or locked` (errno -16, exit 240).
+[phases.install]
+cmds = ["npm ci --include=dev"]

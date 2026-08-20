@@ -21,12 +21,19 @@ Esta app es frontend Vite. Separamos ambientes con `VITE_APP_ENV` para evitar me
 
 ## Build / Start para Vite
 
-Ambos comandos viven en `railway.json`, versionado en el repo, para que un cambio
-en la UI de Railway no pueda dejar el servicio sin comando de arranque:
+Las tres fases están versionadas en el repo, para que un cambio en la UI de
+Railway no pueda dejar el servicio sin comando de arranque:
 
-- Build command: `npm ci --include=dev && npm run build`
-- Start command: `npm start` (`vite preview --host 0.0.0.0 --port ${PORT:-4173}`)
+- Install (`nixpacks.toml`): `npm ci --include=dev`
+- Build (`railway.json`): `npm run build`
+- Start (`railway.json`): `npm start` (`vite preview --host 0.0.0.0 --port ${PORT:-4173}`)
 - Healthcheck: `/`
+
+La instalación va en la fase de install y en ninguna otra. Nixpacks monta
+`/app/node_modules/.cache` como caché de build, así que un segundo `npm ci` en
+la fase de build borra `node_modules` entero, no puede hacer `rmdir` de ese
+punto de montaje y falla con `EBUSY: resource busy or locked` (errno -16,
+exit 240).
 
 El proveedor de lenguaje se fija en `nixpacks.toml`. Nixpacks escanea el repo
 para adivinarlo, y su proveedor de Deno gana apenas encuentra un
@@ -35,10 +42,12 @@ Functions de Supabase y corren en Deno. Con eso la fase `setup` instalaba deno,
 la imagen quedaba sin npm y el build moría con `npm: command not found`
 (exit 127) aunque los comandos de build y start fueran los correctos.
 
-El `--include=dev` es deliberado. Si el ambiente define `NODE_ENV=production`,
-`npm ci` omite las devDependencies y el build muere con `tsc: not found` o
-`vite: not found`, porque el toolchain completo (TypeScript, Vite, el plugin de
-React) es devDependency. La versión de Node se fija en `.nvmrc` y en `engines`.
+El `--include=dev` es deliberado. El ambiente trae la config `production` de npm
+activada, y sin esa bandera `npm ci` omite las devDependencies y el build muere
+con `tsc: not found` o `vite: not found`, porque el toolchain completo
+(TypeScript, Vite, el plugin de React) es devDependency. Verificado: con
+`NPM_CONFIG_PRODUCTION=true NODE_ENV=production`, `--include=dev` igual deja
+`vite` y `tsc` instalados. La versión de Node se fija en `.nvmrc` y en `engines`.
 
 ### Hosts permitidos en el preview
 
