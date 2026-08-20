@@ -28,6 +28,13 @@ en la UI de Railway no pueda dejar el servicio sin comando de arranque:
 - Start command: `npm start` (`vite preview --host 0.0.0.0 --port ${PORT:-4173}`)
 - Healthcheck: `/`
 
+El proveedor de lenguaje se fija en `nixpacks.toml`. Nixpacks escanea el repo
+para adivinarlo, y su proveedor de Deno gana apenas encuentra un
+`import ... from "https://deno.land/..."`: `supabase/functions/` son Edge
+Functions de Supabase y corren en Deno. Con eso la fase `setup` instalaba deno,
+la imagen quedaba sin npm y el build moría con `npm: command not found`
+(exit 127) aunque los comandos de build y start fueran los correctos.
+
 El `--include=dev` es deliberado. Si el ambiente define `NODE_ENV=production`,
 `npm ci` omite las devDependencies y el build muere con `tsc: not found` o
 `vite: not found`, porque el toolchain completo (TypeScript, Vite, el plugin de

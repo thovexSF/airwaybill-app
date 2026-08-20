@@ -1,0 +1,9 @@
+# Nixpacks elige el lenguaje escaneando el repo, y su proveedor de Deno gana
+# sobre el de Node en cuanto encuentra un `import ... from "https://deno.land/..."`.
+# Eso lo hay: `supabase/functions/` son Supabase Edge Functions, que corren en
+# Deno. La app en sí no: es un SPA de Vite que se construye con npm.
+#
+# Sin este pin, la fase `setup` instalaba deno, npm no existía en la imagen y el
+# build moría con `npm: command not found` (exit 127) aunque los comandos de
+# build y start de `railway.json` fueran los correctos.
+providers = ["node"]

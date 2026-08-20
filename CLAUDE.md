@@ -22,12 +22,15 @@ browser profile. See `RAILWAY_ENVIRONMENTS.md` for the Railway deploy setup
 alternative static-hosting path.
 
 The Railway build and start commands live in `railway.json`, not only in the
-Railway UI. Two things there are load-bearing and easy to undo by accident:
-the install must be `npm ci --include=dev` (the whole toolchain is a
-devDependency, so a `NODE_ENV=production` in the environment would strip it),
-and `preview.allowedHosts` in `vite.config.ts` must cover the serving domain —
-`vite preview` answers 403 to any other `Host`, which fails the healthcheck
-while the build still reports success.
+Railway UI, and `nixpacks.toml` pins the language provider to `node`. Three
+things there are load-bearing and easy to undo by accident: the install must be
+`npm ci --include=dev` (the whole toolchain is a devDependency, so a
+`NODE_ENV=production` in the environment would strip it); `preview.allowedHosts`
+in `vite.config.ts` must cover the serving domain, because `vite preview`
+answers 403 to any other `Host` and fails the healthcheck while the build still
+reports success; and the provider pin must stay, because Nixpacks otherwise
+detects Deno from the `https://deno.land/...` imports in `supabase/functions/`
+and builds an image with no npm in it.
 
 ## Architecture
 
