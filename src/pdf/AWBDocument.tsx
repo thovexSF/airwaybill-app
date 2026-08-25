@@ -34,16 +34,18 @@ const styles = StyleSheet.create({
   sheet: { position: 'absolute', top: 0, left: 0, width: PAGE_WIDTH, height: SHEET_HEIGHT },
   logo: { position: 'absolute', top: '4.15%', left: '71.2%', width: '17.6%', height: '3.6%', objectFit: 'contain' },
   field: { position: 'absolute' },
-  // Marca de la app, en el margen bajo el pie del formulario. Va en la tinta de
-  // la copia y atenuada: identifica quién emitió el documento sin competir con
-  // nada de lo que el formulario imprime.
+  // Marca de la app, en el margen en blanco que queda bajo el formulario. La
+  // última regla de la hoja está en el 97,73% de la página (medido sobre
+  // awb-copies/1.png), así que el sello va debajo de esa línea y no dentro del
+  // recuadro. Va en la tinta de la copia y atenuado: identifica de dónde salió
+  // el documento sin competir con nada de lo que el formulario imprime.
   stamp: {
     position: 'absolute',
     left: '10%',
-    top: '96.9%',
+    top: '98.15%',
     fontSize: 6.5,
     fontWeight: 700,
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
     opacity: 0.65,
   },
   // Tinted with the copy's own ink: a red DRAFT on a green sheet reads as a
@@ -184,7 +186,7 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
 
       {data.isDraft && <Text style={[styles.watermark, { color: theme.ink }]}>DRAFT</Text>}
 
-      <Text style={[styles.stamp, { color: theme.ink }]}>Generated with AirWaybill.app</Text>
+      <Text style={[styles.stamp, { color: theme.ink }]}>GENERATED WITH AIRWAYBILL.APP</Text>
 
       {fieldDefs.map((def, i) => {
         // The overlay covers only what the user types, so the derived values —
