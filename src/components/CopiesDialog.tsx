@@ -4,7 +4,7 @@ import { pdf } from '@react-pdf/renderer'
 import { Document, Page } from 'react-pdf'
 import { AWBData } from '../types/awb'
 import { AWBCopiesDocument } from '../pdf/AWBDocument'
-import { AWB_COPIES, DEFAULT_COPIES } from '../pdf/awbCopies'
+import { AWB_COPIES, DEFAULT_COPIES } from '../pdf/awbCopyTheme'
 
 /**
  * Picks which of the eight IATA copies to issue, previews them and sends them
@@ -136,7 +136,7 @@ export function CopiesDialog({
             {AWB_COPIES.map((c) => (
               <label key={c.key} className="copies-item">
                 <input type="checkbox" checked={selected.includes(c.key)} onChange={() => toggle(c.key)} />
-                <span className="copies-swatch" style={{ background: c.color }} aria-hidden="true" />
+                <span className="copies-swatch" style={{ background: c.ink }} aria-hidden="true" />
                 <span>{c.label}</span>
               </label>
             ))}

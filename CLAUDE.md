@@ -71,11 +71,15 @@ blank IATA form (see below).
 
 The AWB is the only document with three pieces:
 
-- **`src/pdf/awbLayout.ts`** — the single source of truth for where every value
-  sits on the A4 form, as `FieldDef`s in millimetres. Imported by **both**
-  `AWBDocument.tsx` (the PDF export) and `AWBOverlay.tsx` (the live editing
-  UI), so the two can never drift out of visual sync — never hardcode a
-  position in one without going through this schema.
+- **`src/pdf/awbFieldPositions.ts`** — the coordinates, as percentages of the
+  US Letter page, calibrated against the awbeditor "SET COMPLETO" sheets. This
+  file is shared verbatim with the sister `b2b` repo, which prints from the
+  same numbers: fix alignment here and both apps move together, never by
+  nudging a value downstream.
+- **`src/pdf/awbLayout.ts`** — turns those percentages into points and maps
+  them onto `AWBData`. Imported by **both** `AWBDocument.tsx` (the PDF export)
+  and `AWBOverlay.tsx` (the live editing UI), so the two can never drift out of
+  visual sync.
 - **`src/pdf/AWBDocument.tsx`** — `@react-pdf/renderer` component that draws
   the blank form as a background image and places field values on it. It draws
   no captions: the sheet already prints all 72 of them.
@@ -98,21 +102,29 @@ The overlay only mounts above 900px of viewport width, which a phone reaches
 when the browser is in "desktop site" mode — that is how the duplication was
 first seen on a phone.
 
-`src/pdf/awbCopies.ts` lists the eight IATA copies with the paper colour each
-one is issued on; `AWBCopiesDocument` emits a face page and its reverse per
+`src/pdf/awbCopyTheme.ts` lists the eight IATA copies. Each is issued on its own
+sheet, printed in its own ink — green, magenta, blue, mustard, black — so the
+blank form comes as one rasterisation per copy in `public/awb-copies/`, and
+every typed value takes that copy's `ink`. Copies 6 to 8 are extra copies and
+share sheet 5. `AWBCopiesDocument` emits a face page and its reverse per
 selected copy, and `src/components/CopiesDialog.tsx` is the picker, preview and
 print/download front end for it.
 
-Values are set in **Courier**, because a waybill is a typed document and the
-reference sheet sets its own values in it. The auto-shrink in `renderFieldText`
-depends on that: Courier is monospaced, so `0.6 * fontSize` per character is the
-real advance width, not an estimate. Changing the face to a proportional font
-means changing that constant too, and `AWBOverlay` carries the matching CSS
-stack so what is typed measures the same on screen as it prints. `src/lib/airlines.ts` maps the AWB prefix to its carrier and
-brand colour: the editor fills the carrier block from it (never overwriting
-what was typed) and the renderer prints the carrier's name in that colour with
-a two-letter chip, standing in for a logo. Only add a prefix you have verified
-— a wrong mapping goes straight onto a printed waybill.
+Values are set in **Courier Prime**, embedded from `public/awb-fonts/` rather
+than using the built-in Courier: the standard Type 1 face renders noticeably
+heavier in macOS Preview than in Chrome, so the same waybill looked like two
+different documents depending on who opened it. The fitting in `fittedLines`
+depends on the face being monospaced — `0.6 * fontSize` per character is the
+real advance width, not an estimate — and `AWBOverlay` carries the matching CSS
+stack and the same 9pt baseline so what is typed measures the same on screen as
+it prints.
+
+`src/lib/airlines.ts` maps the AWB prefix to its carrier: the editor fills the
+carrier block from it (never overwriting what was typed) and the renderer draws
+the airline's logo from `public/awb-airlines/<prefix>.png`. Both the registry
+and the logo files are kept in step with `airlineByPrefix.ts` in `b2b`. Only add
+a prefix you have verified — a wrong mapping goes straight onto a printed
+waybill.
 
 `src/pdf/DGDDocument.tsx` and `src/pdf/ManifestDocument.tsx` are the renderers
 for the other two original document types, defined more directly (no separate
@@ -146,17 +158,13 @@ against the receiving airline's implementation guide.
 
 ### The AWB renders on the blank IATA form
 
-`public/awb-template.svg` is a blank IATA air waybill drawn in Inkscape ("AWB
-BLANK TEMPLATE r3"), shared with the sister `b2b` repo — 522 vector paths and
-73 printed captions, no embedded raster. `awb-template-bg.png` is its
-rasterisation, used because `@react-pdf/renderer` cannot render arbitrary SVG.
-
-What the renderer actually draws is `awb-template-line.png`: the same raster
-rewritten as ink-on-transparent by `scripts/make-transparent-template.mjs`.
-Each of the eight copies is issued on its own colour of paper, so the sheet has
-to sit *over* a page background instead of carrying an opaque white one. Re-run
-that script whenever the SVG is re-exported; `awb-template-bg.png` stays in the
-repo as its input.
+`public/awb-copies/1.png` … `5.png` are the blank IATA sheets, one per copy,
+each already printed in that copy's ink. They come from the awbeditor "SET
+COMPLETO" and are shared with the sister `b2b` repo, which renders them from
+the same SVG through `recolorAwbSvg`. They are US Letter (2481 × 3211, ratio
+0.7727) — not A4, which is why the coordinate schema is in page percentages
+rather than millimetres. `public/awb-template.svg` and `awb-template-bg.png`
+are the older A4 blank, kept as the source the sheets were derived from.
 
 The reverse of the sheet is `src/pdf/awbConditions.ts` — IATA Resolution 600b,
 held as text and typeset in two columns by `AwbConditionsPage`, not embedded as
@@ -171,17 +179,9 @@ positions *values*: it emits fields and no boxes, banners or static text, and
 image a height a hair under `PAGE_HEIGHT` — at exactly the page height
 react-pdf rounds it past the page and pushes every sibling onto page 2.
 
-The page is US Letter but the template is A4, so the sheet is scaled to the
-page height and centred (`SHEET_SCALE` / `SHEET_LEFT`), leaving ~9 mm blank
-down each side. Keep the aspect ratio: stretching the form to fill Letter
-would distort every box on it. Coordinates stay in template millimetres and
-`sheetX()` / `sheetY()` apply the fit, so nothing in the schema has to know
-about the page size.
-
-Coordinates live in millimetres on the 210 × 297 mm template and were measured
-from the SVG itself (its paths reduced to horizontal/vertical rules, then
-cross-checked against the 72 captions), so they can be re-verified against the
-source at any time.
+`hideValues` skips only the fields the overlay covers. The derived ones — the
+waybill number in its three places, the rate totals — are marked `readOnly` and
+stay the PDF's job, because the overlay never draws them.
 
 This replaced an earlier vector redraw of the form. If you ever go
 back to drawing the grid instead of using a licensed blank, do not substitute a

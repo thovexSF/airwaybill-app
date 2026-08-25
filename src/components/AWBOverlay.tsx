@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { AWBData, RateItem, OtherCharge, defaultAWBData } from '../types/awb'
 import {
-  AWB_LAYOUT, FieldDef, FieldKey, PAGE_WIDTH,
+  AWB_LAYOUT, FieldDef, FieldKey, PAGE_WIDTH, LEADING,
   getFieldDefs, setNestedField,
 } from '../pdf/awbLayout'
 
@@ -103,13 +103,25 @@ export function AWBOverlay({ data, onChange, pageWidthPx }: { data: AWBData; onC
         // label of its own and its input sits exactly on the PDF's field box.
         const labelH = 0
 
+        // A single-line <input> centres its text in its own height, so a tall
+        // box would float the value half-way down the cell instead of sitting on
+        // the line the PDF types it on. One line tall keeps the two in step;
+        // textareas already start at the top and keep the full box.
+        const lineHeightPx = LEADING * ptToPx
+        const boxHeight = def.multiline
+          ? Math.max(px.height - labelH, 10)
+          : Math.max(lineHeightPx, 10)
+
         const commonStyle: React.CSSProperties = {
           position: 'absolute', pointerEvents: 'auto',
           left: px.left,
           top: px.top + labelH,
           width: px.width,
-          height: Math.max(px.height - labelH, 10),
-          fontSize: px.fontSize, lineHeight: 1.15,
+          height: boxHeight,
+          fontSize: px.fontSize,
+          // The PDF types on a 9pt baseline; matching it here keeps a wrapped
+          // block sitting on the same lines on screen as on paper.
+          lineHeight: `${lineHeightPx}px`,
           // Courier en el PDF: la misma familia acá para que el ancho de lo
           // tipeado sea el que va a imprimirse.
           fontFamily: '"Courier New", Courier, ui-monospace, monospace',
