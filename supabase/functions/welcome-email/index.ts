@@ -7,8 +7,10 @@ Deno.serve(async (req) => {
   try {
     const payload = await req.json()
 
-    // Supabase webhook sends { type, table, record, ... }
+    // Database Webhook: { type: 'INSERT'|'UPDATE', record, old_record?, ... }
+    const type = payload?.type as string | undefined
     const record = payload?.record
+    const old = payload?.old_record
     const email = record?.email
     const name = record?.raw_user_meta_data?.full_name
       || record?.raw_user_meta_data?.company_name
@@ -16,6 +18,16 @@ Deno.serve(async (req) => {
       || 'there'
 
     if (!email) return new Response('no email', { status: 200 })
+
+    // Only welcome after the address is confirmed (or OAuth insert already confirmed).
+    const confirmedNow = Boolean(record?.email_confirmed_at)
+    const wasConfirmed = Boolean(old?.email_confirmed_at)
+    if (!confirmedNow) {
+      return new Response('skip: email not confirmed yet', { status: 200 })
+    }
+    if (type === 'UPDATE' && wasConfirmed) {
+      return new Response('skip: already confirmed', { status: 200 })
+    }
 
     const html = `
 <!DOCTYPE html>
