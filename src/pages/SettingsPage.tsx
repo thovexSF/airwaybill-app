@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../lib/supabase'
 import { usePlan } from '../lib/usePlan'
+import {
+  generateApiKeySecret,
+  hashApiKey,
+  type PartnerApiKeyRow,
+} from '../lib/partnerApiKeys'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { usePostHog } from '@posthog/react'
 
@@ -39,6 +44,22 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [cancelUrl, setCancelUrl] = useState<string | null>(null)
+  const [apiKeys, setApiKeys] = useState<PartnerApiKeyRow[]>([])
+  const [apiKeyName, setApiKeyName] = useState('B2B Express')
+  const [creatingKey, setCreatingKey] = useState(false)
+  const [newSecret, setNewSecret] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null)
+
+  const loadApiKeys = useCallback(async (id: string) => {
+    const { data } = await supabase
+      .from('partner_api_keys')
+      .select('id, name, key_prefix, plan_override, revoked_at, last_used_at, created_at')
+      .eq('organization_id', id)
+      .is('revoked_at', null)
+      .order('created_at', { ascending: false })
+    setApiKeys((data as PartnerApiKeyRow[]) ?? [])
+  }, [])
 
   useEffect(() => {
     if (!orgId) return
@@ -61,7 +82,45 @@ export function SettingsPage() {
       .then(({ data }) => {
         if (data?.paddle_cancel_url) setCancelUrl(data.paddle_cancel_url)
       })
-  }, [orgId])
+
+    loadApiKeys(orgId)
+  }, [orgId, loadApiKeys])
+
+  async function handleCreateApiKey() {
+    if (!orgId || !user) return
+    setCreatingKey(true)
+    setApiKeyError(null)
+    setNewSecret(null)
+    try {
+      const { secret, prefix } = generateApiKeySecret()
+      const keyHash = await hashApiKey(secret)
+      const { error } = await supabase.from('partner_api_keys').insert({
+        organization_id: orgId,
+        acting_user_id: user.id,
+        name: apiKeyName.trim() || 'default',
+        key_prefix: prefix,
+        key_hash: keyHash,
+        plan_override: plan === 'free' ? 'enterprise' : null,
+      })
+      if (error) throw error
+      setNewSecret(secret)
+      await loadApiKeys(orgId)
+      posthog?.capture('partner_api_key_created', { plan })
+    } catch (e: any) {
+      setApiKeyError(e?.message || t('common.error'))
+    } finally {
+      setCreatingKey(false)
+    }
+  }
+
+  async function handleRevokeApiKey(id: string) {
+    if (!orgId || !confirm(t('settings.apiKeyRevoke') + '?')) return
+    await supabase
+      .from('partner_api_keys')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('id', id)
+    await loadApiKeys(orgId)
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -230,6 +289,79 @@ export function SettingsPage() {
               <span style={{ fontSize: 12, color: '#aaa' }}>{t('settings.cancelContact')}</span>
             )}
           </div>
+        </div>
+
+        <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginTop: 32, border: '1px solid #e8dcdc' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 8 }}>{t('settings.apiKeys')}</h2>
+          <p style={{ fontSize: 13, color: '#666', marginBottom: 20 }}>{t('settings.apiKeysSub')}</p>
+
+          {newSecret && (
+            <div style={{ background: '#f8fff8', border: '1px solid #b7e0b7', borderRadius: 8, padding: 16, marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#2a7a2a', marginBottom: 8 }}>{t('settings.apiKeyCreated')}</div>
+              <code style={{ display: 'block', fontSize: 12, wordBreak: 'break-all', background: '#fff', padding: 10, borderRadius: 6, border: '1px solid #ddd', marginBottom: 10 }}>
+                {newSecret}
+              </code>
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(newSecret)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }}
+                style={{ background: '#2a7a2a', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              >
+                {copied ? t('settings.apiKeyCopied') : t('settings.apiKeyCopy')}
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+            <input
+              type="text"
+              value={apiKeyName}
+              onChange={(e) => setApiKeyName(e.target.value)}
+              placeholder={t('settings.apiKeyNamePh')}
+              aria-label={t('settings.apiKeyName')}
+              style={{ flex: 1, minWidth: 160, padding: '8px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13 }}
+            />
+            <button
+              type="button"
+              disabled={creatingKey || !orgId}
+              onClick={handleCreateApiKey}
+              style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+            >
+              {creatingKey ? t('common.saving') : t('settings.apiKeyCreate')}
+            </button>
+          </div>
+          {apiKeyError && <div style={{ color: '#c00', fontSize: 13, marginBottom: 12 }}>{apiKeyError}</div>}
+
+          {apiKeys.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#999' }}>{t('settings.apiKeyEmpty')}</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {apiKeys.map((k) => (
+                <div key={k.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', background: '#fafafa', borderRadius: 8, border: '1px solid #eee' }}>
+                  <div style={{ fontSize: 13 }}>
+                    <div style={{ fontWeight: 700 }}>{k.name}</div>
+                    <div style={{ color: '#888', fontSize: 12 }}>
+                      {t('settings.apiKeyPrefix')}: <code>{k.key_prefix}…</code>
+                      {' · '}
+                      {t('settings.apiKeyCreatedAt')}: {new Date(k.created_at).toLocaleDateString()}
+                      {' · '}
+                      {t('settings.apiKeyLastUsed')}: {k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : t('settings.apiKeyNever')}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRevokeApiKey(k.id)}
+                    style={{ background: '#fff', color: '#c00', border: '1px solid #e0b0b0', borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}
+                  >
+                    {t('settings.apiKeyRevoke')}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

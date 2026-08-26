@@ -21,6 +21,11 @@ browser profile. See `RAILWAY_ENVIRONMENTS.md` for the Railway deploy setup
 (branch `main` → production) and `DEPLOY_CLOUDFLARE_PAGES.md` for the
 alternative static-hosting path.
 
+**Partner API (B2B and other clients):** `npm start` serves the SPA and the
+`/v1` Partner API (`server/index.ts`). Auth is `Authorization: Bearer awb_live_…`
+(see `docs/PARTNER_API.md` and `supabase/migration_partner_api.sql`). B2B should
+not fork AWB PDF/UI — it calls this API / opens the hosted app.
+
 The Railway deploy is pinned in the repo, not only in the Railway UI:
 `nixpacks.toml` holds the language provider and the install phase,
 `railway.json` the build and start commands. Four things there are load-bearing
