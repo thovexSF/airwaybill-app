@@ -198,7 +198,8 @@ app.post('/v1/documents/:id/pdf', sendPdf)
 
 // SPA: serve built assets; fall through to index.html for client routes
 app.use(express.static(DIST, { index: false, maxAge: '1h' }))
-app.get('*', (req, res, next) => {
+// Express 5 / path-to-regexp: bare '*' is invalid; use a named splat.
+app.get('/{*path}', (req, res, next) => {
   if (req.path.startsWith('/v1/')) return next()
   res.sendFile(path.join(DIST, 'index.html'), err => {
     if (err) res.status(404).send('Build missing — run npm run build')
