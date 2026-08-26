@@ -23,12 +23,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [orgName, setOrgName] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data, error }) => {
+      if (error?.message?.includes('JWT issued at future')) {
+        await supabase.auth.signOut({ scope: 'local' })
+        setSession(null)
+        setLoading(false)
+        return
+      }
       setSession(data.session)
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
       setSession(s)
       setLoading(false)
       if (event === 'SIGNED_IN' && s?.user) {

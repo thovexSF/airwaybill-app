@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
 import { listAWBs, deleteAWB, AWBDocument } from '../lib/awbService'
+import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { ImportModal } from '../components/ImportModal'
 import { DOC_TYPES, docTypeMeta } from '../lib/docTypes'
@@ -32,7 +33,15 @@ export function MyAWBsPage() {
   useEffect(() => {
     listAWBs()
       .then(setDocs)
-      .catch(e => setError(e.message))
+      .catch(async (e) => {
+        const msg = e.message || String(e)
+        if (msg.includes('JWT issued at future')) {
+          await supabase.auth.signOut({ scope: 'local' })
+          window.location.reload()
+          return
+        }
+        setError(msg)
+      })
       .finally(() => setLoading(false))
   }, [])
 
