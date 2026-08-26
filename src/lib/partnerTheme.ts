@@ -15,18 +15,17 @@ export function applyPartnerTheme(theme: string, embed: boolean) {
 export function bootPartnerTheme() {
   let theme = ''
   let embed = false
+  let lang = ''
   try {
     const q = new URLSearchParams(window.location.search)
     theme = q.get('theme') || sessionStorage.getItem('awb_partner_theme') || ''
     embed = q.get('embed') === '1' || sessionStorage.getItem('awb_partner_embed') === '1'
+    lang = q.get('lang') || ''
   } catch {
     /* ignore */
   }
 
-  if (theme === 'b2b' || embed) {
-    document.documentElement.setAttribute('data-partner-theme', 'b2b')
-    document.documentElement.style.setProperty('--red', B2B_ORANGE)
-    document.documentElement.style.setProperty('--red-light', '#ff8533')
+  if (lang === 'es' || theme === 'b2b' || embed) {
     try {
       localStorage.setItem('lang', 'es')
     } catch {
@@ -34,8 +33,20 @@ export function bootPartnerTheme() {
     }
   }
 
+  if (theme === 'b2b' || embed) {
+    document.documentElement.setAttribute('data-partner-theme', 'b2b')
+    document.documentElement.style.setProperty('--red', B2B_ORANGE)
+    document.documentElement.style.setProperty('--red-light', '#ff8533')
+  }
+
   if (embed) {
     document.documentElement.setAttribute('data-partner-embed', '1')
+    try {
+      sessionStorage.setItem('awb_partner_embed', '1')
+      sessionStorage.setItem('awb_partner_theme', theme || 'b2b')
+    } catch {
+      /* ignore */
+    }
   }
 }
 
