@@ -50,6 +50,8 @@ export function SettingsPage() {
   const [newSecret, setNewSecret] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [apiKeyError, setApiKeyError] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importMsg, setImportMsg] = useState<string | null>(null)
 
   const loadApiKeys = useCallback(async (id: string) => {
     const { data } = await supabase
@@ -120,6 +122,61 @@ export function SettingsPage() {
       .update({ revoked_at: new Date().toISOString() })
       .eq('id', id)
     await loadApiKeys(orgId)
+  }
+
+  async function handleImportDump(file: File) {
+    if (!orgId || !user) return
+    setImporting(true)
+    setImportMsg(null)
+    try {
+      const text = await file.text()
+      const dump = JSON.parse(text)
+      if (!dump?.documents || !Array.isArray(dump.documents)) {
+        throw new Error('JSON inválido: falta documents[]')
+      }
+      let created = 0
+      let updated = 0
+      let failed = 0
+      for (const doc of dump.documents) {
+        const externalId = String(doc.externalId || '')
+        const data = doc.data
+        if (!externalId || !data || typeof data !== 'object') {
+          failed += 1
+          continue
+        }
+        const status = data.isDraft ? 'draft' : 'final'
+        const { data: existing } = await supabase
+          .from('awb_documents')
+          .select('id')
+          .eq('organization_id', orgId)
+          .eq('external_id', externalId)
+          .maybeSingle()
+
+        if (existing?.id) {
+          const { error } = await supabase
+            .from('awb_documents')
+            .update({ data, status, updated_at: new Date().toISOString() })
+            .eq('id', existing.id)
+          if (error) failed += 1
+          else updated += 1
+        } else {
+          const { error } = await supabase.from('awb_documents').insert({
+            data,
+            status,
+            organization_id: orgId,
+            external_id: externalId,
+          })
+          if (error) failed += 1
+          else created += 1
+        }
+      }
+      setImportMsg(`Importado: ${created} nuevos, ${updated} actualizados, ${failed} fallidos (total ${dump.documents.length}).`)
+      posthog?.capture('migration_dump_imported', { created, updated, failed, total: dump.documents.length })
+    } catch (e: any) {
+      setImportMsg(e?.message || t('common.error'))
+    } finally {
+      setImporting(false)
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -361,6 +418,34 @@ export function SettingsPage() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginTop: 32, border: '1px solid #e8dcdc' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--red, #8b0000)', marginBottom: 8 }}>
+            Importar migración (B2B)
+          </h2>
+          <p style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>
+            Sube el JSON descargado desde B2B → Integraciones → Descargar dump. No requiere service role ni variables en Railway.
+          </p>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', background: 'var(--red, #8b0000)', color: '#fff', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: importing ? 'wait' : 'pointer' }}>
+            {importing ? 'Importando…' : 'Elegir archivo .json'}
+            <input
+              type="file"
+              accept="application/json,.json"
+              disabled={importing || !orgId}
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) void handleImportDump(f)
+                e.target.value = ''
+              }}
+            />
+          </label>
+          {importMsg && (
+            <p style={{ marginTop: 12, fontSize: 13, color: importMsg.includes('fallidos') && !importMsg.startsWith('Importado') ? '#c00' : '#2a7a2a', fontWeight: 600 }}>
+              {importMsg}
+            </p>
           )}
         </div>
       </div>
