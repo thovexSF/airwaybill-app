@@ -27,13 +27,17 @@ import { DevPreviewPage } from './pages/DevPreviewPage'
 import { DemoEditorPage } from './pages/DemoEditorPage'
 import { DemoPickerPage } from './pages/DemoPickerPage'
 import { DemoDocPage } from './pages/DemoDocPage'
+import { PartnerEntryPage } from './pages/PartnerEntryPage'
 import { FeedbackWidget } from './components/FeedbackWidget'
+import { isPartnerEmbed } from './lib/partnerTheme'
 
 export default function App() {
+  const embed = typeof window !== 'undefined' && isPartnerEmbed()
   return (
     <BrowserRouter>
-      <FeedbackWidget />
+      {!embed && <FeedbackWidget />}
       <Routes>
+        <Route path="/partner-entry" element={<PartnerEntryPage />} />
         <Route path="/" element={<LandingPage />} />
         <Route path="/demo" element={<DemoPickerPage />} />
         <Route path="/demo/:docType" element={<DemoDocPage />} />

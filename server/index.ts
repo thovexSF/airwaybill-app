@@ -41,6 +41,51 @@ app.get('/v1/health', (_req, res) => {
   res.json({ ok: true, service: 'airwaybill-partner-api' })
 })
 
+/**
+ * One-time SSO for embedding in B2B (no second login).
+ * Returns an SPA path that exchanges a magic-link hash for a Supabase session.
+ */
+app.post('/v1/embed-session', async (req, res) => {
+  const auth = await requirePartner(req, res)
+  if (!auth) return
+  const { supabase, ctx } = auth
+
+  try {
+    const { data: userData, error: userErr } = await supabase.auth.admin.getUserById(ctx.actingUserId)
+    if (userErr || !userData?.user?.email) {
+      return res.status(500).json({ error: 'acting_user_missing_email' })
+    }
+    const email = userData.user.email
+    const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+    })
+    if (linkErr || !linkData?.properties?.hashed_token) {
+      return res.status(500).json({ error: linkErr?.message || 'embed_link_failed' })
+    }
+
+    const theme = typeof req.body?.theme === 'string' ? req.body.theme : 'b2b'
+    const next = typeof req.body?.next === 'string' ? req.body.next : '/my-awbs'
+    const q = new URLSearchParams({
+      token_hash: linkData.properties.hashed_token,
+      email,
+      theme,
+      embed: '1',
+      next,
+    })
+    const base =
+      process.env.PUBLIC_APP_URL ||
+      process.env.AIRWAYBILL_APP_URL ||
+      `${req.protocol}://${req.get('host')}`
+    res.json({
+      embedUrl: `${String(base).replace(/\/$/, '')}/partner-entry?${q}`,
+      expiresInSeconds: 60,
+    })
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || 'embed_session_failed' })
+  }
+})
+
 async function requirePartner(req: express.Request, res: express.Response) {
   try {
     const supabase = adminClient()

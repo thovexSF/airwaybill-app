@@ -3,7 +3,21 @@ import { initReactI18next } from 'react-i18next'
 import en from './en'
 import es from './es'
 
-const savedLang = localStorage.getItem('lang') ?? 'en'
+function initialLang(): string {
+  try {
+    if (
+      sessionStorage.getItem('awb_partner_embed') === '1' ||
+      sessionStorage.getItem('awb_partner_theme') === 'b2b' ||
+      new URLSearchParams(window.location.search).get('embed') === '1' ||
+      new URLSearchParams(window.location.search).get('theme') === 'b2b'
+    ) {
+      return 'es'
+    }
+  } catch {
+    /* ignore */
+  }
+  return localStorage.getItem('lang') ?? 'en'
+}
 
 i18n
   .use(initReactI18next)
@@ -12,8 +26,8 @@ i18n
       en: { translation: en },
       es: { translation: es },
     },
-    lng: savedLang,
-    fallbackLng: 'en',
+    lng: initialLang(),
+    fallbackLng: 'es',
     interpolation: { escapeValue: false },
   })
 

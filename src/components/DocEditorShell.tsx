@@ -129,13 +129,13 @@ export function DocEditorShell<T>({
   return (
     <div className="app">
       {/* ── Topbar ── */}
-      <div className="topbar" style={{ background: accent }}>
+      <div className="topbar" style={{ background: accent || undefined }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Link to={demo ? '/demo' : '/my-awbs'} style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
-            {demo ? '← All documents' : '← My Docs'}
+            {demo ? '← Todos los documentos' : '← Mis documentos'}
           </Link>
           <div>
-            <Link to="/" style={{ color: '#fff', textDecoration: 'none' }} className="topbar-logo">✈ AIRWAYBILL APP</Link>
+            <Link to="/my-awbs" style={{ color: '#fff', textDecoration: 'none' }} className="topbar-logo">✈ Documentos</Link>
             <div className="topbar-sub">{subtitle}</div>
           </div>
         </div>
@@ -146,7 +146,7 @@ export function DocEditorShell<T>({
                 Demo
               </span>
               <LangSwitcher />
-              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Create free account</Link>
+              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
             </>
           ) : (
             <>
@@ -157,7 +157,7 @@ export function DocEditorShell<T>({
                 </span>
               )}
               <LangSwitcher />
-              <button className="btn-example" onClick={logout}>Sign Out</button>
+              <button className="btn-example" onClick={logout}>Cerrar sesión</button>
             </>
           )}
         </div>

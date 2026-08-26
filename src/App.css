@@ -26,6 +26,15 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); }
   flex-shrink: 0;
 }
 
+/* B2B embed: sin navbar / branding de Airwaybill */
+html[data-partner-embed="1"] .topbar,
+html[data-partner-embed="1"] .partner-hide-in-embed {
+  display: none !important;
+}
+html[data-partner-embed="1"] body {
+  background: #fff;
+}
+
 .topbar-logo { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
 .topbar-sub  { font-size: 11px; opacity: 0.7; margin-top: 2px; }
 
