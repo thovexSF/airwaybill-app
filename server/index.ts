@@ -31,8 +31,9 @@ app.use(cors({ origin: true }))
 app.use(express.json({ limit: '4mb' }))
 
 app.use((_req, res, next) => {
-  res.setHeader('X-Frame-Options', 'DENY')
-  res.setHeader('Content-Security-Policy', "frame-ancestors 'none'")
+  // Allow B2B (and other partners) to embed the SPA in an iframe.
+  const ancestors = process.env.FRAME_ANCESTORS || "'self' https: http://localhost:* http://127.0.0.1:*"
+  res.setHeader('Content-Security-Policy', `frame-ancestors ${ancestors}`)
   next()
 })
 
