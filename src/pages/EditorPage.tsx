@@ -360,7 +360,7 @@ export function EditorPage() {
           <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
             {orgName ?? user?.email}
             {plan === 'free' && docLimit !== null && (
-              <span style={{ marginLeft: 6, opacity: 0.7 }}>· {docsUsedThisMonth}/{docLimit} {t('editor.pdfDownloads')}</span>
+              <span style={{ marginLeft: 6, opacity: 0.7 }}>· {docsUsedThisMonth}/{docLimit} {t('editor.freeDocs')}</span>
             )}
           </span>
           {/* Plan badge — simple label for paid users */}

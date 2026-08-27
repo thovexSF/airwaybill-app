@@ -430,27 +430,28 @@ html[data-partner-embed="1"] body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden;
 }
 .doc-hub-tabs {
-  display: flex; gap: 2px; overflow-x: auto; padding: 0 8px;
-  border-bottom: 1px solid #e8eaed; background: #fafbfc;
+  display: flex; gap: 0; overflow-x: auto; padding: 0;
+  border-bottom: 1px solid #e0e3e8; background: #f3f4f6;
   scrollbar-width: thin;
 }
 .doc-hub-tab {
-  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px;
-  padding: 12px 14px; border: none; background: transparent; cursor: pointer;
-  border-bottom: 2px solid transparent; color: #555; font-size: 13px; font-weight: 600;
-  white-space: nowrap;
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 10px;
+  padding: 14px 18px; min-height: 48px; border: none; background: transparent;
+  cursor: pointer; border-bottom: 3px solid transparent; color: #444;
+  font-size: 14px; font-weight: 700; white-space: nowrap;
+  border-right: 1px solid #e8eaed;
 }
-.doc-hub-tab:hover { color: #111; background: rgba(0,0,0,0.03); }
+.doc-hub-tab:hover { color: #111; background: rgba(255,255,255,0.55); }
 .doc-hub-tab.active {
   color: var(--red); border-bottom-color: var(--red); background: #fff;
 }
 .doc-hub-tab-badge {
-  color: #fff; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px;
-  letter-spacing: 0.3px;
+  color: #fff; font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 5px;
+  letter-spacing: 0.4px; line-height: 1.2;
 }
 .doc-hub-tab-count {
-  background: #eee; color: #555; font-size: 11px; font-weight: 700;
-  min-width: 18px; height: 18px; border-radius: 9px; padding: 0 6px;
+  background: #e5e7eb; color: #444; font-size: 12px; font-weight: 700;
+  min-width: 22px; height: 22px; border-radius: 11px; padding: 0 7px;
   display: inline-flex; align-items: center; justify-content: center;
 }
 .doc-hub-tab.active .doc-hub-tab-count { background: #ffe0e0; color: var(--red); }

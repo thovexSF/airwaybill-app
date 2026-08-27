@@ -9,6 +9,7 @@ import { usePlan } from '../lib/usePlan'
 import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
 import { useDemoMode } from './DemoMode'
+import { useTranslation } from 'react-i18next'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -49,6 +50,7 @@ export function DocEditorShell<T>({
   children: React.ReactNode
 }) {
   const demo = useDemoMode()
+  const { t } = useTranslation()
   const { user, logout, orgName } = useAuth()
   const { plan, docsUsedThisMonth, docLimit } = usePlan()
   const [downloading, setDownloading] = useState(false)
@@ -167,7 +169,7 @@ export function DocEditorShell<T>({
       <div style={{ background: '#122845', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
         {!demo && plan === 'free' && docLimit !== null && (
           <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-            {docsUsedThisMonth}/{docLimit} PDF downloads
+            {docsUsedThisMonth}/{docLimit} {t('editor.freeDocs')}
           </span>
         )}
         {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Generating…</span>}

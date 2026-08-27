@@ -22,7 +22,7 @@ export function MyAWBsPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
-  const { plan } = usePlan()
+  const { plan, docsUsedThisMonth, docLimit } = usePlan()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -236,12 +236,17 @@ export function MyAWBsPage() {
           <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textDecoration: 'none' }}>
             {t('common.home')}
           </Link>
-          <Link to="/my-awbs" style={{ fontWeight: 800, fontSize: 16, color: '#fff', textDecoration: 'none' }}>
-            ✈ Documentos AWB
+          <Link to="/my-awbs" style={{ fontWeight: 800, fontSize: 16, color: '#fff', textDecoration: 'none', letterSpacing: 0.5 }}>
+            ✈ AIRWAYBILL APP
           </Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{orgName ?? user?.email}</span>
+          {plan === 'free' && docLimit !== null && (
+            <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, whiteSpace: 'nowrap' }}>
+              {docsUsedThisMonth}/{docLimit} {t('editor.freeDocs')}
+            </span>
+          )}
           <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>
             {t('common.settings')}
           </Link>
@@ -360,9 +365,10 @@ export function MyAWBsPage() {
                   className={`doc-hub-tab${active ? ' active' : ''}`}
                   onClick={() => setTab(dt.type)}
                 >
-                  <span className="doc-hub-tab-badge" style={{ background: dt.color }}>
+                  <span className="doc-hub-tab-badge" style={{ background: active ? 'var(--red)' : dt.color }}>
                     {dt.badge}
                   </span>
+                  <span className="doc-hub-tab-label">{dt.type === 'awb' ? 'MAWB' : dt.badge}</span>
                   {n > 0 && <span className="doc-hub-tab-count">{n}</span>}
                 </button>
               )
