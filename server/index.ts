@@ -19,11 +19,14 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import express from 'express'
 import cors from 'cors'
+import multer from 'multer'
 import { adminClient, authenticateApiKey, effectivePlan } from './partnerAuth'
 import { renderDocumentPdf } from './renderPdf'
 import { applyEAwbResult, buildFwbFromAwb } from '../src/lib/awbToFwb'
 import type { AWBData } from '../src/types/awb'
 import { buildFwb17 } from '../src/lib/fwbCargoImp'
+import { authenticateUser } from './userAuth'
+import { importAwbeditorDbBuffer } from './importAwbeditorDb'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
@@ -31,6 +34,7 @@ const DIST = path.join(ROOT, 'dist')
 const PORT = Number(process.env.PORT || 4173)
 
 const app = express()
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } })
 app.disable('x-powered-by')
 app.use(cors({ origin: true }))
 app.use(express.json({ limit: '4mb' }))
@@ -298,11 +302,33 @@ app.post('/v1/documents/:id/fwb', async (req, res) => {
   })
 })
 
+/** Import awbeditor.db / .zip (Excel sigue en cliente). Auth: Supabase JWT del usuario. */
+app.post('/api/import/awbeditor', upload.single('file'), async (req, res) => {
+  const ctx = await authenticateUser(req.header('authorization') ?? undefined)
+  if (!ctx) return res.status(401).json({ error: 'unauthorized' })
+  if (!req.file?.buffer) return res.status(400).json({ error: 'file_required' })
+
+  try {
+    const supabase = adminClient()
+    const stats = await importAwbeditorDbBuffer(
+      supabase,
+      ctx.organizationId,
+      ctx.userId,
+      req.file.buffer,
+      req.file.originalname || 'awbeditor.db',
+    )
+    res.json(stats)
+  } catch (e: any) {
+    console.error('awbeditor import failed', e)
+    res.status(500).json({ error: e?.message || 'import_failed' })
+  }
+})
+
 // SPA: serve built assets; fall through to index.html for client routes
 app.use(express.static(DIST, { index: false, maxAge: '1h' }))
 // Express 5 / path-to-regexp: bare '*' is invalid; use a named splat.
 app.get('/{*path}', (req, res, next) => {
-  if (req.path.startsWith('/v1/')) return next()
+  if (req.path.startsWith('/v1/') || req.path.startsWith('/api/')) return next()
   res.sendFile(path.join(DIST, 'index.html'), err => {
     if (err) res.status(404).send('Build missing — run npm run build')
   })

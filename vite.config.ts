@@ -11,6 +11,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     headers: SECURITY_HEADERS,
+    proxy: {
+      '/api': { target: 'http://127.0.0.1:4173', changeOrigin: true },
+      '/v1': { target: 'http://127.0.0.1:4173', changeOrigin: true },
+    },
   },
   preview: {
     headers: SECURITY_HEADERS,

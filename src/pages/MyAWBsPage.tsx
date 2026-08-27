@@ -330,7 +330,7 @@ export function MyAWBsPage() {
             )}
             {activeMeta.type === 'awb' && (
               <button type="button" className="doc-hub-btn" onClick={() => setShowImport(true)}>
-                ↑ Import Excel
+                ↑ Importar
               </button>
             )}
             <div style={{ position: 'relative' }}>
