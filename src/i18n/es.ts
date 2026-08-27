@@ -4,7 +4,7 @@ const es = {
     home: '← Inicio',
     signOut: 'Salir',
     settings: '⚙ Config',
-    myAwbs: 'Mis AWBs',
+    myAwbs: 'Documentos',
     loading: 'Cargando...',
     save: 'Guardar',
     saving: 'Guardando...',
@@ -137,8 +137,8 @@ const es = {
 
   // My AWBs
   myAwbs: {
-    title: 'Mis Air Waybills',
-    newAwb: '+ Nuevo AWB',
+    title: 'Documentos AWB',
+    newAwb: '+ Nuevo MAWB',
     newDoc: '+ Nuevo documento',
     empty: {
       title: 'No tienes AWBs guardados aún.',

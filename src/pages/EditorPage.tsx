@@ -350,9 +350,9 @@ export function EditorPage() {
       {/* Row 1 — Brand + account */}
       <div className="topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{t('common.home')}</Link>
+          <Link to="/my-awbs" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{t('common.myAwbs') || '← Documentos'}</Link>
           <div>
-            <Link to="/" style={{ color: '#fff', textDecoration: 'none' }} className="topbar-logo">✈ AIRWAYBILL APP</Link>
+            <Link to="/my-awbs" style={{ color: '#fff', textDecoration: 'none' }} className="topbar-logo">✈ AIRWAYBILL APP</Link>
             <div className="topbar-sub">{t('editor.sub')}</div>
           </div>
         </div>

@@ -25,7 +25,7 @@ export function BillingSuccessPage() {
       <p style={{ color: '#666', maxWidth: 360, textAlign: 'center' }}>
         {t('billing.sub')}
       </p>
-      <Link to="/editor" style={{ marginTop: 8, background: '#8b0000', color: '#fff', padding: '11px 28px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+      <Link to="/my-awbs" style={{ marginTop: 8, background: '#8b0000', color: '#fff', padding: '11px 28px', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
         {t('billing.goToEditor')}
       </Link>
     </div>

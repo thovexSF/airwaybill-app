@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
@@ -7,11 +7,16 @@ import { listAWBs, deleteAWB, AWBDocument } from '../lib/awbService'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { ImportModal } from '../components/ImportModal'
-import { DOC_TYPES, docTypeMeta } from '../lib/docTypes'
+import { DOC_TYPES, HUB_DOC_TYPES, DocTypeMeta, docTypeMeta } from '../lib/docTypes'
 import { usePostHog } from '@posthog/react'
 
 type ViewMode = 'cards' | 'table'
 type StatusFilter = 'all' | 'final' | 'draft'
+
+function newDocPath(meta: DocTypeMeta): string {
+  if (meta.type === 'hawb') return '/editor?docType=hawb'
+  return meta.route
+}
 
 export function MyAWBsPage() {
   const { t } = useTranslation()
@@ -19,17 +24,22 @@ export function MyAWBsPage() {
   const { user, logout, orgName } = useAuth()
   const { plan } = usePlan()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const tabFromUrl = searchParams.get('tab') || 'awb'
+  const activeMeta = HUB_DOC_TYPES.find((d) => d.type === tabFromUrl) || HUB_DOC_TYPES[0]
+
   const [docs, setDocs] = useState<AWBDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [showImport, setShowImport] = useState(false)
-  const [view, setView] = useState<ViewMode>('cards')
+  const [view, setView] = useState<ViewMode>('table')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [sortCol, setSortCol] = useState<'awb' | 'shipper' | 'consignee' | 'route' | 'weight' | 'pcs' | 'prepaid' | 'eawb' | 'status' | 'date'>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [ediOpen, setEdiOpen] = useState(false)
 
   useEffect(() => {
     listAWBs()
@@ -46,12 +56,16 @@ export function MyAWBsPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  function setTab(type: string) {
+    setSearchParams({ tab: type }, { replace: true })
+  }
+
   async function handleDelete(id: string) {
     if (!confirm(t('myAwbs.confirmDelete'))) return
     setDeleting(id)
     try {
       await deleteAWB(id)
-      setDocs(prev => prev.filter(d => d.id !== id))
+      setDocs((prev) => prev.filter((d) => d.id !== id))
       posthog?.capture('awb_deleted', { doc_id: id })
     } catch (e: any) {
       alert(t('myAwbs.deleteError') + e.message)
@@ -60,7 +74,7 @@ export function MyAWBsPage() {
   }
 
   const fmt = (iso: string) =>
-    new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+    new Date(iso).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })
 
   function rowOf(doc: AWBDocument) {
     const d = doc.data as any
@@ -80,62 +94,118 @@ export function MyAWBsPage() {
     return { awbNum, shipper, consignee, route, weight, pcs, prepaid, eawb, status: doc.status, meta, editPath }
   }
 
-  const filtered = useMemo(() => {
-    let list = docs
-    if (statusFilter !== 'all') list = list.filter(d => d.status === statusFilter)
-    if (typeFilter !== 'all') {
-      list = list.filter(d => ((d.data as any)?.docType || 'awb') === typeFilter)
+  const counts = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const doc of docs) {
+      const type = (doc.data as any)?.docType || 'awb'
+      map[type] = (map[type] || 0) + 1
     }
+    return map
+  }, [docs])
+
+  const filtered = useMemo(() => {
+    let list = docs.filter((d) => ((d.data as any)?.docType || 'awb') === activeMeta.type)
+    if (statusFilter !== 'all') list = list.filter((d) => d.status === statusFilter)
     if (search.trim()) {
       const q = search.toLowerCase()
-      list = list.filter(d => {
+      list = list.filter((d) => {
         const r = rowOf(d)
-        return r.awbNum.toLowerCase().includes(q) ||
+        return (
+          r.awbNum.toLowerCase().includes(q) ||
           r.shipper.toLowerCase().includes(q) ||
           r.consignee.toLowerCase().includes(q) ||
           r.route.toLowerCase().includes(q) ||
           r.eawb.toLowerCase().includes(q)
+        )
       })
     }
     return [...list].sort((a, b) => {
-      const ra = rowOf(a), rb = rowOf(b)
-      let va: string | number, vb: string | number
-      if (sortCol === 'date') { va = a.updated_at; vb = b.updated_at }
-      else if (sortCol === 'weight') { va = ra.weight; vb = rb.weight }
-      else if (sortCol === 'pcs') { va = ra.pcs; vb = rb.pcs }
-      else if (sortCol === 'prepaid') { va = ra.prepaid; vb = rb.prepaid }
-      else if (sortCol === 'eawb') { va = ra.eawb; vb = rb.eawb }
-      else if (sortCol === 'awb') { va = ra.awbNum; vb = rb.awbNum }
-      else if (sortCol === 'shipper') { va = ra.shipper; vb = rb.shipper }
-      else if (sortCol === 'consignee') { va = ra.consignee; vb = rb.consignee }
-      else if (sortCol === 'route') { va = ra.route; vb = rb.route }
-      else { va = ra.status; vb = rb.status }
+      const ra = rowOf(a)
+      const rb = rowOf(b)
+      let va: string | number
+      let vb: string | number
+      if (sortCol === 'date') {
+        va = a.updated_at
+        vb = b.updated_at
+      } else if (sortCol === 'weight') {
+        va = ra.weight
+        vb = rb.weight
+      } else if (sortCol === 'pcs') {
+        va = ra.pcs
+        vb = rb.pcs
+      } else if (sortCol === 'prepaid') {
+        va = ra.prepaid
+        vb = rb.prepaid
+      } else if (sortCol === 'eawb') {
+        va = ra.eawb
+        vb = rb.eawb
+      } else if (sortCol === 'awb') {
+        va = ra.awbNum
+        vb = rb.awbNum
+      } else if (sortCol === 'shipper') {
+        va = ra.shipper
+        vb = rb.shipper
+      } else if (sortCol === 'consignee') {
+        va = ra.consignee
+        vb = rb.consignee
+      } else if (sortCol === 'route') {
+        va = ra.route
+        vb = rb.route
+      } else {
+        va = ra.status
+        vb = rb.status
+      }
       if (va < vb) return sortDir === 'asc' ? -1 : 1
       if (va > vb) return sortDir === 'asc' ? 1 : -1
       return 0
     })
-  }, [docs, search, statusFilter, typeFilter, sortCol, sortDir])
+  }, [docs, search, statusFilter, activeMeta.type, sortCol, sortDir])
 
   function handleSort(col: typeof sortCol) {
-    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortCol(col); setSortDir('asc') }
+    if (sortCol === col) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else {
+      setSortCol(col)
+      setSortDir('asc')
+    }
   }
 
   function exportCsv() {
     const headers = [
-      t('myAwbs.colAwb'), t('myAwbs.colShipper'), t('myAwbs.colConsignee'),
-      t('myAwbs.colRoute'), t('myAwbs.colPcs'), t('myAwbs.colWeight'), t('myAwbs.colPrepaid'),
-      t('myAwbs.colEawb'), t('myAwbs.colStatus'), t('myAwbs.colDate'),
+      t('myAwbs.colAwb'),
+      t('myAwbs.colShipper'),
+      t('myAwbs.colConsignee'),
+      t('myAwbs.colRoute'),
+      t('myAwbs.colPcs'),
+      t('myAwbs.colWeight'),
+      t('myAwbs.colPrepaid'),
+      t('myAwbs.colEawb'),
+      t('myAwbs.colStatus'),
+      t('myAwbs.colDate'),
     ]
-    const rows = filtered.map(doc => {
+    const rows = filtered.map((doc) => {
       const r = rowOf(doc)
-      return [r.awbNum, r.shipper, r.consignee, r.route, r.pcs || '—', r.weight || '—', r.prepaid || '—', r.eawb || '—', r.status, fmt(doc.updated_at)]
+      return [
+        r.awbNum,
+        r.shipper,
+        r.consignee,
+        r.route,
+        r.pcs || '—',
+        r.weight || '—',
+        r.prepaid || '—',
+        r.eawb || '—',
+        r.status,
+        fmt(doc.updated_at),
+      ]
     })
-    const csv = [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const csv = [headers, ...rows]
+      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url; a.download = 'awbs.csv'; a.click()
+    a.href = url
+    a.download = `${activeMeta.type}-docs.csv`
+    a.click()
     URL.revokeObjectURL(url)
   }
 
@@ -143,340 +213,314 @@ export function MyAWBsPage() {
     sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'
 
   const isPro = plan === 'pro' || plan === 'enterprise'
+  const canCreate = !activeMeta.pro || isPro
+  const ediTypes = DOC_TYPES.filter((d) => ['fwb', 'fhl', 'ffr'].includes(d.type))
 
-  /** "New document" menu covering every type in the suite except the plain AWB,
-   *  which keeps its own primary button. */
-  function NewDocMenu() {
-    const [open, setOpen] = useState(false)
-    const types = DOC_TYPES.filter(t => t.type !== 'awb')
-    return (
-      <div style={{ position: 'relative' }}>
-        <button
-          onClick={() => setOpen(o => !o)}
-          style={{ background: '#1a3a5c', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
-        >
-          {t('myAwbs.newDoc')} ▾
-        </button>
-        {open && (
-          <>
-            <div
-              onClick={() => setOpen(false)}
-              style={{ position: 'fixed', inset: 0, zIndex: 20 }}
-            />
-            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: '#fff', border: '1px solid #ddd', borderRadius: 8, boxShadow: '0 6px 20px rgba(0,0,0,0.12)', zIndex: 21, minWidth: 280, overflow: 'hidden' }}>
-              {types.map(t => (
-                <Link
-                  key={t.type}
-                  to={t.type === 'hawb' ? '/editor?docType=hawb' : t.route}
-                  onClick={() => setOpen(false)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', fontSize: 13, color: '#333', textDecoration: 'none', borderBottom: '1px solid #f2f2f2' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#faf5f5')}
-                  onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
-                >
-                  <span style={{ background: t.color, color: '#fff', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, minWidth: 62, textAlign: 'center' }}>
-                    {t.badge}
-                  </span>
-                  {t.name}
-                </Link>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    )
-  }
-
-  function DocBadge({ r }: { r: ReturnType<typeof rowOf> }) {
-    if (r.meta.type === 'awb') return null
-    return (
-      <span style={{ background: r.meta.color, color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
-        {r.meta.badge}
-      </span>
-    )
+  const emptyHints: Record<string, string> = {
+    awb: 'No hay MAWB registrados.',
+    hawb: 'No hay HAWB registrados.',
+    manifest: 'No hay manifiestos registrados.',
+    dgd: 'No hay declaraciones DGD registradas.',
+    label: 'No hay labels registrados.',
+    bl: 'No hay Bills of Lading registrados.',
+    bl_manifest: 'No hay manifiestos B/L registrados.',
+    imo_dgd: 'No hay IMO DGD registrados.',
+    neppex: 'No hay NEPPEX registrados.',
+    proforma: 'No hay Proforma Invoices registrados.',
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f4f4', fontFamily: 'Segoe UI, system-ui, sans-serif' }}>
-      {/* Topbar */}
-      <div className="topbar partner-hide-in-embed" style={{ background: 'var(--red)', color: '#fff', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div className="doc-hub">
+      <div className="topbar partner-hide-in-embed doc-hub-topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textDecoration: 'none' }}>{t('common.home')}</Link>
-          <Link to="/" style={{ fontWeight: 800, fontSize: 16, color: '#fff', textDecoration: 'none' }}>✈ AIRWAYBILL APP</Link>
+          <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textDecoration: 'none' }}>
+            {t('common.home')}
+          </Link>
+          <Link to="/my-awbs" style={{ fontWeight: 800, fontSize: 16, color: '#fff', textDecoration: 'none' }}>
+            ✈ Documentos AWB
+          </Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{orgName ?? user?.email}</span>
-          <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>{t('common.settings')}</Link>
+          <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>
+            {t('common.settings')}
+          </Link>
           {plan !== 'free' && (
-            <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize', cursor: 'default' }}>
+            <span
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: '#fff',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '3px 10px',
+                borderRadius: 20,
+                textTransform: 'capitalize',
+              }}
+            >
               {plan}
             </span>
           )}
           {(plan === 'free' || plan === 'starter') && (
-            <div style={{ position: 'relative' }} className="plan-badge-wrap">
-              <Link to="/pricing" style={{ background: '#fff', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, textDecoration: 'none', whiteSpace: 'nowrap', display: 'block' }}>
-                {plan === 'starter' ? 'Upgrade to Pro' : t('common.upgrade')}
-              </Link>
-              {plan === 'starter' && (
-                <div className="plan-downgrade-tooltip">
-                  <Link to="/pricing">or Downgrade</Link>
-                </div>
-              )}
-            </div>
+            <Link
+              to="/pricing"
+              style={{
+                background: '#fff',
+                color: 'var(--red)',
+                fontSize: 12,
+                fontWeight: 700,
+                padding: '4px 12px',
+                borderRadius: 20,
+                textDecoration: 'none',
+              }}
+            >
+              {plan === 'starter' ? 'Upgrade to Pro' : t('common.upgrade')}
+            </Link>
           )}
           <LangSwitcher />
-          <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}>{t('common.signOut')}</button>
+          <button
+            onClick={logout}
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}
+          >
+            {t('common.signOut')}
+          </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div style={{ maxWidth: 1440, margin: '32px auto', padding: '0 24px' }}>
-
-        {/* Header row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#222', margin: 0 }}>{t('myAwbs.title')}</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            {/* View toggle */}
-            <div style={{ display: 'flex', border: '1px solid #ddd', borderRadius: 6, overflow: 'hidden' }}>
-              <button
-                onClick={() => setView('cards')}
-                style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: view === 'cards' ? '#8b0000' : '#fff', color: view === 'cards' ? '#fff' : '#555' }}
-              >
-                ☰ {t('myAwbs.viewCards')}
+      <div className="doc-hub-body">
+        <div className="doc-hub-header">
+          <div>
+            <h1>Documentos AWB</h1>
+            <p className="doc-hub-sub">
+              Suite documental · pestaña <strong>{activeMeta.badge}</strong>
+            </p>
+          </div>
+          <div className="doc-hub-actions">
+            <div className="doc-hub-view-toggle">
+              <button type="button" className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')}>
+                {t('myAwbs.viewCards')}
               </button>
-              <button
-                onClick={() => setView('table')}
-                style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600, border: 'none', borderLeft: '1px solid #ddd', cursor: 'pointer', background: view === 'table' ? '#8b0000' : '#fff', color: view === 'table' ? '#fff' : '#555' }}
-              >
-                ⊞ {t('myAwbs.viewTable')}
+              <button type="button" className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}>
+                {t('myAwbs.viewTable')}
               </button>
             </div>
-            {docs.length > 0 && (
-              <button
-                onClick={exportCsv}
-                style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600, border: '1px solid #ddd', borderRadius: 6, background: '#fff', color: '#333', cursor: 'pointer' }}
-              >
-                ↓ {t('myAwbs.exportCsv')}
+            {filtered.length > 0 && (
+              <button type="button" className="doc-hub-btn" onClick={exportCsv}>
+                ↓ CSV
               </button>
             )}
-            <button
-              onClick={() => setShowImport(true)}
-              style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600, border: '1px solid #ddd', borderRadius: 6, background: '#fff', color: '#333', cursor: 'pointer' }}
-            >
-              ↑ Import Excel
-            </button>
-            {isPro && <NewDocMenu />}
-            <Link
-              to="/editor"
-              style={{ background: '#8b0000', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
-            >
-              {t('myAwbs.newAwb')}
-            </Link>
+            {activeMeta.type === 'awb' && (
+              <button type="button" className="doc-hub-btn" onClick={() => setShowImport(true)}>
+                ↑ Import Excel
+              </button>
+            )}
+            {isPro && (
+              <div style={{ position: 'relative' }}>
+                <button type="button" className="doc-hub-btn" onClick={() => setEdiOpen((o) => !o)}>
+                  EDI ▾
+                </button>
+                {ediOpen && (
+                  <>
+                    <div className="doc-hub-menu-backdrop" onClick={() => setEdiOpen(false)} />
+                    <div className="doc-hub-menu">
+                      {ediTypes.map((dt) => (
+                        <Link key={dt.type} to={dt.route} onClick={() => setEdiOpen(false)}>
+                          <span style={{ background: dt.color }}>{dt.badge}</span>
+                          {dt.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            {canCreate ? (
+              <Link to={newDocPath(activeMeta)} className="doc-hub-btn primary">
+                + Nuevo {activeMeta.badge}
+              </Link>
+            ) : (
+              <Link to="/pricing" className="doc-hub-btn primary">
+                Pro · {activeMeta.badge}
+              </Link>
+            )}
           </div>
         </div>
 
-        {/* Filter bar */}
-        {docs.length > 0 && (
-          <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="doc-hub-panel">
+          <div className="doc-hub-tabs" role="tablist" aria-label="Tipos de documento">
+            {HUB_DOC_TYPES.map((dt) => {
+              const active = dt.type === activeMeta.type
+              const n = counts[dt.type] || 0
+              return (
+                <button
+                  key={dt.type}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  className={`doc-hub-tab${active ? ' active' : ''}`}
+                  onClick={() => setTab(dt.type)}
+                >
+                  <span className="doc-hub-tab-badge" style={{ background: dt.color }}>
+                    {dt.badge}
+                  </span>
+                  {n > 0 && <span className="doc-hub-tab-count">{n}</span>}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="doc-hub-filters">
             <input
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder={t('myAwbs.searchPlaceholder')}
-              style={{ flex: 1, minWidth: 200, maxWidth: 340, padding: '7px 12px', fontSize: 13, border: '1px solid #ddd', borderRadius: 6, outline: 'none', fontFamily: 'inherit' }}
+              className="doc-hub-search"
             />
-            {(['all', 'final', 'draft'] as StatusFilter[]).map(s => (
+            {(['all', 'final', 'draft'] as StatusFilter[]).map((s) => (
               <button
                 key={s}
+                type="button"
+                className={`doc-hub-chip${statusFilter === s ? ' active' : ''}`}
                 onClick={() => setStatusFilter(s)}
-                style={{
-                  padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 20, cursor: 'pointer', border: '1px solid',
-                  background: statusFilter === s ? '#8b0000' : '#fff',
-                  color: statusFilter === s ? '#fff' : '#555',
-                  borderColor: statusFilter === s ? '#8b0000' : '#ddd',
-                }}
               >
                 {t(`myAwbs.filter${s.charAt(0).toUpperCase() + s.slice(1)}` as any)}
               </button>
             ))}
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              style={{ padding: '6px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #ddd' }}
-            >
-              <option value="all">Todos los tipos</option>
-              {DOC_TYPES.map((dt) => (
-                <option key={dt.type} value={dt.type}>{dt.badge}</option>
-              ))}
-            </select>
-            {(search || statusFilter !== 'all' || typeFilter !== 'all') && (
+            {(search || statusFilter !== 'all') && (
               <button
-                onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all') }}
-                style={{ fontSize: 12, background: 'none', border: 'none', color: '#888', cursor: 'pointer', textDecoration: 'underline' }}
+                type="button"
+                className="doc-hub-clear"
+                onClick={() => {
+                  setSearch('')
+                  setStatusFilter('all')
+                }}
               >
                 Clear
               </button>
             )}
           </div>
-        )}
 
-        {loading && <p style={{ color: '#666' }}>{t('common.loading')}</p>}
-        {error && <p style={{ color: '#8b0000' }}>{t('common.error')}: {error}</p>}
+          {loading && <p className="doc-hub-empty">{t('common.loading')}</p>}
+          {error && (
+            <p className="doc-hub-empty" style={{ color: 'var(--red)' }}>
+              {t('common.error')}: {error}
+            </p>
+          )}
 
-        {/* Empty state */}
-        {!loading && !error && docs.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#888' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>✈</div>
-            <p style={{ marginBottom: 4 }}>{t('myAwbs.empty.title')}</p>
-            <p style={{ fontSize: 13, marginBottom: 20 }}>{t('myAwbs.empty.sub')}</p>
-            <Link to="/editor" style={{ background: '#8b0000', color: '#fff', padding: '11px 28px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
-              {t('myAwbs.empty.cta')}
-            </Link>
-          </div>
-        )}
+          {!loading && !error && filtered.length === 0 && (
+            <div className="doc-hub-empty-state">
+              <div style={{ fontSize: 40, marginBottom: 8 }}>✈</div>
+              <p>{emptyHints[activeMeta.type] || t('myAwbs.empty.title')}</p>
+              {canCreate && (
+                <Link to={newDocPath(activeMeta)} className="doc-hub-btn primary" style={{ marginTop: 14 }}>
+                  + Nuevo {activeMeta.badge}
+                </Link>
+              )}
+            </div>
+          )}
 
-        {/* No results after filter */}
-        {!loading && docs.length > 0 && filtered.length === 0 && (
-          <p style={{ color: '#888', textAlign: 'center', padding: '40px 0', fontSize: 14 }}>{t('myAwbs.noResults')}</p>
-        )}
-
-        {/* ── CARDS VIEW ── */}
-        {view === 'cards' && filtered.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {filtered.map(doc => {
-              const r = rowOf(doc)
-              return (
-                <div key={doc.id} style={{ background: '#fff', border: '1px solid #e8dcdc', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: '#222', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <DocBadge r={r} />
-                      {r.meta.type === 'awb' ? <>AWB {r.awbNum}</> : r.awbNum}
+          {view === 'cards' && filtered.length > 0 && (
+            <div className="doc-hub-cards">
+              {filtered.map((doc) => {
+                const r = rowOf(doc)
+                return (
+                  <div key={doc.id} className="doc-hub-card">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="doc-hub-card-title">{r.awbNum}</div>
+                      <div className="doc-hub-card-meta">
+                        {r.shipper} → {r.consignee}
+                      </div>
+                      <div className="doc-hub-card-meta muted">
+                        {r.route !== '—' && <span>✈ {r.route} · </span>}
+                        {r.pcs > 0 && <span>{r.pcs} pcs · </span>}
+                        {r.weight > 0 && <span>{r.weight} kg · </span>}
+                        {r.eawb && <span>eAWB:{r.eawb} · </span>}
+                        {fmt(doc.updated_at)} · {doc.status}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 12, color: '#888', marginTop: 3 }}>
-                      {r.shipper} → {r.consignee}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                      {r.route !== '—' && <span style={{ marginRight: 8 }}>✈ {r.route}</span>}
-                      {r.pcs > 0 && <span style={{ marginRight: 8 }}>{r.pcs} pcs</span>}
-                      {r.weight > 0 && <span style={{ marginRight: 8 }}>{r.weight} kg</span>}
-                      {r.eawb && (
-                        <span style={{ marginRight: 8, color: r.eawb === 'generated' ? '#2a7a2a' : '#886600' }}>
-                          eAWB:{r.eawb}
-                        </span>
-                      )}
-                      {t('myAwbs.updated')}: {fmt(doc.updated_at)} · <span style={{ textTransform: 'uppercase', color: doc.status === 'final' ? '#2a7a2a' : '#888' }}>{doc.status}</span>
+                    <div className="doc-hub-card-actions">
+                      <button type="button" className="doc-hub-btn primary" onClick={() => navigate(r.editPath)}>
+                        {t('myAwbs.open')}
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-hub-btn danger"
+                        disabled={deleting === doc.id}
+                        onClick={() => handleDelete(doc.id)}
+                      >
+                        {deleting === doc.id ? '...' : t('myAwbs.delete')}
+                      </button>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      onClick={() => navigate(r.editPath)}
-                      style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
-                    >
-                      {t('myAwbs.open')}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(doc.id)}
-                      disabled={deleting === doc.id}
-                      style={{ background: '#fff', color: '#c00', border: '1px solid #f5b6b6', borderRadius: 6, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}
-                    >
-                      {deleting === doc.id ? '...' : t('myAwbs.delete')}
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+                )
+              })}
+            </div>
+          )}
 
-        {/* ── TABLE VIEW ── */}
-        {view === 'table' && filtered.length > 0 && (
-          <div style={{ background: '#fff', border: '1px solid #e2e2e2', borderRadius: 10, overflow: 'hidden' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          {view === 'table' && filtered.length > 0 && (
+            <div className="doc-hub-table-wrap">
+              <table className="doc-hub-table">
                 <thead>
-                  <tr style={{ background: '#8b0000', color: '#fff' }}>
-                    {([
-                      ['awb', t('myAwbs.colAwb')],
-                      ['shipper', t('myAwbs.colShipper')],
-                      ['consignee', t('myAwbs.colConsignee')],
-                      ['route', t('myAwbs.colRoute')],
-                      ['pcs', t('myAwbs.colPcs')],
-                      ['weight', t('myAwbs.colWeight')],
-                      ['prepaid', t('myAwbs.colPrepaid')],
-                      ['eawb', t('myAwbs.colEawb')],
-                      ['status', t('myAwbs.colStatus')],
-                      ['date', t('myAwbs.colDate')],
-                    ] as [typeof sortCol, string][]).map(([col, label]) => (
+                  <tr>
+                    {(
+                      [
+                        ['awb', t('myAwbs.colAwb')],
+                        ['shipper', t('myAwbs.colShipper')],
+                        ['consignee', t('myAwbs.colConsignee')],
+                        ['route', t('myAwbs.colRoute')],
+                        ['pcs', t('myAwbs.colPcs')],
+                        ['weight', t('myAwbs.colWeight')],
+                        ['prepaid', t('myAwbs.colPrepaid')],
+                        ['eawb', t('myAwbs.colEawb')],
+                        ['status', t('myAwbs.colStatus')],
+                        ['date', t('myAwbs.colDate')],
+                      ] as [typeof sortCol, string][]
+                    ).map(([col, label]) => (
                       <th
                         key={col}
                         onClick={() => handleSort(col)}
-                        style={{
-                          padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: 12, letterSpacing: 0.4,
-                          cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
-                          ...(col === 'awb' ? { position: 'sticky' as const, left: 0, zIndex: 2, background: '#8b0000' } : {}),
-                        }}
+                        className={col === 'awb' ? 'sticky-left' : undefined}
                       >
-                        {label}<SortIcon col={col} />
+                        {label}
+                        <SortIcon col={col} />
                       </th>
                     ))}
-                    <th style={{ padding: '10px 14px', fontSize: 12, fontWeight: 700, letterSpacing: 0.4, position: 'sticky', right: 0, background: '#8b0000', zIndex: 2 }}>{t('myAwbs.colActions')}</th>
+                    <th className="sticky-right">{t('myAwbs.colActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((doc, i) => {
                     const r = rowOf(doc)
                     return (
-                      <tr
-                        key={doc.id}
-                        style={{ background: i % 2 === 0 ? '#fff' : '#fafafa', borderBottom: '1px solid #f0f0f0' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#fff5f5')}
-                        onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#fafafa')}
-                      >
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#222', whiteSpace: 'nowrap', position: 'sticky', left: 0, background: i % 2 === 0 ? '#fff' : '#fafafa', zIndex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <DocBadge r={r} />
-                            {r.awbNum}
-                          </div>
+                      <tr key={doc.id} className={i % 2 ? 'alt' : undefined}>
+                        <td className="sticky-left strong">{r.awbNum}</td>
+                        <td className="ellipsis">{r.shipper}</td>
+                        <td className="ellipsis">{r.consignee}</td>
+                        <td>{r.route}</td>
+                        <td>{r.pcs > 0 ? r.pcs : '—'}</td>
+                        <td>{r.weight > 0 ? `${r.weight} kg` : '—'}</td>
+                        <td>{r.prepaid > 0 ? r.prepaid.toFixed(2) : '—'}</td>
+                        <td>
+                          {r.eawb ? <span className={`doc-hub-status eawb-${r.eawb}`}>{r.eawb}</span> : '—'}
                         </td>
-                        <td style={{ padding: '10px 14px', color: '#444', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.shipper}</td>
-                        <td style={{ padding: '10px 14px', color: '#444', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.consignee}</td>
-                        <td style={{ padding: '10px 14px', color: '#666', whiteSpace: 'nowrap' }}>{r.route}</td>
-                        <td style={{ padding: '10px 14px', color: '#666', whiteSpace: 'nowrap' }}>{r.pcs > 0 ? r.pcs : '—'}</td>
-                        <td style={{ padding: '10px 14px', color: '#666', whiteSpace: 'nowrap' }}>{r.weight > 0 ? `${r.weight} kg` : '—'}</td>
-                        <td style={{ padding: '10px 14px', color: '#666', whiteSpace: 'nowrap' }}>{r.prepaid > 0 ? r.prepaid.toFixed(2) : '—'}</td>
-                        <td style={{ padding: '10px 14px' }}>
-                          {r.eawb ? (
-                            <span style={{
-                              display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 700,
-                              background: r.eawb === 'generated' ? '#e6f4e6' : r.eawb === 'invalid' ? '#fdecea' : '#fff8e6',
-                              color: r.eawb === 'generated' ? '#2a7a2a' : r.eawb === 'invalid' ? '#8b0000' : '#7a5a00',
-                              textTransform: 'uppercase',
-                            }}>
-                              {r.eawb}
-                            </span>
-                          ) : '—'}
+                        <td>
+                          <span className={`doc-hub-status ${doc.status}`}>{doc.status}</span>
                         </td>
-                        <td style={{ padding: '10px 14px' }}>
-                          <span style={{
-                            display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 700,
-                            background: doc.status === 'final' ? '#e6f4e6' : '#f0f0f0',
-                            color: doc.status === 'final' ? '#2a7a2a' : '#666',
-                            textTransform: 'uppercase',
-                          }}>
-                            {doc.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: '10px 14px', color: '#888', whiteSpace: 'nowrap', fontSize: 12 }}>{fmt(doc.updated_at)}</td>
-                        <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', position: 'sticky', right: 0, background: i % 2 === 0 ? '#fff' : '#fafafa', zIndex: 1 }}>
-                          <div style={{ display: 'flex', gap: 6 }}>
+                        <td className="muted">{fmt(doc.updated_at)}</td>
+                        <td className="sticky-right">
+                          <div className="doc-hub-card-actions">
                             <button
+                              type="button"
+                              className="doc-hub-btn primary sm"
                               onClick={() => navigate(r.editPath)}
-                              style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 5, padding: '5px 12px', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
                             >
                               {t('myAwbs.open')}
                             </button>
                             <button
-                              onClick={() => handleDelete(doc.id)}
+                              type="button"
+                              className="doc-hub-btn danger sm"
                               disabled={deleting === doc.id}
-                              style={{ background: '#fff', color: '#c00', border: '1px solid #f5b6b6', borderRadius: 5, padding: '5px 10px', fontSize: 12, cursor: 'pointer' }}
+                              onClick={() => handleDelete(doc.id)}
                             >
                               {deleting === doc.id ? '...' : t('myAwbs.delete')}
                             </button>
@@ -487,12 +531,13 @@ export function MyAWBsPage() {
                   })}
                 </tbody>
               </table>
+              <div className="doc-hub-footer">
+                {filtered.length} {activeMeta.badge}
+                {docs.length !== filtered.length ? ` · ${docs.length} total` : ''}
+              </div>
             </div>
-            <div style={{ padding: '10px 16px', fontSize: 12, color: '#888', borderTop: '1px solid #f0f0f0', background: '#fafafa' }}>
-              {filtered.length} {filtered.length !== 1 ? 'documents' : 'document'} {filtered.length !== docs.length ? `(${docs.length} total)` : ''}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {showImport && (

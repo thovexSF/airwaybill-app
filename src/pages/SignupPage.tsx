@@ -17,7 +17,7 @@ export function SignupPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  if (user) return <Navigate to="/editor" replace />
+  if (user) return <Navigate to="/my-awbs" replace />
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -28,7 +28,7 @@ export function SignupPage() {
     if (!result.ok) { setError(result.error); return }
     ;(window as any).clarity?.('event', 'signup_completed')
     posthog?.capture('user_signed_up', { method: 'email', company_name: companyName })
-    navigate('/editor', { replace: true })
+    navigate('/my-awbs', { replace: true })
   }
 
   return (

@@ -230,8 +230,8 @@ export function SettingsPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>{orgName ?? user?.email}</span>
-          <Link to="/editor" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>Editor</Link>
           <Link to="/my-awbs" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>{t('common.myAwbs')}</Link>
+          <Link to="/editor" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>Editor</Link>
           <LangSwitcher />
           <button onClick={logout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}>{t('common.signOut')}</button>
         </div>

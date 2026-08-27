@@ -29,7 +29,7 @@ export function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password })
     setLoading(false)
     if (error) { setError(error.message); return }
-    navigate('/editor', { replace: true })
+    navigate('/my-awbs', { replace: true })
   }
 
   if (!ready) {

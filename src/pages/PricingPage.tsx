@@ -105,6 +105,7 @@ export function PricingPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {user && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>{orgName ?? user.email}</span>}
+          <Link to="/my-awbs" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>Documentos</Link>
           {user && <Link to="/editor" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>Editor</Link>}
           {user && <Link to="/settings" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>{t('common.settings')}</Link>}
           <LangSwitcher />

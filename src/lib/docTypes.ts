@@ -24,7 +24,7 @@ const awbNumber = (d: any) => (d.awbPrefix && d.awbSerial ? `${d.awbPrefix}-${d.
 
 export const DOC_TYPES: DocTypeMeta[] = [
   {
-    type: 'awb', badge: 'AWB', name: 'Air Waybill', color: '#8b0000', route: '/editor', pro: false,
+    type: 'awb', badge: 'MAWB', name: 'Master Air Waybill', color: '#8b0000', route: '/editor', pro: false,
     title: d => awbNumber(d) || '—',
   },
   {
@@ -32,12 +32,12 @@ export const DOC_TYPES: DocTypeMeta[] = [
     title: d => d.hawbNumber || awbNumber(d) || '—',
   },
   {
-    type: 'dgd', badge: 'DGD', name: "Shipper's Declaration for Dangerous Goods", color: '#7a3a00', route: '/dgd', pro: true,
-    title: d => d.awbNo || 'DGD',
-  },
-  {
     type: 'manifest', badge: 'MANIFEST', name: 'Cargo Manifest', color: '#1a5c3a', route: '/manifest', pro: true,
     title: d => (d.flightNumber ? `${d.flightNumber} ${d.flightDate || ''}`.trim() : 'Manifest'),
+  },
+  {
+    type: 'dgd', badge: 'DGD', name: "Shipper's Declaration for Dangerous Goods", color: '#7a3a00', route: '/dgd', pro: true,
+    title: d => d.awbNo || 'DGD',
   },
   {
     type: 'label', badge: 'LABEL', name: 'Air Cargo Label (Zebra)', color: '#3a1a5c', route: '/label', pro: true,
@@ -45,10 +45,6 @@ export const DOC_TYPES: DocTypeMeta[] = [
       const awb = [d.awbPrefix, d.awbSerial].filter(Boolean).join('-')
       return awb ? `${awb} · ${d.pieceNumber || 1}/${d.totalPieces || 1}` : 'Label'
     },
-  },
-  {
-    type: 'proforma', badge: 'PROFORMA', name: 'Proforma Invoice', color: '#5c3a1a', route: '/proforma', pro: true,
-    title: d => d.proformaNumber || 'Proforma',
   },
   {
     type: 'bl', badge: 'B/L', name: 'House Bill of Lading', color: '#1a4a5c', route: '/bl', pro: true,
@@ -67,6 +63,10 @@ export const DOC_TYPES: DocTypeMeta[] = [
     title: d => d.neppexNumber || d.rutExportador || 'NEPPEX',
   },
   {
+    type: 'proforma', badge: 'PROFORMA', name: 'Proforma Invoice', color: '#5c3a1a', route: '/proforma', pro: true,
+    title: d => d.proformaNumber || 'Proforma',
+  },
+  {
     type: 'fwb', badge: 'FWB', name: 'FWB — Freight Waybill message', color: '#33305c', route: '/edi/fwb', pro: true,
     title: d => awbNumber(d) || 'FWB',
   },
@@ -79,6 +79,11 @@ export const DOC_TYPES: DocTypeMeta[] = [
     title: d => awbNumber(d) || 'FFR',
   },
 ]
+
+/** Tabs of the B2B-style document hub (EDI types stay in the “+” menu / EDI routes). */
+export const HUB_DOC_TYPES: DocTypeMeta[] = DOC_TYPES.filter(
+  (t) => !['fwb', 'fhl', 'ffr'].includes(t.type),
+)
 
 const AWB_META = DOC_TYPES[0]
 

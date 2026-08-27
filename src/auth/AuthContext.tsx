@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem('posthog_pending_login', provider)
       await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: window.location.origin + '/editor' },
+        options: { redirectTo: window.location.origin + '/my-awbs' },
       })
     },
 

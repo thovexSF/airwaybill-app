@@ -4,7 +4,7 @@ const en = {
     home: '← Home',
     signOut: 'Sign out',
     settings: '⚙ Settings',
-    myAwbs: 'My AWBs',
+    myAwbs: 'Documents',
     loading: 'Loading...',
     save: 'Save',
     saving: 'Saving...',
@@ -137,8 +137,8 @@ const en = {
 
   // My AWBs
   myAwbs: {
-    title: 'My Air Waybills',
-    newAwb: '+ New AWB',
+    title: 'AWB Documents',
+    newAwb: '+ New MAWB',
     newDoc: '+ New document',
     empty: {
       title: 'No AWBs saved yet.',
