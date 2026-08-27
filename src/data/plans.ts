@@ -19,7 +19,7 @@ export const PLANS: PlanConfig[] = [
     priceDisplay: '$0',
     period: 'forever',
     description: 'Try real document PDF generation at no cost',
-    features: ['10 free documents/month (any type)', 'AWB, HAWB, DGD, Manifest, Label, B/L, Proforma…', 'Save and edit documents', 'DRAFT watermark', '1 user'],
+    features: ['10 free documents/month (any type)', 'AWB, HAWB, DGD, Manifest, Label, B/L, Proforma, EDI…', 'Save and edit documents', 'DRAFT watermark', '1 user'],
     highlight: false,
     cta: 'Get Started Free',
     ctaLink: '/signup',

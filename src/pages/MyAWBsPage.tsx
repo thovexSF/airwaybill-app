@@ -212,8 +212,6 @@ export function MyAWBsPage() {
   const SortIcon = ({ col }: { col: typeof sortCol }) =>
     sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'
 
-  const isPro = plan === 'pro' || plan === 'enterprise'
-  const canCreate = !activeMeta.pro || isPro
   const ediTypes = DOC_TYPES.filter((d) => ['fwb', 'fhl', 'ffr'].includes(d.type))
 
   const emptyHints: Record<string, string> = {
@@ -319,35 +317,27 @@ export function MyAWBsPage() {
                 ↑ Import Excel
               </button>
             )}
-            {isPro && (
-              <div style={{ position: 'relative' }}>
-                <button type="button" className="doc-hub-btn" onClick={() => setEdiOpen((o) => !o)}>
-                  EDI ▾
-                </button>
-                {ediOpen && (
-                  <>
-                    <div className="doc-hub-menu-backdrop" onClick={() => setEdiOpen(false)} />
-                    <div className="doc-hub-menu">
-                      {ediTypes.map((dt) => (
-                        <Link key={dt.type} to={dt.route} onClick={() => setEdiOpen(false)}>
-                          <span style={{ background: dt.color }}>{dt.badge}</span>
-                          {dt.name}
-                        </Link>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            {canCreate ? (
-              <Link to={newDocPath(activeMeta)} className="doc-hub-btn primary">
-                + Nuevo {activeMeta.badge}
-              </Link>
-            ) : (
-              <Link to="/pricing" className="doc-hub-btn primary">
-                Pro · {activeMeta.badge}
-              </Link>
-            )}
+            <div style={{ position: 'relative' }}>
+              <button type="button" className="doc-hub-btn" onClick={() => setEdiOpen((o) => !o)}>
+                EDI ▾
+              </button>
+              {ediOpen && (
+                <>
+                  <div className="doc-hub-menu-backdrop" onClick={() => setEdiOpen(false)} />
+                  <div className="doc-hub-menu">
+                    {ediTypes.map((dt) => (
+                      <Link key={dt.type} to={dt.route} onClick={() => setEdiOpen(false)}>
+                        <span style={{ background: dt.color }}>{dt.badge}</span>
+                        {dt.name}
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <Link to={newDocPath(activeMeta)} className="doc-hub-btn primary">
+              + Nuevo {activeMeta.badge}
+            </Link>
           </div>
         </div>
 
@@ -430,11 +420,9 @@ export function MyAWBsPage() {
             <div className="doc-hub-empty-state">
               <div style={{ fontSize: 40, marginBottom: 8 }}>✈</div>
               <p>{emptyHints[activeMeta.type] || t('myAwbs.empty.title')}</p>
-              {canCreate && (
-                <Link to={newDocPath(activeMeta)} className="doc-hub-btn primary" style={{ marginTop: 14 }}>
-                  + Nuevo {activeMeta.badge}
-                </Link>
-              )}
+              <Link to={newDocPath(activeMeta)} className="doc-hub-btn primary" style={{ marginTop: 14 }}>
+                + Nuevo {activeMeta.badge}
+              </Link>
             </div>
           )}
 

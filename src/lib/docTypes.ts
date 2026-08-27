@@ -16,7 +16,7 @@ export interface DocTypeMeta {
   route: string
   /** Headline shown in the list for a saved document */
   title: (d: any) => string
-  /** Requires a paid plan to create */
+  /** Kept for list badges / future paid gates; Free allows every type (quota counts downloads). */
   pro: boolean
 }
 
