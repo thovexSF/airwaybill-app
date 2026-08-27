@@ -363,13 +363,26 @@ export function MyAWBsPage() {
                   role="tab"
                   aria-selected={active}
                   className={`doc-hub-tab${active ? ' active' : ''}`}
+                  style={{
+                    background: active ? dt.color : `${dt.color}22`,
+                    color: active ? '#fff' : dt.color,
+                    borderBottomColor: active ? dt.color : 'transparent',
+                    boxShadow: active ? `inset 0 -3px 0 ${dt.color}` : undefined,
+                  }}
                   onClick={() => setTab(dt.type)}
                 >
-                  <span className="doc-hub-tab-badge" style={{ background: active ? 'var(--red)' : dt.color }}>
-                    {dt.badge}
-                  </span>
-                  <span className="doc-hub-tab-label">{dt.type === 'awb' ? 'MAWB' : dt.badge}</span>
-                  {n > 0 && <span className="doc-hub-tab-count">{n}</span>}
+                  <span className="doc-hub-tab-label">{dt.badge}</span>
+                  {n > 0 && (
+                    <span
+                      className="doc-hub-tab-count"
+                      style={{
+                        background: active ? 'rgba(255,255,255,0.25)' : `${dt.color}33`,
+                        color: active ? '#fff' : dt.color,
+                      }}
+                    >
+                      {n}
+                    </span>
+                  )}
                 </button>
               )
             })}
