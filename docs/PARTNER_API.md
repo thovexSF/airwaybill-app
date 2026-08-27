@@ -30,6 +30,8 @@ Keys are stored as SHA-256 hashes. Creating a key from Settings on a free plan s
 | PATCH | `/v1/documents/:id` | `{ "data": {…} }` |
 | DELETE | `/v1/documents/:id` | — |
 | GET/POST | `/v1/documents/:id/pdf` | optional `{ "copies": ["1","2"] }` → PDF bytes |
+| POST | `/v1/fwb/preview` | AWB JSON (or FwbInput) → `{ ok, message, errors, warnings }` |
+| POST | `/v1/documents/:id/fwb` | generate FWB/17, persist `eAwb*` on document |
 
 `data` is the same JSON shape the SPA stores in `awb_documents.data` (`docType` discriminator).
 

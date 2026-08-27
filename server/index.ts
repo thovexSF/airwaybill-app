@@ -12,6 +12,8 @@
  *   DELETE /v1/documents/:id
  *   POST   /v1/documents/:id/pdf  { copies?: string[] } → application/pdf
  *   GET    /v1/documents/:id/pdf
+ *   POST   /v1/fwb/preview        { data } → FWB/17 text
+ *   POST   /v1/documents/:id/fwb  → generate + persist eAwb* on document
  */
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -19,6 +21,9 @@ import express from 'express'
 import cors from 'cors'
 import { adminClient, authenticateApiKey, effectivePlan } from './partnerAuth'
 import { renderDocumentPdf } from './renderPdf'
+import { applyEAwbResult, buildFwbFromAwb } from '../src/lib/awbToFwb'
+import type { AWBData } from '../src/types/awb'
+import { buildFwb17 } from '../src/lib/fwbCargoImp'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
@@ -241,6 +246,57 @@ async function sendPdf(req: express.Request, res: express.Response) {
 
 app.get('/v1/documents/:id/pdf', sendPdf)
 app.post('/v1/documents/:id/pdf', sendPdf)
+
+/** Preview FWB/17 from AWB JSON (no persistence). */
+app.post('/v1/fwb/preview', async (req, res) => {
+  const auth = await requirePartner(req, res)
+  if (!auth) return
+  const body = req.body || {}
+  const data = body.data && typeof body.data === 'object' ? body.data : body
+  const result = data.docType || data.awbPrefix || data.rateItems
+    ? buildFwbFromAwb(data as AWBData)
+    : buildFwb17(data)
+  res.status(result.ok ? 200 : 400).json(result)
+})
+
+/** Generate FWB/17 from a saved document and persist eAwb* fields. */
+app.post('/v1/documents/:id/fwb', async (req, res) => {
+  const auth = await requirePartner(req, res)
+  if (!auth) return
+  const { supabase, ctx } = auth
+
+  const { data: row, error } = await supabase
+    .from('awb_documents')
+    .select('id, data')
+    .eq('id', req.params.id)
+    .eq('organization_id', ctx.organizationId)
+    .maybeSingle()
+
+  if (error) return res.status(500).json({ error: error.message })
+  if (!row) return res.status(404).json({ error: 'not_found' })
+
+  const merged = {
+    ...(row.data as object),
+    ...(req.body?.data && typeof req.body.data === 'object' ? req.body.data : {}),
+  } as AWBData
+  const result = buildFwbFromAwb(merged)
+  const nextData = applyEAwbResult(merged, result)
+
+  const { data: updated, error: upErr } = await supabase
+    .from('awb_documents')
+    .update({ data: { ...nextData, isDraft: false }, updated_at: new Date().toISOString() })
+    .eq('id', row.id)
+    .eq('organization_id', ctx.organizationId)
+    .select('id, organization_id, external_id, data, status, created_at, updated_at')
+    .maybeSingle()
+
+  if (upErr) return res.status(500).json({ error: upErr.message })
+  res.status(result.ok ? 200 : 400).json({
+    ...result,
+    eAwbStatus: nextData.eAwbStatus,
+    document: updated,
+  })
+})
 
 // SPA: serve built assets; fall through to index.html for client routes
 app.use(express.static(DIST, { index: false, maxAge: '1h' }))

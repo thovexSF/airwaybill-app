@@ -38,6 +38,8 @@ export const emptyParty = (): Party => ({
 })
 
 export const SPH_CODES = [
+  { code: 'EAW', label: 'EAW — e-AWB (with paper)' },
+  { code: 'EAP', label: 'EAP — e-AWB (paperless)' },
   { code: 'PER', label: 'PER — Perishable cargo' },
   { code: 'XPS', label: 'XPS — Priority small package' },
   { code: 'COL', label: 'COL — Cool goods' },

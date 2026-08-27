@@ -27,8 +27,9 @@ export function MyAWBsPage() {
   const [view, setView] = useState<ViewMode>('cards')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [sortCol, setSortCol] = useState<'awb' | 'shipper' | 'consignee' | 'route' | 'weight' | 'status' | 'date'>('date')
+  const [sortCol, setSortCol] = useState<'awb' | 'shipper' | 'consignee' | 'route' | 'weight' | 'pcs' | 'prepaid' | 'eawb' | 'status' | 'date'>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
 
   useEffect(() => {
     listAWBs()
@@ -72,14 +73,19 @@ export function MyAWBsPage() {
     const route = origin && dest ? `${origin} → ${dest}` : origin || dest || '—'
     const weight = d.rateItems?.reduce((s: number, r: any) => s + (parseFloat(r.chargeableWeight) || 0), 0)
       || parseFloat(d.totalKgNetos) || 0
-    // AWB and HAWB share the /editor route, so the id alone identifies them.
+    const pcs = d.rateItems?.reduce((s: number, r: any) => s + (parseFloat(r.pieces) || 0), 0) || 0
+    const prepaid = parseFloat(d.totalPrepaid) || 0
+    const eawb = d.eAwbStatus && d.eAwbStatus !== 'none' ? String(d.eAwbStatus) : ''
     const editPath = `${meta.route}?id=${doc.id}`
-    return { awbNum, shipper, consignee, route, weight, status: doc.status, meta, editPath }
+    return { awbNum, shipper, consignee, route, weight, pcs, prepaid, eawb, status: doc.status, meta, editPath }
   }
 
   const filtered = useMemo(() => {
     let list = docs
     if (statusFilter !== 'all') list = list.filter(d => d.status === statusFilter)
+    if (typeFilter !== 'all') {
+      list = list.filter(d => ((d.data as any)?.docType || 'awb') === typeFilter)
+    }
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(d => {
@@ -87,7 +93,8 @@ export function MyAWBsPage() {
         return r.awbNum.toLowerCase().includes(q) ||
           r.shipper.toLowerCase().includes(q) ||
           r.consignee.toLowerCase().includes(q) ||
-          r.route.toLowerCase().includes(q)
+          r.route.toLowerCase().includes(q) ||
+          r.eawb.toLowerCase().includes(q)
       })
     }
     return [...list].sort((a, b) => {
@@ -95,6 +102,9 @@ export function MyAWBsPage() {
       let va: string | number, vb: string | number
       if (sortCol === 'date') { va = a.updated_at; vb = b.updated_at }
       else if (sortCol === 'weight') { va = ra.weight; vb = rb.weight }
+      else if (sortCol === 'pcs') { va = ra.pcs; vb = rb.pcs }
+      else if (sortCol === 'prepaid') { va = ra.prepaid; vb = rb.prepaid }
+      else if (sortCol === 'eawb') { va = ra.eawb; vb = rb.eawb }
       else if (sortCol === 'awb') { va = ra.awbNum; vb = rb.awbNum }
       else if (sortCol === 'shipper') { va = ra.shipper; vb = rb.shipper }
       else if (sortCol === 'consignee') { va = ra.consignee; vb = rb.consignee }
@@ -104,7 +114,7 @@ export function MyAWBsPage() {
       if (va > vb) return sortDir === 'asc' ? 1 : -1
       return 0
     })
-  }, [docs, search, statusFilter, sortCol, sortDir])
+  }, [docs, search, statusFilter, typeFilter, sortCol, sortDir])
 
   function handleSort(col: typeof sortCol) {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -114,11 +124,12 @@ export function MyAWBsPage() {
   function exportCsv() {
     const headers = [
       t('myAwbs.colAwb'), t('myAwbs.colShipper'), t('myAwbs.colConsignee'),
-      t('myAwbs.colRoute'), t('myAwbs.colWeight'), t('myAwbs.colStatus'), t('myAwbs.colDate'),
+      t('myAwbs.colRoute'), t('myAwbs.colPcs'), t('myAwbs.colWeight'), t('myAwbs.colPrepaid'),
+      t('myAwbs.colEawb'), t('myAwbs.colStatus'), t('myAwbs.colDate'),
     ]
     const rows = filtered.map(doc => {
       const r = rowOf(doc)
-      return [r.awbNum, r.shipper, r.consignee, r.route, r.weight || '—', r.status, fmt(doc.updated_at)]
+      return [r.awbNum, r.shipper, r.consignee, r.route, r.pcs || '—', r.weight || '—', r.prepaid || '—', r.eawb || '—', r.status, fmt(doc.updated_at)]
     })
     const csv = [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -286,9 +297,19 @@ export function MyAWBsPage() {
                 {t(`myAwbs.filter${s.charAt(0).toUpperCase() + s.slice(1)}` as any)}
               </button>
             ))}
-            {(search || statusFilter !== 'all') && (
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              style={{ padding: '6px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #ddd' }}
+            >
+              <option value="all">Todos los tipos</option>
+              {DOC_TYPES.map((dt) => (
+                <option key={dt.type} value={dt.type}>{dt.badge}</option>
+              ))}
+            </select>
+            {(search || statusFilter !== 'all' || typeFilter !== 'all') && (
               <button
-                onClick={() => { setSearch(''); setStatusFilter('all') }}
+                onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all') }}
                 style={{ fontSize: 12, background: 'none', border: 'none', color: '#888', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Clear
@@ -334,7 +355,13 @@ export function MyAWBsPage() {
                     </div>
                     <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
                       {r.route !== '—' && <span style={{ marginRight: 8 }}>✈ {r.route}</span>}
+                      {r.pcs > 0 && <span style={{ marginRight: 8 }}>{r.pcs} pcs</span>}
                       {r.weight > 0 && <span style={{ marginRight: 8 }}>{r.weight} kg</span>}
+                      {r.eawb && (
+                        <span style={{ marginRight: 8, color: r.eawb === 'generated' ? '#2a7a2a' : '#886600' }}>
+                          eAWB:{r.eawb}
+                        </span>
+                      )}
                       {t('myAwbs.updated')}: {fmt(doc.updated_at)} · <span style={{ textTransform: 'uppercase', color: doc.status === 'final' ? '#2a7a2a' : '#888' }}>{doc.status}</span>
                     </div>
                   </div>
@@ -371,19 +398,26 @@ export function MyAWBsPage() {
                       ['shipper', t('myAwbs.colShipper')],
                       ['consignee', t('myAwbs.colConsignee')],
                       ['route', t('myAwbs.colRoute')],
+                      ['pcs', t('myAwbs.colPcs')],
                       ['weight', t('myAwbs.colWeight')],
+                      ['prepaid', t('myAwbs.colPrepaid')],
+                      ['eawb', t('myAwbs.colEawb')],
                       ['status', t('myAwbs.colStatus')],
                       ['date', t('myAwbs.colDate')],
                     ] as [typeof sortCol, string][]).map(([col, label]) => (
                       <th
                         key={col}
                         onClick={() => handleSort(col)}
-                        style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: 12, letterSpacing: 0.4, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                        style={{
+                          padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: 12, letterSpacing: 0.4,
+                          cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+                          ...(col === 'awb' ? { position: 'sticky' as const, left: 0, zIndex: 2, background: '#8b0000' } : {}),
+                        }}
                       >
                         {label}<SortIcon col={col} />
                       </th>
                     ))}
-                    <th style={{ padding: '10px 14px', fontSize: 12, fontWeight: 700, letterSpacing: 0.4 }}>{t('myAwbs.colActions')}</th>
+                    <th style={{ padding: '10px 14px', fontSize: 12, fontWeight: 700, letterSpacing: 0.4, position: 'sticky', right: 0, background: '#8b0000', zIndex: 2 }}>{t('myAwbs.colActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -396,7 +430,7 @@ export function MyAWBsPage() {
                         onMouseEnter={e => (e.currentTarget.style.background = '#fff5f5')}
                         onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#fafafa')}
                       >
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#222', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#222', whiteSpace: 'nowrap', position: 'sticky', left: 0, background: i % 2 === 0 ? '#fff' : '#fafafa', zIndex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <DocBadge r={r} />
                             {r.awbNum}
@@ -405,7 +439,21 @@ export function MyAWBsPage() {
                         <td style={{ padding: '10px 14px', color: '#444', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.shipper}</td>
                         <td style={{ padding: '10px 14px', color: '#444', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.consignee}</td>
                         <td style={{ padding: '10px 14px', color: '#666', whiteSpace: 'nowrap' }}>{r.route}</td>
+                        <td style={{ padding: '10px 14px', color: '#666', whiteSpace: 'nowrap' }}>{r.pcs > 0 ? r.pcs : '—'}</td>
                         <td style={{ padding: '10px 14px', color: '#666', whiteSpace: 'nowrap' }}>{r.weight > 0 ? `${r.weight} kg` : '—'}</td>
+                        <td style={{ padding: '10px 14px', color: '#666', whiteSpace: 'nowrap' }}>{r.prepaid > 0 ? r.prepaid.toFixed(2) : '—'}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          {r.eawb ? (
+                            <span style={{
+                              display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 700,
+                              background: r.eawb === 'generated' ? '#e6f4e6' : r.eawb === 'invalid' ? '#fdecea' : '#fff8e6',
+                              color: r.eawb === 'generated' ? '#2a7a2a' : r.eawb === 'invalid' ? '#8b0000' : '#7a5a00',
+                              textTransform: 'uppercase',
+                            }}>
+                              {r.eawb}
+                            </span>
+                          ) : '—'}
+                        </td>
                         <td style={{ padding: '10px 14px' }}>
                           <span style={{
                             display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 700,
@@ -417,7 +465,7 @@ export function MyAWBsPage() {
                           </span>
                         </td>
                         <td style={{ padding: '10px 14px', color: '#888', whiteSpace: 'nowrap', fontSize: 12 }}>{fmt(doc.updated_at)}</td>
-                        <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', position: 'sticky', right: 0, background: i % 2 === 0 ? '#fff' : '#fafafa', zIndex: 1 }}>
                           <div style={{ display: 'flex', gap: 6 }}>
                             <button
                               onClick={() => navigate(r.editPath)}

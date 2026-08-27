@@ -1,3 +1,13 @@
+export interface RateDimension {
+  length: string
+  width: string
+  height: string
+  unit: 'cm' | 'in'
+  pieces: string
+  weight: string
+  weightUnit: 'kg' | 'lb'
+}
+
 export interface RateItem {
   id: string
   pieces: string
@@ -9,6 +19,8 @@ export interface RateItem {
   rateCharge: string
   total: string
   natureAndQuantity: string
+  dimensions?: RateDimension[]
+  autoCalc?: 'total' | 'rate' | 'none'
 }
 
 export interface OtherCharge {
@@ -62,6 +74,8 @@ export interface AWBData {
   airportOfDestination: string
   flightNumber: string
   flightDate: string
+  flightNumber2?: string
+  flightDate2?: string
 
   // Charges declaration
   currency: string
@@ -76,6 +90,17 @@ export interface AWBData {
   // Handling
   handlingInformation: string
   sci: string
+  /** Special handling codes for FWB SPH (EAW / EAP / …). */
+  sphCodes?: string[]
+  /** ISO-2 country hints for FWB party LOC (optional). */
+  shipperCountry?: string
+  consigneeCountry?: string
+
+  // eAWB / FWB lifecycle (persisted in document JSON)
+  eAwbStatus?: 'none' | 'generated' | 'invalid' | 'sent' | 'accepted' | 'rejected'
+  eAwbGeneratedAt?: string
+  eAwbLastMessage?: string
+  eAwbLastError?: string
 
   // Rate items
   rateItems: RateItem[]
@@ -109,6 +134,8 @@ export interface AWBData {
 
   // Meta
   isDraft: boolean
+  /** If true and serial empty on save, keep a DRAFT- placeholder until a real number is assigned. */
+  assignOnSave?: boolean
   copyNumber: 1 | 2 | 3
   copyLabel: string
   carrierLogoUrl?: string  // base64 or https URL
@@ -147,6 +174,8 @@ export const defaultAWBData: AWBData = {
   airportOfDestination: '',
   flightNumber: '',
   flightDate: '',
+  flightNumber2: '',
+  flightDate2: '',
   currency: 'USD',
   wtValPPD: false,
   wtValCOLL: false,
@@ -157,6 +186,13 @@ export const defaultAWBData: AWBData = {
   insuranceAmount: '',
   handlingInformation: '',
   sci: '',
+  sphCodes: [],
+  shipperCountry: '',
+  consigneeCountry: '',
+  eAwbStatus: 'none',
+  eAwbGeneratedAt: '',
+  eAwbLastMessage: '',
+  eAwbLastError: '',
   rateItems: [
     {
       id: '1',
@@ -191,6 +227,7 @@ export const defaultAWBData: AWBData = {
   signatureShipper: '',
   signatureCarrier: '',
   isDraft: true,
+  assignOnSave: false,
   copyNumber: 1,
   copyLabel: 'Original 1 (for Issuing Carrier)',
   docType: 'awb',

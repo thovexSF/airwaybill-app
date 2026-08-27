@@ -133,7 +133,7 @@ export function FWBPage() {
       <Section title="Special Handling">
         <CodeChecks label="SPH codes" codes={SPH_CODES} selected={data.sph} onChange={set('sph')} />
         <Row>
-          <Field label="Other SPH codes" value={data.sphOther} onChange={set('sphOther')} placeholder="EAP, ICE" />
+          <Field label="Other SPH codes" value={data.sphOther} onChange={set('sphOther')} placeholder="ICE, HUM" />
         </Row>
       </Section>
 

@@ -10,7 +10,8 @@
     "build:dev": "tsc && vite build --mode development",
     "preview": "vite preview",
     "start": "tsx server/index.ts",
-    "partner:create-key": "tsx scripts/create-partner-key.ts"
+    "partner:create-key": "tsx scripts/create-partner-key.ts",
+    "check:fwb": "tsx scripts/check-fwb.ts"
   },
   "dependencies": {
     "@paddle/paddle-js": "^1.6.4",

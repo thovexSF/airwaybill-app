@@ -1,6 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { AWBData, RateItem, OtherCharge } from '../types/awb'
 import { validateAWBSerial, computeCheckDigit } from '../lib/awbCheckDigit'
+import { applyAutoCalc } from '../lib/rateVolume'
+import { recalculateCharges } from '../lib/recalculateCharges'
+import { RateItemDialog } from './RateItemDialog'
 
 interface Props {
   data: AWBData
@@ -40,51 +43,70 @@ function Row({ children }: { children: React.ReactNode }) {
 }
 
 export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
+  const [rateEditId, setRateEditId] = useState<string | null>(null)
+
+  const commit = (next: AWBData) => onChange(recalculateCharges(next))
+
   const set = (key: keyof AWBData) => (val: string | boolean) =>
-    onChange({ ...data, [key]: val })
+    commit({ ...data, [key]: val })
 
   const uid = () => Math.random().toString(36).slice(2, 8)
 
   function updateRateItem(id: string, key: keyof RateItem, val: string) {
-    onChange({
-      ...data,
-      rateItems: data.rateItems.map((r) => (r.id === id ? { ...r, [key]: val } : r)),
+    const rateItems = data.rateItems.map((r) => {
+      if (r.id !== id) return r
+      return applyAutoCalc({ ...r, [key]: val })
     })
+    commit({ ...data, rateItems })
   }
 
   function addRateItem() {
-    onChange({
+    commit({
       ...data,
       rateItems: [
         ...data.rateItems,
-        { id: uid(), pieces: '', grossWeight: '', weightUnit: 'K', rateClass: '', commodityItemNo: '', chargeableWeight: '', rateCharge: '', total: '', natureAndQuantity: '' },
+        {
+          id: uid(),
+          pieces: '',
+          grossWeight: '',
+          weightUnit: 'K',
+          rateClass: '',
+          commodityItemNo: '',
+          chargeableWeight: '',
+          rateCharge: '',
+          total: '',
+          natureAndQuantity: '',
+          autoCalc: 'total',
+          dimensions: [],
+        },
       ],
     })
   }
 
   function removeRateItem(id: string) {
-    onChange({ ...data, rateItems: data.rateItems.filter((r) => r.id !== id) })
+    commit({ ...data, rateItems: data.rateItems.filter((r) => r.id !== id) })
   }
 
   function addOtherCharge() {
-    onChange({
+    commit({
       ...data,
       otherCharges: [...data.otherCharges, { id: uid(), description: '', amount: '', entitlement: 'DUE AGENT' }],
     })
   }
 
   function updateOtherCharge(id: string, key: keyof OtherCharge, val: string) {
-    onChange({
+    commit({
       ...data,
       otherCharges: data.otherCharges.map((c) => (c.id === id ? { ...c, [key]: val } : c)),
     })
   }
 
   function removeOtherCharge(id: string) {
-    onChange({ ...data, otherCharges: data.otherCharges.filter((c) => c.id !== id) })
+    commit({ ...data, otherCharges: data.otherCharges.filter((c) => c.id !== id) })
   }
 
   const isHawb = data.docType === 'hawb'
+  const editingItem = rateEditId ? data.rateItems.find((r) => r.id === rateEditId) || null : null
 
   return (
     <div className="form-panel">
@@ -134,13 +156,26 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
             </label>
           </div>
           )}
+          {!isHawb && (
+          <div className="field">
+            <label>Número AWB</label>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={Boolean(data.assignOnSave)}
+                onChange={(e) => set('assignOnSave')(e.target.checked)}
+              />
+              <span>Asignar al guardar (si serial vacío → DRAFT-…)</span>
+            </label>
+          </div>
+          )}
           <div className="field">
             <label>Copy</label>
             <select value={data.copyNumber} onChange={(e) => {
               const n = parseInt(e.target.value) as 1 | 2 | 3
               const hawbLabels = ['Original 1 (for Consignee)', 'Original 2 (for Issuing Agent)', 'Original 3 (for Shipper)']
               const awbLabels  = ['Original 1 (for Issuing Carrier)', 'Original 2 (for Consignee)', 'Original 3 (for Shipper)']
-              onChange({ ...data, copyNumber: n, copyLabel: (isHawb ? hawbLabels : awbLabels)[n - 1] })
+              commit({ ...data, copyNumber: n, copyLabel: (isHawb ? hawbLabels : awbLabels)[n - 1] })
             }}>
               {isHawb ? (
                 <>
@@ -178,12 +213,12 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
                 const file = e.target.files?.[0]
                 if (!file) return
                 const reader = new FileReader()
-                reader.onload = (ev) => onChange({ ...data, carrierLogoUrl: ev.target?.result as string })
+                reader.onload = (ev) => commit({ ...data, carrierLogoUrl: ev.target?.result as string })
                 reader.readAsDataURL(file)
               }}
             />
             {data.carrierLogoUrl && (
-              <button type="button" onClick={() => onChange({ ...data, carrierLogoUrl: '' })}
+              <button type="button" onClick={() => commit({ ...data, carrierLogoUrl: '' })}
                 style={{ fontSize: 11, color: '#c00', background: 'none', border: 'none', cursor: 'pointer' }}>
                 Quitar
               </button>
@@ -243,8 +278,12 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
           <Field label="Airport of Destination" value={data.airportOfDestination} onChange={set('airportOfDestination')} placeholder="ZURICH" required />
         </Row>
         <Row>
-          <Field label="Flight Number" value={data.flightNumber} onChange={set('flightNumber')} placeholder="AC093" />
-          <Field label="Flight Date" value={data.flightDate} onChange={set('flightDate')} placeholder="02-NOV" />
+          <Field label="Flight Number" value={data.flightNumber} onChange={set('flightNumber')} placeholder="LA600/15-08" />
+          <Field label="Flight Date" value={data.flightDate} onChange={set('flightDate')} placeholder="2026-08-15" />
+        </Row>
+        <Row>
+          <Field label="Flight 2" value={data.flightNumber2 || ''} onChange={set('flightNumber2')} placeholder="LA501" />
+          <Field label="Flight 2 Date" value={data.flightDate2 || ''} onChange={set('flightDate2')} placeholder="2026-08-16" />
         </Row>
       </Section>
 
@@ -290,6 +329,47 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
       <Section title="Handling Information">
         <Field label="Handling Information" value={data.handlingInformation} onChange={set('handlingInformation')} rows={2} />
         <Field label="SCI" value={data.sci} onChange={set('sci')} />
+        <Row>
+          <Field label="Shipper country (ISO-2)" value={data.shipperCountry || ''} onChange={set('shipperCountry')} placeholder="CL" />
+          <Field label="Consignee country (ISO-2)" value={data.consigneeCountry || ''} onChange={set('consigneeCountry')} placeholder="US" />
+        </Row>
+        <div className="field">
+          <label>SPH (eAWB)</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {(['EAW', 'EAP', 'PER', 'XPS', 'COL', 'AVI', 'PES'] as const).map((code) => {
+              const selected = (data.sphCodes || []).includes(code)
+              return (
+                <label key={code} className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={(e) => {
+                      const prev = data.sphCodes || []
+                      const next = e.target.checked
+                        ? [...prev.filter((c) => c !== code), code]
+                        : prev.filter((c) => c !== code)
+                      // EAP and EAW are mutually exclusive for e-AWB paper mode
+                      const cleaned =
+                        code === 'EAP' && e.target.checked
+                          ? next.filter((c) => c !== 'EAW')
+                          : code === 'EAW' && e.target.checked
+                            ? next.filter((c) => c !== 'EAP')
+                            : next
+                      onChange({ ...data, sphCodes: cleaned })
+                    }}
+                  />
+                  <span>{code}</span>
+                </label>
+              )
+            })}
+          </div>
+          {data.eAwbStatus && data.eAwbStatus !== 'none' && (
+            <div style={{ marginTop: 6, fontSize: 12, color: '#666' }}>
+              eAWB: {data.eAwbStatus}
+              {data.eAwbGeneratedAt ? ` · ${new Date(data.eAwbGeneratedAt).toLocaleString('es-CL')}` : ''}
+            </div>
+          )}
+        </div>
       </Section>
 
       {/* RATE ITEMS */}
@@ -299,7 +379,9 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
             <div className="rate-header">
               <span>Pcs</span><span>Gross Wt</span><span>Unit</span><span>Rate Class</span>
               <span>Commodity</span><span>Chg. Wt</span><span>Rate</span><span>Total</span>
-              <span className="col-nature">Nature &amp; Quantity</span><span style={{ width: 20, flexShrink: 0 }}></span>
+              <span className="col-nature">Nature &amp; Quantity</span>
+              <span style={{ width: 52, flexShrink: 0 }}>Dims</span>
+              <span style={{ width: 20, flexShrink: 0 }}></span>
             </div>
             {data.rateItems.map((item) => (
               <div key={item.id} className="rate-row">
@@ -315,6 +397,15 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
                 <input value={item.rateCharge} onChange={(e) => updateRateItem(item.id, 'rateCharge', e.target.value)} placeholder="400.00" />
                 <input value={item.total} onChange={(e) => updateRateItem(item.id, 'total', e.target.value)} placeholder="400.00" />
                 <input className="col-nature" value={item.natureAndQuantity} onChange={(e) => updateRateItem(item.id, 'natureAndQuantity', e.target.value)} placeholder="PRINTED BROCHURES / 30x30x50cm" />
+                <button
+                  type="button"
+                  className="btn-add"
+                  style={{ padding: '2px 6px', fontSize: 11, width: 52, flexShrink: 0 }}
+                  title="Dimensiones / peso volumétrico"
+                  onClick={() => setRateEditId(item.id)}
+                >
+                  {item.dimensions?.length ? `⧉${item.dimensions.length}` : '⧉'}
+                </button>
                 <button type="button" className="btn-remove" onClick={() => removeRateItem(item.id)}>×</button>
               </div>
             ))}
@@ -343,6 +434,14 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
 
       {/* CHARGES SUMMARY */}
       <Section title="Charges Summary">
+        <button
+          type="button"
+          className="btn-add"
+          style={{ marginBottom: 8 }}
+          onClick={() => onChange(recalculateCharges(data))}
+        >
+          Recalcular totales
+        </button>
         <div className="charges-grid">
           <div className="charges-col">
             <div className="charges-sub-title">Prepaid</div>
@@ -380,6 +479,18 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
         <Field label="Signature of Shipper or Agent" value={data.signatureShipper} onChange={set('signatureShipper')} />
         <Field label="Signature of Issuing Carrier or Agent" value={data.signatureCarrier} onChange={set('signatureCarrier')} />
       </Section>
+
+      <RateItemDialog
+        open={Boolean(editingItem)}
+        item={editingItem}
+        onClose={() => setRateEditId(null)}
+        onAccept={(next) => {
+          commit({
+            ...data,
+            rateItems: data.rateItems.map((r) => (r.id === next.id ? next : r)),
+          })
+        }}
+      />
     </div>
   )
 }

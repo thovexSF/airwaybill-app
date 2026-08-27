@@ -8,6 +8,7 @@ import 'react-pdf/dist/Page/TextLayer.css'
 import { AWBFormPanel } from '../components/AWBFormPanel'
 import { FormDialog } from '../components/FormDialog'
 import { CopiesDialog } from '../components/CopiesDialog'
+import { FwbPreviewDialog } from '../components/FwbPreviewDialog'
 import { AWBOverlay } from '../components/AWBOverlay'
 import { AWBDocument } from '../pdf/AWBDocument'
 import { AWBData, defaultAWBData } from '../types/awb'
@@ -67,6 +68,7 @@ export function EditorPage() {
   // dialog; edits are buffered there so Cancel discards them.
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [copiesOpen, setCopiesOpen] = useState(false)
+  const [fwbOpen, setFwbOpen] = useState(false)
   const [draft, setDraft] = useState<AWBData | null>(null)
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -193,14 +195,24 @@ export function EditorPage() {
     setSaving(true)
     setSaveMsg(null)
     try {
-      const doc = await saveAWB(data, currentId ?? undefined, orgId ?? undefined)
+      let payload = data
+      if (
+        payload.docType !== 'hawb' &&
+        payload.assignOnSave &&
+        !String(payload.awbSerial || '').replace(/\D/g, '')
+      ) {
+        const draftSerial = `DRAFT-${Date.now().toString(36).toUpperCase()}`
+        payload = { ...payload, awbSerial: draftSerial, isDraft: true }
+        setData(payload)
+      }
+      const doc = await saveAWB(payload, currentId ?? undefined, orgId ?? undefined)
       setCurrentId(doc.id)
       setDownloadCountedAt(doc.download_counted_at ?? null)
       navigate(`/editor?id=${doc.id}`, { replace: true })
       setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
       ;(window as any).clarity?.('event', 'awb_saved')
-      posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: !currentId })
+      posthog?.capture('awb_saved', { doc_type: payload.docType ?? 'awb', doc_id: doc.id, is_new: !currentId })
     } catch {
       setSaveMsg(t('editor.saveError'))
     }
@@ -395,6 +407,11 @@ export function EditorPage() {
           <button className="btn-example" type="button" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
+          {data.docType !== 'hawb' && (
+            <button className="btn-example" type="button" onClick={() => setFwbOpen(true)} title="Generar FWB/17 (eAWB)">
+              eAWB / FWB
+            </button>
+          )}
           {pdfUrl && (
             <button className="btn-download" type="button" onClick={handleDownloadPdf} disabled={downloading || planLoading}>
               {downloading ? t('editor.downloading') : t('editor.downloadPdf')}
@@ -445,6 +462,12 @@ export function EditorPage() {
           onClose={() => setCopiesOpen(false)}
           authorize={authorizeCopies}
           fileName={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}`}
+        />
+        <FwbPreviewDialog
+          open={fwbOpen}
+          data={data}
+          onClose={() => setFwbOpen(false)}
+          onGenerated={(next) => applyData(next)}
         />
         <FormDialog
           open={formDialogOpen}

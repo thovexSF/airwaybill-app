@@ -153,13 +153,18 @@ and a thin page:
   field-patch helper, over `src/lib/documentService.ts` (generic CRUD on
   `awb_documents`, keyed by the `docType` inside the JSON `data` column).
 
-### Cargo-IMP messages are drafts
+### Cargo-IMP messages / eAWB
 
-`src/lib/ediMessage.ts` serialises the FWB/FHL/FFR forms to Cargo-IMP text.
-Cargo-IMP grammar varies by carrier, so the output is explicitly a draft: the
-editor shows the message body inline and the PDF carries a validate-before-
-sending note. Do not wire it into a live Type B queue without checking it
-against the receiving airline's implementation guide.
+`src/lib/fwbCargoImp.ts` is the FWB/17 builder (ported from B2B). From the AWB
+editor, **eAWB / FWB** builds the message from the open MAWB via
+`src/lib/awbToFwb.ts`, shows a monospaced preview, downloads `.txt`, and
+persists `eAwbStatus` / `eAwbLastMessage` in the document JSON on Save.
+Partner API: `POST /v1/fwb/preview` and `POST /v1/documents/:id/fwb`.
+Smoke: `npm run check:fwb`.
+
+`src/lib/ediMessage.ts` still serialises the standalone FWB/FHL/FFR forms
+(`/edi/*`) as draft Cargo-IMP. Grammar varies by carrier — do not wire into a
+live Type B queue without checking the airline guide.
 
 ### The AWB renders on the blank IATA form
 
