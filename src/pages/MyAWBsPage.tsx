@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
@@ -29,6 +29,7 @@ export function MyAWBsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [sortCol, setSortCol] = useState<'awb' | 'shipper' | 'consignee' | 'route' | 'weight' | 'status' | 'date'>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const pageTrackedRef = useRef(false)
 
   useEffect(() => {
     listAWBs()
@@ -44,6 +45,26 @@ export function MyAWBsPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (loading || pageTrackedRef.current) return
+    pageTrackedRef.current = true
+    posthog?.capture('my_awbs_viewed', {
+      state: error ? 'error' : docs.length > 0 ? 'has_documents' : 'empty',
+      document_count: docs.length,
+      has_documents: docs.length > 0,
+      plan,
+    })
+  }, [docs.length, error, loading, plan, posthog])
+
+  function trackDashboardAction(action: string, properties?: Record<string, unknown>) {
+    posthog?.capture('my_awbs_action_clicked', {
+      action,
+      document_count: docs.length,
+      plan,
+      ...properties,
+    })
+  }
 
   async function handleDelete(id: string) {
     if (!confirm(t('myAwbs.confirmDelete'))) return
@@ -112,6 +133,7 @@ export function MyAWBsPage() {
   }
 
   function exportCsv() {
+    trackDashboardAction('export_csv', { result_count: filtered.length })
     const headers = [
       t('myAwbs.colAwb'), t('myAwbs.colShipper'), t('myAwbs.colConsignee'),
       t('myAwbs.colRoute'), t('myAwbs.colWeight'), t('myAwbs.colStatus'), t('myAwbs.colDate'),
@@ -141,7 +163,10 @@ export function MyAWBsPage() {
     return (
       <div style={{ position: 'relative' }}>
         <button
-          onClick={() => setOpen(o => !o)}
+          onClick={() => {
+            trackDashboardAction('new_doc_menu_toggle', { opening: !open })
+            setOpen(o => !o)
+          }}
           style={{ background: '#1a3a5c', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
         >
           {t('myAwbs.newDoc')} ▾
@@ -157,7 +182,10 @@ export function MyAWBsPage() {
                 <Link
                   key={t.type}
                   to={t.type === 'hawb' ? '/editor?docType=hawb' : t.route}
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    trackDashboardAction('new_document', { doc_type: t.type, source: 'menu' })
+                    setOpen(false)
+                  }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', fontSize: 13, color: '#333', textDecoration: 'none', borderBottom: '1px solid #f2f2f2' }}
                   onMouseEnter={e => (e.currentTarget.style.background = '#faf5f5')}
                   onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
@@ -227,13 +255,19 @@ export function MyAWBsPage() {
             {/* View toggle */}
             <div style={{ display: 'flex', border: '1px solid #ddd', borderRadius: 6, overflow: 'hidden' }}>
               <button
-                onClick={() => setView('cards')}
+                onClick={() => {
+                  trackDashboardAction('change_view', { view: 'cards' })
+                  setView('cards')
+                }}
                 style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: view === 'cards' ? '#8b0000' : '#fff', color: view === 'cards' ? '#fff' : '#555' }}
               >
                 ☰ {t('myAwbs.viewCards')}
               </button>
               <button
-                onClick={() => setView('table')}
+                onClick={() => {
+                  trackDashboardAction('change_view', { view: 'table' })
+                  setView('table')
+                }}
                 style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600, border: 'none', borderLeft: '1px solid #ddd', cursor: 'pointer', background: view === 'table' ? '#8b0000' : '#fff', color: view === 'table' ? '#fff' : '#555' }}
               >
                 ⊞ {t('myAwbs.viewTable')}
@@ -248,7 +282,10 @@ export function MyAWBsPage() {
               </button>
             )}
             <button
-              onClick={() => setShowImport(true)}
+              onClick={() => {
+                trackDashboardAction('import_excel', { source: 'header' })
+                setShowImport(true)
+              }}
               style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600, border: '1px solid #ddd', borderRadius: 6, background: '#fff', color: '#333', cursor: 'pointer' }}
             >
               ↑ Import Excel
@@ -256,6 +293,7 @@ export function MyAWBsPage() {
             {isPro && <NewDocMenu />}
             <Link
               to="/editor"
+              onClick={() => trackDashboardAction('new_awb', { source: 'header' })}
               style={{ background: '#8b0000', color: '#fff', padding: '8px 18px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
             >
               {t('myAwbs.newAwb')}
@@ -275,7 +313,10 @@ export function MyAWBsPage() {
             {(['all', 'final', 'draft'] as StatusFilter[]).map(s => (
               <button
                 key={s}
-                onClick={() => setStatusFilter(s)}
+                onClick={() => {
+                  trackDashboardAction('filter_status', { status: s })
+                  setStatusFilter(s)
+                }}
                 style={{
                   padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 20, cursor: 'pointer', border: '1px solid',
                   background: statusFilter === s ? '#8b0000' : '#fff',
@@ -288,7 +329,11 @@ export function MyAWBsPage() {
             ))}
             {(search || statusFilter !== 'all') && (
               <button
-                onClick={() => { setSearch(''); setStatusFilter('all') }}
+                onClick={() => {
+                  trackDashboardAction('clear_filters', { had_search: Boolean(search), status_filter: statusFilter })
+                  setSearch('')
+                  setStatusFilter('all')
+                }}
                 style={{ fontSize: 12, background: 'none', border: 'none', color: '#888', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Clear
@@ -302,13 +347,49 @@ export function MyAWBsPage() {
 
         {/* Empty state */}
         {!loading && !error && docs.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#888' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>✈</div>
-            <p style={{ marginBottom: 4 }}>{t('myAwbs.empty.title')}</p>
-            <p style={{ fontSize: 13, marginBottom: 20 }}>{t('myAwbs.empty.sub')}</p>
-            <Link to="/editor" style={{ background: '#8b0000', color: '#fff', padding: '11px 28px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
-              {t('myAwbs.empty.cta')}
-            </Link>
+          <div style={{ background: '#fff', border: '1px solid #eadada', borderRadius: 16, padding: '40px 28px', color: '#333', boxShadow: '0 10px 30px rgba(80,0,0,0.05)' }}>
+            <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>✈</div>
+              <p style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 800, color: '#222' }}>{t('myAwbs.empty.title')}</p>
+              <p style={{ fontSize: 14, margin: '0 auto 24px', maxWidth: 560, lineHeight: 1.5, color: '#666' }}>{t('myAwbs.empty.sub')}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24, textAlign: 'left' }}>
+                {[
+                  t('myAwbs.empty.stepCreate'),
+                  t('myAwbs.empty.stepFill'),
+                  t('myAwbs.empty.stepSave'),
+                ].map((step, index) => (
+                  <div key={step} style={{ border: '1px solid #f0e0e0', borderRadius: 12, padding: 14, background: '#fffafa' }}>
+                    <div style={{ width: 26, height: 26, borderRadius: 13, background: '#8b0000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, marginBottom: 8 }}>{index + 1}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#333', lineHeight: 1.35 }}>{step}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <Link
+                  to="/editor"
+                  onClick={() => trackDashboardAction('new_awb', { source: 'empty_state_primary' })}
+                  style={{ background: '#8b0000', color: '#fff', padding: '11px 28px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}
+                >
+                  {t('myAwbs.empty.cta')}
+                </Link>
+                <Link
+                  to="/demo"
+                  onClick={() => trackDashboardAction('open_demo', { source: 'empty_state_secondary' })}
+                  style={{ background: '#fff', color: '#8b0000', padding: '10px 22px', borderRadius: 8, fontWeight: 700, textDecoration: 'none', border: '1px solid #e7bcbc' }}
+                >
+                  {t('myAwbs.empty.demoCta')}
+                </Link>
+                <button
+                  onClick={() => {
+                    trackDashboardAction('import_excel', { source: 'empty_state_secondary' })
+                    setShowImport(true)
+                  }}
+                  style={{ background: '#fff', color: '#333', padding: '10px 22px', borderRadius: 8, fontWeight: 700, border: '1px solid #ddd', cursor: 'pointer' }}
+                >
+                  {t('myAwbs.empty.importCta')}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -340,7 +421,10 @@ export function MyAWBsPage() {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
-                      onClick={() => navigate(r.editPath)}
+                      onClick={() => {
+                        trackDashboardAction('open_document', { doc_type: r.meta.type, source: 'card' })
+                        navigate(r.editPath)
+                      }}
                       style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
                     >
                       {t('myAwbs.open')}
@@ -420,7 +504,10 @@ export function MyAWBsPage() {
                         <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                           <div style={{ display: 'flex', gap: 6 }}>
                             <button
-                              onClick={() => navigate(r.editPath)}
+                              onClick={() => {
+                                trackDashboardAction('open_document', { doc_type: r.meta.type, source: 'table' })
+                                navigate(r.editPath)
+                              }}
                               style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 5, padding: '5px 12px', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
                             >
                               {t('myAwbs.open')}
