@@ -15,11 +15,13 @@ export function applyPartnerTheme(theme: string, embed: boolean) {
 export function bootPartnerTheme() {
   let theme = ''
   let embed = false
+  let hubModal = false
   let lang = ''
   try {
     const q = new URLSearchParams(window.location.search)
     theme = q.get('theme') || sessionStorage.getItem('awb_partner_theme') || ''
     embed = q.get('embed') === '1' || sessionStorage.getItem('awb_partner_embed') === '1'
+    hubModal = q.get('modal') === '1'
     lang = q.get('lang') || ''
   } catch {
     /* ignore */
@@ -48,6 +50,11 @@ export function bootPartnerTheme() {
       /* ignore */
     }
   }
+
+  // Editor opened inside the hub modal — hide duplicate chrome, keep brand colors.
+  if (hubModal) {
+    document.documentElement.setAttribute('data-hub-modal', '1')
+  }
 }
 
 export function isPartnerEmbed(): boolean {
@@ -59,4 +66,12 @@ export function isPartnerEmbed(): boolean {
   } catch {
     return false
   }
+}
+
+/** Append modal=1 for hub iframe editors. */
+export function withHubModal(path: string): string {
+  const [base, qs = ''] = path.split('?')
+  const params = new URLSearchParams(qs)
+  params.set('modal', '1')
+  return `${base}?${params.toString()}`
 }

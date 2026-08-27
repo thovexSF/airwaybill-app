@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
@@ -7,7 +7,9 @@ import { listAWBs, deleteAWB, AWBDocument } from '../lib/awbService'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { ImportModal } from '../components/ImportModal'
+import { DocEditorModal } from '../components/DocEditorModal'
 import { DOC_TYPES, HUB_DOC_TYPES, DocTypeMeta, docTypeMeta } from '../lib/docTypes'
+import { withHubModal } from '../lib/partnerTheme'
 import { usePostHog } from '@posthog/react'
 
 type ViewMode = 'cards' | 'table'
@@ -23,7 +25,6 @@ export function MyAWBsPage() {
   const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
   const { plan, docsUsedThisMonth, docLimit } = usePlan()
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const tabFromUrl = searchParams.get('tab') || 'awb'
@@ -40,6 +41,21 @@ export function MyAWBsPage() {
   const [sortCol, setSortCol] = useState<'awb' | 'shipper' | 'consignee' | 'route' | 'weight' | 'pcs' | 'prepaid' | 'eawb' | 'status' | 'date'>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [ediOpen, setEdiOpen] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editorSrc, setEditorSrc] = useState('')
+  const [editorTitle, setEditorTitle] = useState('')
+
+  function openEditor(path: string, title: string) {
+    setEditorTitle(title)
+    setEditorSrc(withHubModal(path))
+    setEditorOpen(true)
+  }
+
+  function closeEditor() {
+    setEditorOpen(false)
+    setEditorSrc('')
+    listAWBs().then(setDocs).catch(() => {})
+  }
 
   useEffect(() => {
     listAWBs()
@@ -326,18 +342,30 @@ export function MyAWBsPage() {
                   <div className="doc-hub-menu-backdrop" onClick={() => setEdiOpen(false)} />
                   <div className="doc-hub-menu">
                     {ediTypes.map((dt) => (
-                      <Link key={dt.type} to={dt.route} onClick={() => setEdiOpen(false)}>
+                      <button
+                        key={dt.type}
+                        type="button"
+                        className="doc-hub-menu-item"
+                        onClick={() => {
+                          setEdiOpen(false)
+                          openEditor(dt.route, dt.badge)
+                        }}
+                      >
                         <span style={{ background: dt.color }}>{dt.badge}</span>
                         {dt.name}
-                      </Link>
+                      </button>
                     ))}
                   </div>
                 </>
               )}
             </div>
-            <Link to={newDocPath(activeMeta)} className="doc-hub-btn primary">
+            <button
+              type="button"
+              className="doc-hub-btn primary"
+              onClick={() => openEditor(newDocPath(activeMeta), `Nuevo ${activeMeta.badge}`)}
+            >
               + Nuevo {activeMeta.badge}
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -420,9 +448,14 @@ export function MyAWBsPage() {
             <div className="doc-hub-empty-state">
               <div style={{ fontSize: 40, marginBottom: 8 }}>✈</div>
               <p>{emptyHints[activeMeta.type] || t('myAwbs.empty.title')}</p>
-              <Link to={newDocPath(activeMeta)} className="doc-hub-btn primary" style={{ marginTop: 14 }}>
+              <button
+                type="button"
+                className="doc-hub-btn primary"
+                style={{ marginTop: 14 }}
+                onClick={() => openEditor(newDocPath(activeMeta), `Nuevo ${activeMeta.badge}`)}
+              >
                 + Nuevo {activeMeta.badge}
-              </Link>
+              </button>
             </div>
           )}
 
@@ -446,7 +479,7 @@ export function MyAWBsPage() {
                       </div>
                     </div>
                     <div className="doc-hub-card-actions">
-                      <button type="button" className="doc-hub-btn primary" onClick={() => navigate(r.editPath)}>
+                      <button type="button" className="doc-hub-btn primary" onClick={() => openEditor(r.editPath, r.awbNum)}>
                         {t('myAwbs.open')}
                       </button>
                       <button
@@ -519,7 +552,7 @@ export function MyAWBsPage() {
                             <button
                               type="button"
                               className="doc-hub-btn primary sm"
-                              onClick={() => navigate(r.editPath)}
+                              onClick={() => openEditor(r.editPath, r.awbNum)}
                             >
                               {t('myAwbs.open')}
                             </button>
@@ -556,6 +589,12 @@ export function MyAWBsPage() {
           }}
         />
       )}
+      <DocEditorModal
+        open={editorOpen}
+        title={editorTitle}
+        src={editorSrc}
+        onClose={closeEditor}
+      />
     </div>
   )
 }
