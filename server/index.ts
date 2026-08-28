@@ -307,23 +307,16 @@ app.post('/api/import/awbeditor', upload.single('file'), async (req, res) => {
   try {
     const ctx = await authenticateUser(req.header('authorization') ?? undefined)
     if (!ctx) {
-      return res.status(401).json({ error: 'unauthorized', message: 'Sesión inválida o servidor sin SUPABASE_SERVICE_ROLE_KEY' })
+      return res.status(401).json({ error: 'unauthorized', message: 'Sesión inválida o expirada. Vuelve a iniciar sesión.' })
     }
     if (!req.file?.buffer) return res.status(400).json({ error: 'file_required' })
-
-    let supabase
-    try {
-      supabase = adminClient()
-    } catch (e: any) {
-      return res.status(503).json({ error: 'server_misconfigured', message: e?.message || 'SUPABASE_SERVICE_ROLE_KEY missing' })
-    }
 
     const jobId = createBufferImportJob(
       ctx.organizationId,
       ctx.userId,
       req.file.buffer,
       req.file.originalname || 'awbeditor.db',
-      supabase,
+      ctx.supabase,
     )
 
     res.json({
