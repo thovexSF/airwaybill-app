@@ -24,6 +24,12 @@ const es = {
       demo: 'Ver demo',
       note: 'Sin registro para probar · 10 documentos gratis/mes al crear cuenta',
     },
+    demoPath: {
+      label: 'Ruta rápida',
+      title: 'Prueba un AWB real antes de crear cuenta',
+      sub: 'Abre la demo, edita un documento y regístrate solo cuando quieras guardarlo en Documentos.',
+      cta: 'Abrir demo →',
+    },
     features: {
       label: 'Funciones',
       title: 'Todo lo que necesitas para documentación de carga aérea',

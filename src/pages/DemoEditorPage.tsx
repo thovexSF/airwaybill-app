@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
@@ -37,7 +37,11 @@ export function DemoEditorPage() {
   // Reached as /demo/awb or /demo/hawb from the demo picker; both use this
   // editor because only the AWB has the form-over-PDF overlay.
   const { docType } = useParams<{ docType?: string }>()
+  const [searchParams] = useSearchParams()
   const demoDocType: 'awb' | 'hawb' = docType === 'hawb' ? 'hawb' : 'awb'
+  const demoSource = searchParams.get('source') ?? 'direct'
+  const demoIntent = searchParams.get('intent') ?? 'browse_demo'
+  const demoSignupPath = `/signup?source=demo&intent=download_pdf&doc_type=${demoDocType}`
   const initialData: AWBData = { ...exampleAWB, docType: demoDocType, isDraft: true }
   const [data, setDataRaw] = useState<AWBData>(initialData)
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
@@ -73,8 +77,12 @@ export function DemoEditorPage() {
   }, [updatePageWidth])
 
   useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
+    posthog?.capture('demo_viewed', {
+      doc_type: demoDocType,
+      source: demoSource,
+      intent: demoIntent,
+    })
+  }, [posthog, demoDocType, demoSource, demoIntent])
 
   useEffect(() => {
     const onResize = () => {
@@ -139,7 +147,7 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link to={demoSignupPath} style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +178,7 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link to={demoSignupPath} state={{ from: `/demo/${demoDocType}` }} className="btn-download">
             {t('demo.downloadCta')}
           </Link>
         </div>
