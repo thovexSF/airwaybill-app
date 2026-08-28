@@ -24,6 +24,12 @@ const en = {
       demo: 'Try Demo',
       note: 'No signup required to try · 10 free documents/month when you register',
     },
+    demoPath: {
+      label: 'Fast path',
+      title: 'Try a real AWB before creating an account',
+      sub: 'Open the demo, edit a document, then register only when you want to save it in Documents.',
+      cta: 'Open demo →',
+    },
     features: {
       label: 'Features',
       title: 'Everything you need for air freight documentation',

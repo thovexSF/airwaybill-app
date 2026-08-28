@@ -64,6 +64,10 @@ export function DocEditorShell<T>({
   const [formWidth, setFormWidth] = useState(460)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
+  const docType = typeof data === 'object' && data !== null && 'docType' in data
+    ? String((data as { docType?: unknown }).docType ?? '')
+    : ''
+  const demoSignupPath = `/signup?source=demo&intent=download_pdf${docType ? `&doc_type=${encodeURIComponent(docType)}` : ''}`
 
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
@@ -148,7 +152,7 @@ export function DocEditorShell<T>({
                 Demo
               </span>
               <LangSwitcher />
-              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
+              <Link to={demoSignupPath} className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
             </>
           ) : (
             <>
@@ -188,7 +192,7 @@ export function DocEditorShell<T>({
           </button>
         )}
         {demo ? (
-          <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>
+          <Link to={demoSignupPath} className="btn-download" style={{ textDecoration: 'none' }}>
             Sign up to download PDF
           </Link>
         ) : pdfUrl && (
@@ -204,7 +208,7 @@ export function DocEditorShell<T>({
           <div className="form-panel">{children}</div>
           <div className="mobile-pdf-strip">
             {demo
-              ? <Link to="/signup" className="btn-download"
+              ? <Link to={demoSignupPath} className="btn-download"
                    style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>
                   Sign up to download PDF
                 </Link>

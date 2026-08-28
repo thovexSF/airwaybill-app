@@ -1,5 +1,6 @@
-import React from 'react'
-import { Navigate, useParams } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { usePostHog } from '@posthog/react'
 import { DemoModeProvider } from '../components/DemoMode'
 import { DemoEditorPage } from './DemoEditorPage'
 import { LabelPage } from './LabelPage'
@@ -37,8 +38,21 @@ const DEMO_EDITORS: Record<string, React.ComponentType> = {
 }
 
 export function DemoDocPage() {
+  const posthog = usePostHog()
   const { docType } = useParams<{ docType: string }>()
+  const [searchParams] = useSearchParams()
   const Editor = docType ? DEMO_EDITORS[docType] : undefined
+  const source = searchParams.get('source') ?? 'direct'
+  const intent = searchParams.get('intent') ?? 'browse_demo'
+
+  useEffect(() => {
+    if (!docType || !Editor) return
+    posthog?.capture('demo_document_viewed', {
+      doc_type: docType,
+      source,
+      intent,
+    })
+  }, [posthog, docType, Editor, source, intent])
 
   if (!Editor) return <Navigate to="/demo" replace />
 
