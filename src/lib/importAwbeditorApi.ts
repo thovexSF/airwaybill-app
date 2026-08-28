@@ -12,19 +12,51 @@ export type AwbeditorImportResult = {
   preview: { mawb: number; hawb: number; dgd: number }
 }
 
-export async function importAwbeditorDb(file: File): Promise<AwbeditorImportResult> {
+async function authHeaders(): Promise<HeadersInit> {
   const { data: sessionData } = await supabase.auth.getSession()
   const token = sessionData.session?.access_token
   if (!token) throw new Error('Debes iniciar sesión para importar')
+  return { Authorization: `Bearer ${token}` }
+}
 
+async function readError(res: Response): Promise<string> {
+  const text = await res.text()
+  try {
+    const json = JSON.parse(text)
+    return json.message || json.error || text || `Error ${res.status}`
+  } catch {
+    return text || `Error ${res.status}`
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+export async function importAwbeditorDb(file: File): Promise<AwbeditorImportResult> {
+  const headers = await authHeaders()
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch('/api/import/awbeditor', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: form,
-  })
-  const json = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(json?.error || json?.message || `Error ${res.status}`)
-  return json as AwbeditorImportResult
+  const res = await fetch('/api/import/awbeditor', { method: 'POST', headers, body: form })
+  if (!res.ok) throw new Error(await readError(res))
+
+  const started = (await res.json()) as { jobId: string; preview: AwbeditorImportResult['preview'] }
+  const deadline = Date.now() + 15 * 60 * 1000
+
+  while (Date.now() < deadline) {
+    await sleep(2000)
+    const poll = await fetch(`/api/import/awbeditor/${started.jobId}`, { headers: await authHeaders() })
+    if (!poll.ok) throw new Error(await readError(poll))
+    const job = (await poll.json()) as {
+      status: string
+      preview: AwbeditorImportResult['preview']
+      result?: AwbeditorImportResult
+      error?: string
+    }
+    if (job.status === 'error') throw new Error(job.error || 'Error al importar')
+    if (job.status === 'done' && job.result) {
+      return { ...job.result, preview: job.preview || started.preview }
+    }
+  }
+  throw new Error('La importación tardó demasiado. Revisa tus documentos en unos minutos.')
 }

@@ -1,9 +1,10 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { execFileSync } from 'node:child_process'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import AdmZip from 'adm-zip'
 import { externalIdForRow, mapDgdRow, mapHawbRow, mapMawbRow } from './mapAwbeditorRows'
+import { parseAwbeditorDbFile } from './parseAwbeditorDbNode'
 
 export type AwbEditorParseResult = {
   mawb: Record<string, unknown>[]
@@ -23,30 +24,27 @@ export type AwbEditorImportStats = {
   errors: string[]
 }
 
-function parserScriptPath(): string {
-  return path.join(__dirname, '../scripts/parse_awbeditor_db.py')
-}
-
-export function parseAwbeditorDbBuffer(buffer: Buffer, originalName = 'awbeditor.db'): AwbEditorParseResult {
+function extractDbToTemp(buffer: Buffer, originalName: string): { dbPath: string; tmpDir: string } {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'awb-db-import-'))
   const lower = originalName.toLowerCase()
   const dbPath = path.join(tmpDir, 'awbeditor.db')
+  if (lower.endsWith('.zip')) {
+    const zip = new AdmZip(buffer)
+    const entry = zip.getEntry('awbeditor.db')
+    if (!entry) throw new Error('El ZIP no contiene awbeditor.db en la raíz')
+    fs.writeFileSync(dbPath, entry.getData())
+  } else if (lower.endsWith('.db')) {
+    fs.writeFileSync(dbPath, buffer)
+  } else {
+    throw new Error('Formato no soportado. Usa awbeditor.db o .zip')
+  }
+  return { dbPath, tmpDir }
+}
 
+export function parseAwbeditorDbBuffer(buffer: Buffer, originalName = 'awbeditor.db'): AwbEditorParseResult {
+  const { dbPath, tmpDir } = extractDbToTemp(buffer, originalName)
   try {
-    if (lower.endsWith('.zip')) {
-      const zipPath = path.join(tmpDir, 'upload.zip')
-      fs.writeFileSync(zipPath, buffer)
-      execFileSync('unzip', ['-o', '-j', zipPath, 'awbeditor.db', '-d', tmpDir], { stdio: 'pipe' })
-      if (!fs.existsSync(dbPath)) throw new Error('El ZIP no contiene awbeditor.db en la raíz')
-    } else if (lower.endsWith('.db')) {
-      fs.writeFileSync(dbPath, buffer)
-    } else {
-      throw new Error('Formato no soportado. Usa awbeditor.db o .zip')
-    }
-
-    const jsonPath = path.join(tmpDir, 'parsed.json')
-    execFileSync('python3', [parserScriptPath(), dbPath, jsonPath], { stdio: 'pipe' })
-    return JSON.parse(fs.readFileSync(jsonPath, 'utf8')) as AwbEditorParseResult
+    return parseAwbeditorDbFile(dbPath)
   } finally {
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true })

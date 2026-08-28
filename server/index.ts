@@ -26,7 +26,8 @@ import { applyEAwbResult, buildFwbFromAwb } from '../src/lib/awbToFwb'
 import type { AWBData } from '../src/types/awb'
 import { buildFwb17 } from '../src/lib/fwbCargoImp'
 import { authenticateUser } from './userAuth'
-import { importAwbeditorDbBuffer } from './importAwbeditorDb'
+import { parseAwbeditorDbBuffer } from './importAwbeditorDb'
+import { createImportJob, getImportJob, importAwbeditorToOrg } from './importJobs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
@@ -302,25 +303,60 @@ app.post('/v1/documents/:id/fwb', async (req, res) => {
   })
 })
 
-/** Import awbeditor.db / .zip (Excel sigue en cliente). Auth: Supabase JWT del usuario. */
+/** Import awbeditor.db / .zip — parse sync, import async (evita timeout HTTP). */
 app.post('/api/import/awbeditor', upload.single('file'), async (req, res) => {
-  const ctx = await authenticateUser(req.header('authorization') ?? undefined)
-  if (!ctx) return res.status(401).json({ error: 'unauthorized' })
-  if (!req.file?.buffer) return res.status(400).json({ error: 'file_required' })
-
   try {
-    const supabase = adminClient()
-    const stats = await importAwbeditorDbBuffer(
-      supabase,
-      ctx.organizationId,
-      ctx.userId,
-      req.file.buffer,
-      req.file.originalname || 'awbeditor.db',
-    )
-    res.json(stats)
+    const ctx = await authenticateUser(req.header('authorization') ?? undefined)
+    if (!ctx) {
+      return res.status(401).json({ error: 'unauthorized', message: 'Sesión inválida o servidor sin SUPABASE_SERVICE_ROLE_KEY' })
+    }
+    if (!req.file?.buffer) return res.status(400).json({ error: 'file_required' })
+
+    let supabase
+    try {
+      supabase = adminClient()
+    } catch (e: any) {
+      return res.status(503).json({ error: 'server_misconfigured', message: e?.message || 'SUPABASE_SERVICE_ROLE_KEY missing' })
+    }
+
+    let parsed
+    try {
+      parsed = parseAwbeditorDbBuffer(req.file.buffer, req.file.originalname || 'awbeditor.db')
+    } catch (e: any) {
+      return res.status(400).json({ error: 'parse_failed', message: e?.message || 'No se pudo leer awbeditor.db' })
+    }
+
+    const jobId = createImportJob(ctx.organizationId, ctx.userId, parsed, async (sb) => {
+      return importAwbeditorToOrg(sb, ctx.organizationId, ctx.userId, parsed)
+    }, supabase)
+
+    const preview = {
+      mawb: parsed.mawb?.length || 0,
+      hawb: parsed.hawb?.length || 0,
+      dgd: parsed.dgd?.length || 0,
+    }
+    res.json({ jobId, preview, status: 'running' })
   } catch (e: any) {
     console.error('awbeditor import failed', e)
-    res.status(500).json({ error: e?.message || 'import_failed' })
+    res.status(500).json({ error: 'import_failed', message: e?.message || String(e) })
+  }
+})
+
+app.get('/api/import/awbeditor/:jobId', async (req, res) => {
+  try {
+    const ctx = await authenticateUser(req.header('authorization') ?? undefined)
+    if (!ctx) return res.status(401).json({ error: 'unauthorized' })
+    const job = getImportJob(req.params.jobId, ctx.organizationId)
+    if (!job) return res.status(404).json({ error: 'job_not_found' })
+    res.json({
+      status: job.status,
+      preview: job.preview,
+      progress: job.progress,
+      result: job.result,
+      error: job.error,
+    })
+  } catch (e: any) {
+    res.status(500).json({ error: 'job_status_failed', message: e?.message || String(e) })
   }
 })
 
