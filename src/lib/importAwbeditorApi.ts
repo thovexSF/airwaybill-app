@@ -37,6 +37,15 @@ export async function importAwbeditorDb(
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<AwbeditorImportResult> {
+  let lastPct = 0
+  const bump = (pct: number) => {
+    if (pct > lastPct) {
+      lastPct = pct
+      onProgress?.(pct)
+    }
+  }
+
+  bump(1)
   const headers = await authHeaders()
   const form = new FormData()
   form.append('file', file)
@@ -44,11 +53,10 @@ export async function importAwbeditorDb(
   if (!res.ok) throw new Error(await readError(res))
 
   const started = (await res.json()) as { jobId: string; preview: AwbeditorImportResult['preview'] }
-  onProgress?.(5)
+  bump(2)
   const deadline = Date.now() + 15 * 60 * 1000
 
   while (Date.now() < deadline) {
-    await sleep(2000)
     const poll = await fetch(`/api/import/awbeditor/${started.jobId}`, { headers: await authHeaders() })
     if (!poll.ok) throw new Error(await readError(poll))
     const job = (await poll.json()) as {
@@ -58,12 +66,13 @@ export async function importAwbeditorDb(
       result?: AwbeditorImportResult
       error?: string
     }
-    if (typeof job.progress === 'number') onProgress?.(job.progress)
+    if (typeof job.progress === 'number' && job.progress > 0) bump(job.progress)
     if (job.status === 'error') throw new Error(job.error || 'Error al importar')
     if (job.status === 'done' && job.result) {
-      onProgress?.(100)
+      bump(100)
       return { ...job.result, preview: job.preview || started.preview }
     }
+    await sleep(1500)
   }
   throw new Error('La importación tardó demasiado. Revisa tus documentos en unos minutos.')
 }

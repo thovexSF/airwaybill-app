@@ -67,6 +67,7 @@ async function loadExistingByExternalId(
       .select('id, external_id')
       .eq('organization_id', organizationId)
       .not('external_id', 'is', null)
+      .order('id')
       .range(offset, offset + pageSize - 1)
     if (error) throw error
     if (!data?.length) break

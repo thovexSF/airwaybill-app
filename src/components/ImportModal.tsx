@@ -30,7 +30,7 @@ export function ImportModal({ onClose, onDone }: Props) {
     if (lower.endsWith('.db') || lower.endsWith('.zip')) {
       setMode('awbeditor')
       setStep('importing')
-      setProgress(0)
+      setProgress(1)
       try {
         const r = await importAwbeditorDb(file, setProgress)
         const ok = r.mawbCreated + r.mawbUpdated + r.hawbCreated + r.hawbUpdated + r.dgdCreated + r.dgdUpdated
@@ -252,7 +252,11 @@ export function ImportModal({ onClose, onDone }: Props) {
               </div>
               {mode === 'awbeditor' && (
                 <p style={{ marginTop: 16, fontSize: 12, color: '#666' }}>
-                  ~546 documentos; puede tardar varios minutos. No cierres esta ventana.
+                  {progress < 3
+                    ? 'Subiendo archivo…'
+                    : progress < 10
+                      ? 'Leyendo awbeditor.db…'
+                      : '~546 documentos; no cierres esta ventana.'}
                 </p>
               )}
             </div>

@@ -26,8 +26,7 @@ import { applyEAwbResult, buildFwbFromAwb } from '../src/lib/awbToFwb'
 import type { AWBData } from '../src/types/awb'
 import { buildFwb17 } from '../src/lib/fwbCargoImp'
 import { authenticateUser } from './userAuth'
-import { parseAwbeditorDbBuffer } from './importAwbeditorDb'
-import { createImportJob, getImportJob, importAwbeditorToOrg } from './importJobs'
+import { createBufferImportJob, getImportJob } from './importJobs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
@@ -303,7 +302,7 @@ app.post('/v1/documents/:id/fwb', async (req, res) => {
   })
 })
 
-/** Import awbeditor.db / .zip — parse sync, import async (evita timeout HTTP). */
+/** Import awbeditor.db / .zip — responde al instante; parse + import en background. */
 app.post('/api/import/awbeditor', upload.single('file'), async (req, res) => {
   try {
     const ctx = await authenticateUser(req.header('authorization') ?? undefined)
@@ -319,23 +318,19 @@ app.post('/api/import/awbeditor', upload.single('file'), async (req, res) => {
       return res.status(503).json({ error: 'server_misconfigured', message: e?.message || 'SUPABASE_SERVICE_ROLE_KEY missing' })
     }
 
-    let parsed
-    try {
-      parsed = parseAwbeditorDbBuffer(req.file.buffer, req.file.originalname || 'awbeditor.db')
-    } catch (e: any) {
-      return res.status(400).json({ error: 'parse_failed', message: e?.message || 'No se pudo leer awbeditor.db' })
-    }
+    const jobId = createBufferImportJob(
+      ctx.organizationId,
+      ctx.userId,
+      req.file.buffer,
+      req.file.originalname || 'awbeditor.db',
+      supabase,
+    )
 
-    const jobId = createImportJob(ctx.organizationId, ctx.userId, parsed, async (sb, onProgress) => {
-      return importAwbeditorToOrg(sb, ctx.organizationId, ctx.userId, parsed, onProgress)
-    }, supabase)
-
-    const preview = {
-      mawb: parsed.mawb?.length || 0,
-      hawb: parsed.hawb?.length || 0,
-      dgd: parsed.dgd?.length || 0,
-    }
-    res.json({ jobId, preview, status: 'running' })
+    res.json({
+      jobId,
+      preview: { mawb: 0, hawb: 0, dgd: 0 },
+      status: 'running',
+    })
   } catch (e: any) {
     console.error('awbeditor import failed', e)
     res.status(500).json({ error: 'import_failed', message: e?.message || String(e) })
