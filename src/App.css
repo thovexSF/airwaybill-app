@@ -79,6 +79,8 @@ html[data-hub-modal="1"] .app {
   overflow-y: auto; min-width: 260px; max-width: 640px;
   display: flex; flex-direction: column;
 }
+.structured-form-panel { flex: 1; overflow: auto; min-height: 0; background: #f4f4f4; }
+.structured-form-panel { flex: 1; overflow: auto; min-height: 0; background: #f4f4f4; }
 
 /* Font size toolbar */
 .form-font-toolbar {

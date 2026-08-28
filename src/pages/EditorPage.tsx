@@ -5,7 +5,7 @@ import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
-import { AWBFormPanel } from '../components/AWBFormPanel'
+import { StructuredFormPanel } from '../components/StructuredFormPanel'
 import { FormDialog } from '../components/FormDialog'
 import { CopiesDialog } from '../components/CopiesDialog'
 import { FwbPreviewDialog } from '../components/FwbPreviewDialog'
@@ -60,7 +60,7 @@ export function EditorPage() {
   const [downloading, setDownloading] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [downloadCountedAt, setDownloadCountedAt] = useState<string | null>(null)
-  const [formWidth, setFormWidth] = useState(380)
+  const [formWidth, setFormWidth] = useState(520)
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
   const [overlayMode, setOverlayMode] = useState(() => window.innerWidth >= 900)
@@ -435,7 +435,7 @@ export function EditorPage() {
         {!overlayMode && (
           <>
             <div className="form-panel-wrap" style={{ width: formWidth }}>
-              <AWBFormPanel data={data} onChange={applyData} />
+              <StructuredFormPanel data={data} onChange={applyData} documentKey={currentId} />
               {/* Mobile-only: sticky download bar */}
               <div className="mobile-pdf-strip">
                 {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, flex: 1 }}>{t('editor.generating')}</span>}
@@ -477,7 +477,7 @@ export function EditorPage() {
           cancelLabel={t('common.cancel')}
           saveLabel={t('editor.applyChanges')}
         >
-          <AWBFormPanel data={draft ?? data} onChange={applyDraft} />
+          <StructuredFormPanel data={draft ?? data} onChange={applyDraft} documentKey={currentId} />
         </FormDialog>
 
         <div className={`preview-panel ${overlayMode ? 'preview-panel-full' : ''}`}>
