@@ -33,7 +33,10 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms))
 }
 
-export async function importAwbeditorDb(file: File): Promise<AwbeditorImportResult> {
+export async function importAwbeditorDb(
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<AwbeditorImportResult> {
   const headers = await authHeaders()
   const form = new FormData()
   form.append('file', file)
@@ -41,6 +44,7 @@ export async function importAwbeditorDb(file: File): Promise<AwbeditorImportResu
   if (!res.ok) throw new Error(await readError(res))
 
   const started = (await res.json()) as { jobId: string; preview: AwbeditorImportResult['preview'] }
+  onProgress?.(5)
   const deadline = Date.now() + 15 * 60 * 1000
 
   while (Date.now() < deadline) {
@@ -50,11 +54,14 @@ export async function importAwbeditorDb(file: File): Promise<AwbeditorImportResu
     const job = (await poll.json()) as {
       status: string
       preview: AwbeditorImportResult['preview']
+      progress?: number
       result?: AwbeditorImportResult
       error?: string
     }
+    if (typeof job.progress === 'number') onProgress?.(job.progress)
     if (job.status === 'error') throw new Error(job.error || 'Error al importar')
     if (job.status === 'done' && job.result) {
+      onProgress?.(100)
       return { ...job.result, preview: job.preview || started.preview }
     }
   }

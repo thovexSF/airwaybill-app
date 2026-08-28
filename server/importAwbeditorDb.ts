@@ -94,6 +94,7 @@ export async function importAwbeditorToOrg(
   organizationId: string,
   userId: string,
   parsed: AwbEditorParseResult,
+  onProgress?: (pct: number) => void,
 ): Promise<AwbEditorImportStats> {
   const stats: AwbEditorImportStats = {
     mawbCreated: 0,
@@ -104,6 +105,14 @@ export async function importAwbeditorToOrg(
     dgdUpdated: 0,
     skipped: 0,
     errors: [],
+  }
+
+  const total =
+    (parsed.mawb?.length || 0) + (parsed.hawb?.length || 0) + (parsed.dgd?.length || 0) || 1
+  let done = 0
+  const tick = () => {
+    done++
+    onProgress?.(Math.min(99, Math.round((done / total) * 100)))
   }
 
   for (const row of parsed.mawb || []) {
@@ -121,6 +130,7 @@ export async function importAwbeditorToOrg(
     } catch (e: any) {
       stats.errors.push(`MAWB ${awbNumber}: ${e?.message || e}`)
     }
+    tick()
   }
 
   for (const row of parsed.hawb || []) {
@@ -138,6 +148,7 @@ export async function importAwbeditorToOrg(
     } catch (e: any) {
       stats.errors.push(`HAWB ${hawbNumber}: ${e?.message || e}`)
     }
+    tick()
   }
 
   for (const row of parsed.dgd || []) {
@@ -151,7 +162,10 @@ export async function importAwbeditorToOrg(
     } catch (e: any) {
       stats.errors.push(`DGD ${label}: ${e?.message || e}`)
     }
+    tick()
   }
+
+  onProgress?.(100)
 
   for (const err of parsed.errors || []) {
     stats.errors.push(`Parse doc ${err.id}: ${err.error}`)

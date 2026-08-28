@@ -326,8 +326,8 @@ app.post('/api/import/awbeditor', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'parse_failed', message: e?.message || 'No se pudo leer awbeditor.db' })
     }
 
-    const jobId = createImportJob(ctx.organizationId, ctx.userId, parsed, async (sb) => {
-      return importAwbeditorToOrg(sb, ctx.organizationId, ctx.userId, parsed)
+    const jobId = createImportJob(ctx.organizationId, ctx.userId, parsed, async (sb, onProgress) => {
+      return importAwbeditorToOrg(sb, ctx.organizationId, ctx.userId, parsed, onProgress)
     }, supabase)
 
     const preview = {

@@ -32,7 +32,7 @@ export function ImportModal({ onClose, onDone }: Props) {
       setStep('importing')
       setProgress(0)
       try {
-        const r = await importAwbeditorDb(file)
+        const r = await importAwbeditorDb(file, setProgress)
         const ok = r.mawbCreated + r.mawbUpdated + r.hawbCreated + r.hawbUpdated + r.dgdCreated + r.dgdUpdated
         const summary = `${r.preview.mawb} MAWB · ${r.preview.hawb} HAWB · ${r.preview.dgd} DGD`
         setResult({ ok, errors: r.errors, summary })
@@ -238,21 +238,22 @@ export function ImportModal({ onClose, onDone }: Props) {
           {step === 'importing' && (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>
-                {mode === 'awbeditor' ? 'Importando awbeditor.db…' : `Importando… ${progress}%`}
+                {mode === 'awbeditor' ? `Importando awbeditor.db… ${progress}%` : `Importando… ${progress}%`}
               </div>
               <div style={{ background: '#f0f0f0', borderRadius: 8, height: 12, overflow: 'hidden', maxWidth: 400, margin: '0 auto' }}>
                 <div
                   style={{
                     background: '#8b0000',
                     height: '100%',
-                    width: mode === 'awbeditor' ? '100%' : `${progress}%`,
-                    transition: 'width 0.2s',
-                    animation: mode === 'awbeditor' ? 'pulse 1.2s ease-in-out infinite' : undefined,
+                    width: `${progress}%`,
+                    transition: 'width 0.4s',
                   }}
                 />
               </div>
               {mode === 'awbeditor' && (
-                <p style={{ marginTop: 16, fontSize: 12, color: '#666' }}>Puede tardar unos minutos con bases grandes.</p>
+                <p style={{ marginTop: 16, fontSize: 12, color: '#666' }}>
+                  ~546 documentos; puede tardar varios minutos. No cierres esta ventana.
+                </p>
               )}
             </div>
           )}

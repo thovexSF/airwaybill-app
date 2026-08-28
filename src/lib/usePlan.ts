@@ -36,7 +36,7 @@ export function usePlan(): PlanInfo {
       .select('count')
       .eq('organization_id', id)
       .eq('month', month)
-      .single()
+      .maybeSingle()
 
     setUsed(usage?.count ?? 0)
   }

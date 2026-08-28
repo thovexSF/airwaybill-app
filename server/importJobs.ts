@@ -22,7 +22,7 @@ export function createImportJob(
   organizationId: string,
   userId: string,
   parsed: AwbEditorParseResult,
-  run: (supabase: SupabaseClient) => Promise<AwbEditorImportStats>,
+  run: (supabase: SupabaseClient, onProgress: (pct: number) => void) => Promise<AwbEditorImportStats>,
   supabase: SupabaseClient,
 ): string {
   const jobId = randomUUID()
@@ -40,7 +40,10 @@ export function createImportJob(
     startedAt: Date.now(),
   })
 
-  void run(supabase)
+  void run(supabase, (pct) => {
+      const job = jobs.get(jobId)
+      if (job) job.progress = pct
+    })
     .then((result) => {
       const job = jobs.get(jobId)
       if (!job) return
