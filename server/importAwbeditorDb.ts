@@ -54,39 +54,107 @@ export function parseAwbeditorDbBuffer(buffer: Buffer, originalName = 'awbeditor
   }
 }
 
-async function upsertDocument(
+async function loadExistingByExternalId(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>()
+  const pageSize = 1000
+  let offset = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('awb_documents')
+      .select('id, external_id')
+      .eq('organization_id', organizationId)
+      .not('external_id', 'is', null)
+      .range(offset, offset + pageSize - 1)
+    if (error) throw error
+    if (!data?.length) break
+    for (const row of data) {
+      if (row.external_id) map.set(row.external_id, row.id)
+    }
+    if (data.length < pageSize) break
+    offset += pageSize
+  }
+  return map
+}
+
+async function runPool<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>) {
+  if (!items.length) return
+  let idx = 0
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (idx < items.length) {
+      const i = idx++
+      await fn(items[i])
+    }
+  })
+  await Promise.all(workers)
+}
+
+type ImportItem = {
+  label: string
+  externalId: string
+  data: Record<string, unknown>
+  kind: 'mawb' | 'hawb' | 'dgd'
+}
+
+async function flushInserts(
   supabase: SupabaseClient,
   organizationId: string,
   userId: string,
-  externalId: string,
-  data: Record<string, unknown>,
-): Promise<'created' | 'updated'> {
-  const status = data.isDraft ? 'draft' : 'final'
-  const { data: existing } = await supabase
-    .from('awb_documents')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .eq('external_id', externalId)
-    .maybeSingle()
-
-  if (existing?.id) {
-    const { error } = await supabase
-      .from('awb_documents')
-      .update({ data, status, updated_at: new Date().toISOString() })
-      .eq('id', existing.id)
-    if (error) throw error
-    return 'updated'
+  rows: ImportItem[],
+  stats: AwbEditorImportStats,
+  onItemDone?: () => void,
+) {
+  const batchSize = 50
+  for (let i = 0; i < rows.length; i += batchSize) {
+    const chunk = rows.slice(i, i + batchSize)
+    const { error } = await supabase.from('awb_documents').insert(
+      chunk.map((item) => ({
+        data: item.data,
+        status: item.data.isDraft ? 'draft' : 'final',
+        organization_id: organizationId,
+        user_id: userId,
+        external_id: item.externalId,
+      })),
+    )
+    if (error) {
+      for (const item of chunk) {
+        stats.errors.push(`${item.label}: ${error.message}`)
+        onItemDone?.()
+      }
+      continue
+    }
+    for (const item of chunk) {
+      if (item.kind === 'mawb') stats.mawbCreated++
+      else if (item.kind === 'hawb') stats.hawbCreated++
+      else stats.dgdCreated++
+      onItemDone?.()
+    }
   }
+}
 
-  const { error } = await supabase.from('awb_documents').insert({
-    data,
-    status,
-    organization_id: organizationId,
-    user_id: userId,
-    external_id: externalId,
+async function flushUpdates(
+  supabase: SupabaseClient,
+  rows: { item: ImportItem; id: string }[],
+  stats: AwbEditorImportStats,
+  onItemDone?: () => void,
+) {
+  await runPool(rows, 20, async ({ item, id }) => {
+    try {
+      const { error } = await supabase
+        .from('awb_documents')
+        .update({ data: item.data, status: item.data.isDraft ? 'draft' : 'final', updated_at: new Date().toISOString() })
+        .eq('id', id)
+      if (error) throw error
+      if (item.kind === 'mawb') stats.mawbUpdated++
+      else if (item.kind === 'hawb') stats.hawbUpdated++
+      else stats.dgdUpdated++
+    } catch (e: any) {
+      stats.errors.push(`${item.label}: ${e?.message || e}`)
+    }
+    onItemDone?.()
   })
-  if (error) throw error
-  return 'created'
 }
 
 export async function importAwbeditorToOrg(
@@ -107,13 +175,7 @@ export async function importAwbeditorToOrg(
     errors: [],
   }
 
-  const total =
-    (parsed.mawb?.length || 0) + (parsed.hawb?.length || 0) + (parsed.dgd?.length || 0) || 1
-  let done = 0
-  const tick = () => {
-    done++
-    onProgress?.(Math.min(99, Math.round((done / total) * 100)))
-  }
+  const items: ImportItem[] = []
 
   for (const row of parsed.mawb || []) {
     const awbNumber = String(row.awbNumber || '')
@@ -121,16 +183,12 @@ export async function importAwbeditorToOrg(
       stats.skipped++
       continue
     }
-    try {
-      const data = mapMawbRow(row) as unknown as Record<string, unknown>
-      const ext = externalIdForRow('mawb', row)
-      const action = await upsertDocument(supabase, organizationId, userId, ext, data)
-      if (action === 'created') stats.mawbCreated++
-      else stats.mawbUpdated++
-    } catch (e: any) {
-      stats.errors.push(`MAWB ${awbNumber}: ${e?.message || e}`)
-    }
-    tick()
+    items.push({
+      label: `MAWB ${awbNumber}`,
+      externalId: externalIdForRow('mawb', row),
+      data: mapMawbRow(row) as unknown as Record<string, unknown>,
+      kind: 'mawb',
+    })
   }
 
   for (const row of parsed.hawb || []) {
@@ -139,31 +197,43 @@ export async function importAwbeditorToOrg(
       stats.skipped++
       continue
     }
-    try {
-      const data = mapHawbRow(row) as unknown as Record<string, unknown>
-      const ext = externalIdForRow('hawb', row)
-      const action = await upsertDocument(supabase, organizationId, userId, ext, data)
-      if (action === 'created') stats.hawbCreated++
-      else stats.hawbUpdated++
-    } catch (e: any) {
-      stats.errors.push(`HAWB ${hawbNumber}: ${e?.message || e}`)
-    }
-    tick()
+    items.push({
+      label: `HAWB ${hawbNumber}`,
+      externalId: externalIdForRow('hawb', row),
+      data: mapHawbRow(row) as unknown as Record<string, unknown>,
+      kind: 'hawb',
+    })
   }
 
   for (const row of parsed.dgd || []) {
     const label = String(row.dgdNumber || row.externalId || '')
-    try {
-      const data = mapDgdRow(row) as unknown as Record<string, unknown>
-      const ext = externalIdForRow('dgd', row)
-      const action = await upsertDocument(supabase, organizationId, userId, ext, data)
-      if (action === 'created') stats.dgdCreated++
-      else stats.dgdUpdated++
-    } catch (e: any) {
-      stats.errors.push(`DGD ${label}: ${e?.message || e}`)
-    }
-    tick()
+    items.push({
+      label: `DGD ${label}`,
+      externalId: externalIdForRow('dgd', row),
+      data: mapDgdRow(row) as unknown as Record<string, unknown>,
+      kind: 'dgd',
+    })
   }
+
+  const total = items.length || 1
+  let done = 0
+  const tick = () => {
+    done++
+    onProgress?.(Math.min(99, Math.round((done / total) * 100)))
+  }
+
+  const existing = await loadExistingByExternalId(supabase, organizationId)
+  const toInsert: ImportItem[] = []
+  const toUpdate: { item: ImportItem; id: string }[] = []
+
+  for (const item of items) {
+    const id = existing.get(item.externalId)
+    if (id) toUpdate.push({ item, id })
+    else toInsert.push(item)
+  }
+
+  await flushInserts(supabase, organizationId, userId, toInsert, stats, tick)
+  await flushUpdates(supabase, toUpdate, stats, tick)
 
   onProgress?.(100)
 
