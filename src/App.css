@@ -518,7 +518,33 @@ html[data-hub-modal="1"] .app {
   line-height: 1.25; vertical-align: middle;
 }
 .doc-hub-table tr.alt td { background: #fafafa; }
-.doc-hub-table tr:hover td { background: #fff5f5; }
+.doc-hub-row-clickable { cursor: pointer; }
+.doc-hub-row-num {
+  width: 42px;
+  min-width: 42px;
+  text-align: center;
+  color: #888;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  font-weight: 600;
+}
+.doc-hub-row-num:hover { color: var(--red); }
+.doc-hub-row-num.card {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #f3f3f3;
+  font-size: 12px;
+  margin-right: 10px;
+}
+.doc-hub-table tr.doc-hub-row-clickable:hover td { background: #fff5f5; }
+.doc-hub-table tr.doc-hub-row-clickable.deleting td { opacity: 0.45; }
+.doc-hub-card.doc-hub-row-clickable { cursor: pointer; display: flex; align-items: flex-start; }
+.doc-hub-card.doc-hub-row-clickable:hover { border-color: #e8c4c4; box-shadow: 0 2px 8px rgba(139, 0, 0, 0.08); }
 .doc-hub-table .strong { font-weight: 700; }
 .doc-hub-table .ellipsis { max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
 .doc-hub-table .muted { color: #888; font-size: 11px; }

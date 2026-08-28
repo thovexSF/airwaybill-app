@@ -89,6 +89,22 @@ export function MyAWBsPage() {
     setDeleting(null)
   }
 
+  function handleRowDelete(e: React.MouseEvent, id: string) {
+    e.preventDefault()
+    e.stopPropagation()
+    void handleDelete(id)
+  }
+
+  const rowNumCell = (n: number, docId: string) => (
+    <td
+      className="sticky-left doc-hub-row-num"
+      title={t('myAwbs.deleteRightClick')}
+      onContextMenu={(e) => handleRowDelete(e, docId)}
+    >
+      {n}
+    </td>
+  )
+
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })
 
@@ -461,10 +477,17 @@ export function MyAWBsPage() {
 
           {view === 'cards' && filtered.length > 0 && (
             <div className="doc-hub-cards">
-              {filtered.map((doc) => {
+              {filtered.map((doc, i) => {
                 const r = rowOf(doc)
                 return (
-                  <div key={doc.id} className="doc-hub-card">
+                  <div key={doc.id} className="doc-hub-card doc-hub-row-clickable" onClick={() => openEditor(r.editPath, r.awbNum)}>
+                    <span
+                      className="doc-hub-row-num card"
+                      title={t('myAwbs.deleteRightClick')}
+                      onContextMenu={(e) => handleRowDelete(e, doc.id)}
+                    >
+                      {i + 1}
+                    </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="doc-hub-card-title">{r.awbNum}</div>
                       <div className="doc-hub-card-meta">
@@ -478,19 +501,6 @@ export function MyAWBsPage() {
                         {fmt(doc.updated_at)} · {doc.status}
                       </div>
                     </div>
-                    <div className="doc-hub-card-actions">
-                      <button type="button" className="doc-hub-btn primary" onClick={() => openEditor(r.editPath, r.awbNum)}>
-                        {t('myAwbs.open')}
-                      </button>
-                      <button
-                        type="button"
-                        className="doc-hub-btn danger"
-                        disabled={deleting === doc.id}
-                        onClick={() => handleDelete(doc.id)}
-                      >
-                        {deleting === doc.id ? '...' : t('myAwbs.delete')}
-                      </button>
-                    </div>
                   </div>
                 )
               })}
@@ -502,6 +512,7 @@ export function MyAWBsPage() {
               <table className="doc-hub-table">
                 <thead>
                   <tr>
+                    <th className="sticky-left doc-hub-row-num">{t('myAwbs.colNum')}</th>
                     {(
                       [
                         ['awb', t('myAwbs.colAwb')],
@@ -516,24 +527,24 @@ export function MyAWBsPage() {
                         ['date', t('myAwbs.colDate')],
                       ] as [typeof sortCol, string][]
                     ).map(([col, label]) => (
-                      <th
-                        key={col}
-                        onClick={() => handleSort(col)}
-                        className={col === 'awb' ? 'sticky-left' : undefined}
-                      >
+                      <th key={col} onClick={() => handleSort(col)}>
                         {label}
                         <SortIcon col={col} />
                       </th>
                     ))}
-                    <th className="sticky-right">{t('myAwbs.colActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((doc, i) => {
                     const r = rowOf(doc)
                     return (
-                      <tr key={doc.id} className={i % 2 ? 'alt' : undefined}>
-                        <td className="sticky-left strong">{r.awbNum}</td>
+                      <tr
+                        key={doc.id}
+                        className={`doc-hub-row-clickable${i % 2 ? ' alt' : ''}${deleting === doc.id ? ' deleting' : ''}`}
+                        onClick={() => openEditor(r.editPath, r.awbNum)}
+                      >
+                        {rowNumCell(i + 1, doc.id)}
+                        <td className="strong">{r.awbNum}</td>
                         <td className="ellipsis">{r.shipper}</td>
                         <td className="ellipsis">{r.consignee}</td>
                         <td>{r.route}</td>
@@ -547,25 +558,6 @@ export function MyAWBsPage() {
                           <span className={`doc-hub-status ${doc.status}`}>{doc.status}</span>
                         </td>
                         <td className="muted">{fmt(doc.updated_at)}</td>
-                        <td className="sticky-right">
-                          <div className="doc-hub-card-actions">
-                            <button
-                              type="button"
-                              className="doc-hub-btn primary sm"
-                              onClick={() => openEditor(r.editPath, r.awbNum)}
-                            >
-                              {t('myAwbs.open')}
-                            </button>
-                            <button
-                              type="button"
-                              className="doc-hub-btn danger sm"
-                              disabled={deleting === doc.id}
-                              onClick={() => handleDelete(doc.id)}
-                            >
-                              {deleting === doc.id ? '...' : t('myAwbs.delete')}
-                            </button>
-                          </div>
-                        </td>
                       </tr>
                     )
                   })}
