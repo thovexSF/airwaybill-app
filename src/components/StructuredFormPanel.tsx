@@ -17,7 +17,37 @@ const theme = createTheme({
   palette: {
     primary: { main: '#8b0000' },
   },
-  typography: { fontSize: 13 },
+  typography: {
+    fontSize: 12,
+    body2: { fontSize: '0.75rem' },
+    subtitle2: { fontSize: '0.8rem', fontWeight: 700 },
+  },
+  components: {
+    MuiTextField: {
+      defaultProps: { size: 'small', margin: 'dense' },
+    },
+    MuiButton: {
+      defaultProps: { size: 'small' },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: { fontSize: '0.72rem', padding: '4px 6px' },
+        head: { fontWeight: 700 },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        input: { fontSize: '0.75rem', padding: '5px 8px' },
+        inputMultiline: { fontSize: '0.75rem', lineHeight: 1.35 },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: { root: { fontSize: '0.72rem' } },
+    },
+    MuiFormControlLabel: {
+      styleOverrides: { label: { fontSize: '0.72rem' } },
+    },
+  },
 })
 
 interface Props {

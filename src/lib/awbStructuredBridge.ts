@@ -185,6 +185,9 @@ export function hawbFormToAwbData(form: HawbFormData, prev: AWBData): AWBData {
     docType: 'hawb',
     hawbNumber: form.hawbNumber,
     mawbReference: form.masterAwbNumber,
+    referenceNumber: form.masterAwbNumber
+      ? (form.masterAwbNumber.toUpperCase().startsWith('MAWB') ? form.masterAwbNumber : `MAWB ${form.masterAwbNumber}`)
+      : prev.referenceNumber,
     shipperNameAndAddress: form.shipperNameAndAddress,
     consigneeNameAndAddress: form.consigneeNameAndAddress,
     agentNameAndCity: form.agentNameAndCity,

@@ -27,14 +27,25 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString()
 
+/** Ancho inicial del panel formulario (~58% en modal hub, ~52% en editor full). */
+function initialFormWidth(): number {
+  if (typeof window === 'undefined') return 640
+  const hub = document.documentElement.getAttribute('data-hub-modal') === '1'
+  const ratio = hub ? 0.62 : 0.52
+  return Math.min(920, Math.max(440, Math.round(window.innerWidth * ratio)))
+}
+
 /** The sheet is wider than a phone at 100%, so start fitted to the viewport. */
 function initialZoom(): number {
-  if (typeof window === 'undefined') return 1.0
+  if (typeof window === 'undefined') return 0.8
   const PAGE_PT = 612
-  const RENDER_SCALE = 1.5
-  if (window.innerWidth >= 768) return 1.0
-  return Math.max(0.4, Math.min(1, (window.innerWidth - 16) / (PAGE_PT * RENDER_SCALE)))
+  const RENDER_SCALE = 1.35
+  const hub = document.documentElement.getAttribute('data-hub-modal') === '1'
+  if (window.innerWidth >= 900) return hub ? 0.68 : 0.78
+  return Math.max(0.4, Math.min(0.9, (window.innerWidth - 16) / (PAGE_PT * RENDER_SCALE)))
 }
+
+const PDF_PAGE_SCALE = 1.35
 
 export function EditorPage() {
   const { t } = useTranslation()
@@ -60,7 +71,7 @@ export function EditorPage() {
   const [downloading, setDownloading] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [downloadCountedAt, setDownloadCountedAt] = useState<string | null>(null)
-  const [formWidth, setFormWidth] = useState(520)
+  const [formWidth, setFormWidth] = useState(initialFormWidth)
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
   const [overlayMode, setOverlayMode] = useState(() => window.innerWidth >= 900)
@@ -92,7 +103,7 @@ export function EditorPage() {
     const startW = formWidth
     const onMove = (ev: MouseEvent) => {
       if (!dragRef.current) return
-      setFormWidth(Math.max(280, Math.min(600, startW + ev.clientX - startX)))
+      setFormWidth(Math.max(360, Math.min(Math.round(window.innerWidth * 0.78), startW + ev.clientX - startX)))
     }
     const onUp = () => { dragRef.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
     window.addEventListener('mousemove', onMove)
@@ -511,7 +522,7 @@ export function EditorPage() {
                     <div key={i + 1} ref={setPageWrap} style={{ position: 'relative' }}>
                       <Page
                         pageNumber={1}
-                        scale={zoom * 1.5}
+                        scale={zoom * PDF_PAGE_SCALE}
                         renderTextLayer={false}
                         renderAnnotationLayer={false}
                         loading={null}

@@ -207,8 +207,8 @@ const HawbStructuredForm: React.FC<{ data?: any; onChange: (d: HawbFormData) => 
       <Paper variant="outlined" sx={{ p: 2, mb: 1.5 }}>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>HAWB</Typography>
         <Grid container spacing={1}>
-          <Grid item xs={6}><TextField fullWidth size="small" label="HAWB Number" value={form.hawbNumber} onChange={(e) => set('hawbNumber', e.target.value)} /></Grid>
-          <Grid item xs={6}><TextField fullWidth size="small" label="Master AWB" value={form.masterAwbNumber} onChange={(e) => set('masterAwbNumber', e.target.value)} /></Grid>
+          <Grid item xs={6}><TextField fullWidth size="small" label="HAWB Number" value={form.hawbNumber} onChange={(e) => set('hawbNumber', e.target.value)} helperText="Número house del forwarder" /></Grid>
+          <Grid item xs={6}><TextField fullWidth size="small" label="Master AWB (MAWB)" value={form.masterAwbNumber} onChange={(e) => set('masterAwbNumber', e.target.value)} helperText="Referencia al consolidado; se imprime en Reference del PDF" /></Grid>
           <Grid item xs={6}><TextField fullWidth size="small" label="Shipper" multiline minRows={3} value={form.shipperNameAndAddress} onChange={(e) => set('shipperNameAndAddress', e.target.value)} /></Grid>
           <Grid item xs={6}><TextField fullWidth size="small" label="Consignee" multiline minRows={3} value={form.consigneeNameAndAddress} onChange={(e) => set('consigneeNameAndAddress', e.target.value)} /></Grid>
           <Grid item xs={8}><TextField fullWidth size="small" label="Agent" multiline minRows={2} value={form.agentNameAndCity} onChange={(e) => set('agentNameAndCity', e.target.value)} /></Grid>

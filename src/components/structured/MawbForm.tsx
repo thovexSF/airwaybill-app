@@ -31,14 +31,14 @@ import { Fieldset } from './formChrome';
 
 const MONO = {
   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-  fontSize: 12,
-  lineHeight: 1.4,
+  fontSize: 11,
+  lineHeight: 1.35,
 };
 
 const inputSx = {
   '& .MuiOutlinedInput-root': { borderRadius: 0, bgcolor: '#fff' },
-  '& .MuiInputBase-input': { fontSize: 13, py: 0.6 },
-  '& .MuiInputLabel-root': { fontSize: 13 },
+  '& .MuiInputBase-input': { fontSize: 11, py: 0.45 },
+  '& .MuiInputLabel-root': { fontSize: 11 },
 };
 
 const Mini: React.FC<{

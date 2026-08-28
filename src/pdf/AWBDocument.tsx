@@ -143,8 +143,18 @@ function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: stri
       const total = data.rateItems.reduce((s, r) => s + num(r.total), 0)
       return total ? total.toFixed(2) : ''
     }
-    default:
-      return String((data as unknown as Record<string, unknown>)[key] ?? '')
+    case 'referenceNumber':
+      if (data.docType === 'hawb' && data.mawbReference) {
+        const ref = String(data.referenceNumber || '').trim()
+        if (ref) return ref
+        return data.mawbReference.toUpperCase().startsWith('MAWB') ? data.mawbReference : `MAWB ${data.mawbReference}`
+      }
+      return String(data.referenceNumber ?? '')
+    default: {
+      const v = (data as unknown as Record<string, unknown>)[key]
+      if (v != null && typeof v === 'object') return ''
+      return String(v ?? '')
+    }
   }
 }
 
