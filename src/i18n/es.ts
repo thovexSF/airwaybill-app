@@ -134,6 +134,9 @@ const es = {
     previewLoading: 'Generando vista previa…',
     updating: 'Actualizando…',
     zoomReset: 'Reset',
+    saveNudgeTitle: 'Guarda este AWB antes de salir',
+    saveNudgeText: 'Los cambios sin guardar solo quedan en este navegador. Guarda ahora para verlo en Documentos y continuar después.',
+    saveNudgeCta: 'Guardar ahora',
   },
 
   // My AWBs

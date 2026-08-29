@@ -134,6 +134,9 @@ const en = {
     previewLoading: 'Generating preview…',
     updating: 'Updating…',
     zoomReset: 'Reset',
+    saveNudgeTitle: 'Save this AWB before leaving',
+    saveNudgeText: 'Unsaved changes only live in this browser. Save now to keep it in Documents and continue later.',
+    saveNudgeCta: 'Save now',
   },
 
   // My AWBs
