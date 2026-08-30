@@ -175,6 +175,9 @@ export function FeedbackWidget() {
                   <p style={{ margin: '0 0 12px', fontSize: 11, color: '#8b0000', fontWeight: 600 }}>
                     {t('feedback.directNote')}
                   </p>
+                  <p style={{ margin: '0 0 12px', fontSize: 12, color: '#555', lineHeight: 1.45 }}>
+                    {t('feedback.languageHint')}
+                  </p>
 
                   <textarea
                     ref={textareaRef}

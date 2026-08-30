@@ -32,7 +32,7 @@ export function PricingPage() {
   }, [user, currentPlan])
 
   async function handleUpgrade(planId: string, priceId: string) {
-    if (!user || !orgId) { navigate('/signup'); return }
+    if (!user || !orgId) { navigate('/signup?source=pricing&intent=upgrade'); return }
     setLoading(planId)
     setError(null)
     try {
@@ -234,7 +234,7 @@ export function PricingPage() {
                   </Link>
 
                 ) : !user && priceId ? (
-                  <Link to="/signup" style={{ display: 'block', textAlign: 'center', padding: '10px 0', borderRadius: 8, background: p.highlight ? '#8b0000' : '#f4f0f0', color: p.highlight ? '#fff' : '#333', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+                  <Link to="/signup?source=pricing&intent=upgrade" style={{ display: 'block', textAlign: 'center', padding: '10px 0', borderRadius: 8, background: p.highlight ? '#8b0000' : '#f4f0f0', color: p.highlight ? '#fff' : '#333', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
                     {p.cta}
                   </Link>
 
