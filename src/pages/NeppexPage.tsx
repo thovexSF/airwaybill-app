@@ -65,6 +65,7 @@ export function NeppexPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const docId = searchParams.get('id')
+  const demoSignupTarget = '/signup?source=demo&intent=download_pdf&doc_type=neppex'
 
   const [data, setData] = useState<NeppexData>(defaultNeppexData)
   const [currentId, setCurrentId] = useState<string | null>(docId)
@@ -197,6 +198,10 @@ export function NeppexPage() {
     setTimeout(() => setSaveMsg(null), 5000)
   }
 
+  function trackDemoSignupClick(placement: string) {
+    track('demo_signup_cta_clicked', { placement, doc_type: 'neppex', intent: 'download_pdf' })
+  }
+
   return (
     <div className="app">
       <div className="topbar" style={{ background: '#0d4a6b' }}>
@@ -212,7 +217,7 @@ export function NeppexPage() {
             <>
               <span style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>Demo</span>
               <LangSwitcher />
-              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Create free account</Link>
+              <Link to={demoSignupTarget} onClick={() => trackDemoSignupClick('topbar')} className="btn-download" style={{ textDecoration: 'none' }}>Create free account</Link>
             </>
           ) : (
             <>
@@ -238,7 +243,7 @@ export function NeppexPage() {
           </button>
         )}
         {demo ? (
-          <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Sign up to download PDF</Link>
+          <Link to={demoSignupTarget} onClick={() => trackDemoSignupClick('download_bar')} className="btn-download" style={{ textDecoration: 'none' }}>Sign up to download PDF</Link>
         ) : pdfUrl && (
           <DownloadPdfButton
             pdfUrl={pdfUrl}
@@ -393,7 +398,7 @@ export function NeppexPage() {
           </div>
           <div className="mobile-pdf-strip">
             {demo
-              ? <Link to="/signup" className="btn-download" style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>Sign up to download PDF</Link>
+              ? <Link to={demoSignupTarget} onClick={() => trackDemoSignupClick('mobile_download_bar')} className="btn-download" style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>Sign up to download PDF</Link>
               : pdfUrl
               ? <DownloadPdfButton
                   pdfUrl={pdfUrl}
