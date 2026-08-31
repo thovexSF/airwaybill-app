@@ -18,19 +18,22 @@ export interface AwbCopyTheme {
   wash: string
   /** The blank sheet for this copy. */
   bg: string
+  /** The IATA mark for the reverse, already in this copy's ink. */
+  mark: string
 }
 
 const copyBg = (file: string) => `/awb-copies/${file}?v=${AWB_FIELD_LAYOUT_REV}`
+const copyMark = (file: string) => `/awb-iata/${file}`
 
 export const AWB_COPY_THEMES: Record<string, AwbCopyTheme> = {
-  '1': { key: '1', label: 'Original 1 (for Issuing Carrier)', ink: '#006900', wash: '#cdffcd', bg: copyBg('1.png') },
-  '2': { key: '2', label: 'Original 2 (for Consignee)',       ink: '#bd2a56', wash: '#ffeef9', bg: copyBg('2.png') },
-  '3': { key: '3', label: 'Original 3 (for Shipper)',         ink: '#00007d', wash: '#b4b4ff', bg: copyBg('3.png') },
-  '4': { key: '4', label: 'Copy 4 (Delivery Receipt)',        ink: '#876d00', wash: '#ffffc8', bg: copyBg('4.png') },
-  '5': { key: '5', label: 'Copy 5 (Extra Copy)',              ink: '#000000', wash: '#b4b4b4', bg: copyBg('5.png') },
-  '6': { key: '6', label: 'Copy 6 (Extra Copy)',              ink: '#000000', wash: '#b4b4b4', bg: copyBg('5.png') },
-  '7': { key: '7', label: 'Copy 7 (Extra Copy)',              ink: '#000000', wash: '#b4b4b4', bg: copyBg('5.png') },
-  '8': { key: '8', label: 'Copy 8 (for Agent)',               ink: '#000000', wash: '#b4b4b4', bg: copyBg('5.png') },
+  '1': { key: '1', label: 'Original 1 (for Issuing Carrier)', ink: '#006900', wash: '#cdffcd', bg: copyBg('1.png'), mark: copyMark('1.png') },
+  '2': { key: '2', label: 'Original 2 (for Consignee)',       ink: '#bd2a56', wash: '#ffeef9', bg: copyBg('2.png'), mark: copyMark('2.png') },
+  '3': { key: '3', label: 'Original 3 (for Shipper)',         ink: '#00007d', wash: '#b4b4ff', bg: copyBg('3.png'), mark: copyMark('3.png') },
+  '4': { key: '4', label: 'Copy 4 (Delivery Receipt)',        ink: '#876d00', wash: '#ffffc8', bg: copyBg('4.png'), mark: copyMark('4.png') },
+  '5': { key: '5', label: 'Copy 5 (Extra Copy)',              ink: '#000000', wash: '#b4b4b4', bg: copyBg('5.png'), mark: copyMark('5.png') },
+  '6': { key: '6', label: 'Copy 6 (Extra Copy)',              ink: '#000000', wash: '#b4b4b4', bg: copyBg('5.png'), mark: copyMark('5.png') },
+  '7': { key: '7', label: 'Copy 7 (Extra Copy)',              ink: '#000000', wash: '#b4b4b4', bg: copyBg('5.png'), mark: copyMark('5.png') },
+  '8': { key: '8', label: 'Copy 8 (for Agent)',               ink: '#000000', wash: '#b4b4b4', bg: copyBg('5.png'), mark: copyMark('5.png') },
 }
 
 export const AWB_COPIES = Object.values(AWB_COPY_THEMES)

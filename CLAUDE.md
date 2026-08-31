@@ -178,7 +178,13 @@ are the older A4 blank, kept as the source the sheets were derived from.
 
 The reverse of the sheet is `src/pdf/awbConditions.ts` — IATA Resolution 600b,
 held as text and typeset in two columns by `AwbConditionsPage`, not embedded as
-a picture of somebody else's printed page. `scripts/check-conditions.mjs` diffs
+a picture of somebody else's printed page. It carries the IATA winged-globe
+mark centred at the top, as the printed reverse does: `public/awb-iata/N.png`,
+one per ink, cut from the reference sheet by `scripts/make-iata-mark.mjs`. A
+mark cannot be re-measured the way a form's geometry can, so that one is a crop
+— it is IATA's trademark, on the document it belongs to. `AwbConditionsPage`
+sets `wrap={false}`: the reverse is one fixed sheet, and without it react-pdf
+paginates any overflow into a near-empty second page per copy. `scripts/check-conditions.mjs` diffs
 it word for word against the text layer of a reference waybill (pass the PDF's
 path); it passes at 1413 words. Every copy carries its own reverse, so printing
 double-sided gives each sheet its contract.

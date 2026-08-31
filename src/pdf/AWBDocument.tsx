@@ -213,9 +213,8 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
  * The reverse of the sheet: IATA Resolution 600b, set in two columns the way it
  * is printed on real stationery, in the same ink as the face.
  */
-function AwbConditionsPage({ copyKey, awbPrefix }: { copyKey?: string; awbPrefix?: string }) {
+function AwbConditionsPage({ copyKey }: { copyKey?: string }) {
   const theme = awbCopyTheme(copyKey)
-  const logo = airlineLogoSrc(awbPrefix)
 
   const column = (clauses: typeof CONDITIONS) => (
     <View style={conditions.column}>
@@ -240,7 +239,7 @@ function AwbConditionsPage({ copyKey, awbPrefix }: { copyKey?: string; awbPrefix
 
   return (
     <Page size={[PAGE_WIDTH, PAGE_HEIGHT]} wrap={false} style={[styles.page, { paddingHorizontal: 26, paddingVertical: 18 }]}>
-      {logo ? <Image src={logo} style={conditions.logo} /> : null}
+      <Image src={theme.mark} style={conditions.mark} />
       <Text style={[conditions.noticeTitle, { color: theme.ink }]}>{CONDITIONS_NOTICE_TITLE}</Text>
       <Text style={[conditions.notice, { color: theme.ink }]}>{CONDITIONS_NOTICE}</Text>
       <Text style={[conditions.title, { color: theme.ink }]}>{CONDITIONS_TITLE}</Text>
@@ -256,9 +255,9 @@ function AwbConditionsPage({ copyKey, awbPrefix }: { copyKey?: string; awbPrefix
 // Helvetica here on purpose: the contract is set text, not typed data, and
 // Courier at this size would not fit the page.
 const conditions = StyleSheet.create({
-  // El transportista se identifica también al dorso: el reverso es la otra
-  // cara de la misma hoja, no un anexo suelto.
-  logo: { height: 19, width: 110, objectFit: 'contain', objectPosition: 'left', marginBottom: 4 },
+  // El globo alado de la IATA, centrado arriba, como en el reverso impreso. Va
+  // en la tinta de la copia porque la hoja entera se imprime en ese color.
+  mark: { height: 26, width: 38, objectFit: 'contain', alignSelf: 'center', marginBottom: 5 },
   noticeTitle: { fontFamily: 'Helvetica-Bold', fontSize: 8.5, textAlign: 'center', marginBottom: 3 },
   notice: { fontFamily: 'Helvetica', fontSize: 6.8, lineHeight: 1.3, textAlign: 'justify', marginBottom: 7 },
   title: { fontFamily: 'Helvetica-Bold', fontSize: 9, textAlign: 'center', marginBottom: 6 },
@@ -284,7 +283,7 @@ export function AWBDocument({ data, hideValues, withConditions }: {
   return (
     <Document>
       <AWBFacePage data={data} hideValues={hideValues} />
-      {withConditions && <AwbConditionsPage copyKey={String(data.copyNumber)} awbPrefix={data.awbPrefix} />}
+      {withConditions && <AwbConditionsPage copyKey={String(data.copyNumber)} />}
     </Document>
   )
 }
@@ -300,7 +299,7 @@ export function AWBCopiesDocument({ data, copies }: { data: AWBData; copies: str
       {copies.map((key) => (
         <React.Fragment key={key}>
           <AWBFacePage data={data} copyKey={key} />
-          <AwbConditionsPage copyKey={key} awbPrefix={data.awbPrefix} />
+          <AwbConditionsPage copyKey={key} />
         </React.Fragment>
       ))}
     </Document>
