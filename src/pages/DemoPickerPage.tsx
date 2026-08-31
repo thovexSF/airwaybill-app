@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { usePostHog } from '@posthog/react'
 import { DOC_TYPES } from '../lib/docTypes'
 import { LangSwitcher } from '../components/LangSwitcher'
 import '../pages/LandingPage.css'
@@ -24,6 +25,7 @@ const BLURBS: Record<string, string> = {
 
 export function DemoPickerPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
 
   return (
     <div className="lp" style={{ minHeight: '100vh', background: '#f7f7f8' }}>
@@ -35,7 +37,13 @@ export function DemoPickerPage() {
           </Link>
           <div className="lp-nav-actions">
             <Link to="/login" className="lp-btn-login">{t('landing.nav.signIn')}</Link>
-            <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+            <Link
+              to="/signup?source=demo_picker&intent=create_account"
+              className="lp-btn-primary"
+              onClick={() => posthog?.capture('demo_signup_cta_clicked', { placement: 'picker_nav', intent: 'create_account' })}
+            >
+              {t('landing.nav.getStarted')}
+            </Link>
             <LangSwitcher variant="light" />
           </div>
         </div>
@@ -59,6 +67,7 @@ export function DemoPickerPage() {
             <Link
               key={type.type}
               to={`/demo/${type.type}`}
+              onClick={() => posthog?.capture('demo_document_selected', { doc_type: type.type })}
               style={{
                 display: 'block', background: '#fff', border: '1px solid #e6e6e6', borderRadius: 10,
                 padding: '16px 18px', textDecoration: 'none', transition: 'border-color .15s, transform .15s',

@@ -72,9 +72,15 @@ export function DemoEditorPage() {
     if (node) requestAnimationFrame(updatePageWidth)
   }, [updatePageWidth])
 
+  const signupPath = (intent: string) => `/signup?source=demo&intent=${intent}&doc_type=${demoDocType}`
+  const trackSignupClick = (placement: string, intent: string) => {
+    ;(window as any).clarity?.('event', `demo_signup_${placement}`)
+    posthog?.capture('demo_signup_cta_clicked', { placement, intent, doc_type: demoDocType })
+  }
+
   useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
+    posthog?.capture('demo_viewed', { doc_type: demoDocType })
+  }, [posthog, demoDocType])
 
   useEffect(() => {
     const onResize = () => {
@@ -139,7 +145,11 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupPath('create_account')}
+          onClick={() => trackSignupClick('banner', 'create_account')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +180,12 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link
+            to={signupPath('download_awb_pdf')}
+            state={{ from: `/demo/${demoDocType}` }}
+            onClick={() => trackSignupClick('download_button', 'download_awb_pdf')}
+            className="btn-download"
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>
