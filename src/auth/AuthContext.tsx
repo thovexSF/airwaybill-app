@@ -16,6 +16,19 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+function readPendingSignupAttribution() {
+  const raw = sessionStorage.getItem('posthog_pending_signup')
+  if (!raw) return null
+  sessionStorage.removeItem('posthog_pending_signup')
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object') return parsed as Record<string, string>
+  } catch {
+    // Ignore malformed attribution; the auth flow should continue normally.
+  }
+  return null
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const posthog = usePostHog()
   const [session, setSession] = useState<Session | null>(null)
@@ -39,10 +52,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
       if (event === 'SIGNED_IN' && s?.user) {
         posthog?.identify(s.user.id, { email: s.user.email })
-        const pendingProvider = sessionStorage.getItem('posthog_pending_login')
-        if (pendingProvider) {
+        const pendingSignup = readPendingSignupAttribution()
+        if (pendingSignup) {
           sessionStorage.removeItem('posthog_pending_login')
-          posthog?.capture('user_logged_in', { method: pendingProvider })
+          posthog?.capture('user_signed_up', pendingSignup)
+        } else {
+          const pendingProvider = sessionStorage.getItem('posthog_pending_login')
+          if (pendingProvider) {
+            sessionStorage.removeItem('posthog_pending_login')
+            posthog?.capture('user_logged_in', { method: pendingProvider })
+          }
         }
       }
     })
