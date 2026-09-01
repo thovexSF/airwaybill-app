@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { usePostHog } from '@posthog/react'
 import { useAuth } from '../auth/AuthContext'
 import { PLANS } from '../data/plans'
 import './LandingPage.css'
@@ -48,8 +49,20 @@ const STEPS = [
 
 export function LandingPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const { user, orgName, logout } = useAuth()
-  const tryPath = user ? '/my-awbs' : '/demo'
+  const tryPath = user ? '/my-awbs' : '/demo/awb?source=landing&intent=create_first_awb'
+  const browseDemoPath = '/demo?source=landing&intent=browse_documents'
+
+  const trackLandingClick = (placement: string, destination: string, intent = user ? 'return_to_documents' : 'create_first_awb') => {
+    ;(window as any).clarity?.('event', 'landing_cta_clicked')
+    posthog?.capture('landing_cta_clicked', {
+      placement,
+      destination,
+      intent,
+      authenticated: Boolean(user),
+    })
+  }
 
   return (
     <div className="lp">
@@ -72,9 +85,21 @@ export function LandingPage() {
               </>
             ) : (
               <>
-                <Link to="/demo" className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
+                <Link
+                  to={browseDemoPath}
+                  className="lp-btn-ghost"
+                  onClick={() => trackLandingClick('nav_demo', browseDemoPath, 'browse_documents')}
+                >
+                  {t('landing.hero.demo')}
+                </Link>
                 <Link to="/login" className="lp-btn-login">{t('landing.nav.signIn')}</Link>
-                <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+                <Link
+                  to={tryPath}
+                  className="lp-btn-primary"
+                  onClick={() => trackLandingClick('nav_primary', tryPath)}
+                >
+                  {t('landing.nav.getStarted')}
+                </Link>
               </>
             )}
             <LangSwitcher variant="light" />
@@ -93,16 +118,32 @@ export function LandingPage() {
             {t('landing.hero.subtitle')}
           </p>
           <div className="lp-hero-ctas">
-            <Link to={tryPath} className="lp-cta-primary">
+            <Link to={tryPath} className="lp-cta-primary" onClick={() => trackLandingClick('hero_primary', tryPath)}>
               {t('landing.hero.cta')}
             </Link>
-            <a href="#how" className="lp-cta-ghost">{t('landing.steps.cta')}</a>
+            <Link
+              to={browseDemoPath}
+              className="lp-cta-ghost"
+              onClick={() => trackLandingClick('hero_secondary', browseDemoPath, 'browse_documents')}
+            >
+              {t('landing.hero.demo')}
+            </Link>
           </div>
           <p className="lp-hero-note">{t('landing.hero.note')}</p>
+          <div className="lp-fast-path">
+            <span>{t('landing.fastPath.label')}</span>
+            <strong>{t('landing.fastPath.title')}</strong>
+            <p>{t('landing.fastPath.sub')}</p>
+          </div>
         </div>
 
         {/* Mockup — clickable, opens demo editor */}
-        <Link to={tryPath} className="lp-hero-mockup" aria-label={t('landing.hero.cta')}>
+        <Link
+          to={tryPath}
+          className="lp-hero-mockup"
+          aria-label={t('landing.hero.cta')}
+          onClick={() => trackLandingClick('hero_mockup', tryPath)}
+        >
           <div className="lp-mockup-bar">
             <span /><span /><span />
             <div className="lp-mockup-url">airwaybill.app/demo</div>
@@ -146,7 +187,12 @@ export function LandingPage() {
           <p className="lp-section-sub">{t('landing.features.sub')}</p>
           <div className="lp-features-grid">
             {FEATURES.map(f => (
-              <Link key={f.title} to={tryPath} className="lp-feature-card">
+              <Link
+                key={f.title}
+                to={tryPath}
+                className="lp-feature-card"
+                onClick={() => trackLandingClick(`feature_${f.title.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`, tryPath)}
+              >
                 <div className="lp-feature-icon">{f.icon}</div>
                 <h3>{f.title}</h3>
                 <p>{f.desc}</p>
@@ -171,7 +217,9 @@ export function LandingPage() {
             ))}
           </div>
           <div className="lp-how-cta">
-            <Link to={tryPath} className="lp-cta-primary">{t('landing.steps.cta')}</Link>
+            <Link to={tryPath} className="lp-cta-primary" onClick={() => trackLandingClick('how_primary', tryPath)}>
+              {t('landing.steps.cta')}
+            </Link>
           </div>
         </div>
       </section>
@@ -214,7 +262,7 @@ export function LandingPage() {
         <div className="lp-section-inner" style={{ textAlign: 'center' }}>
           <h2>{t('landing.finalCta.title')}</h2>
           <p>{t('landing.finalCta.sub')}</p>
-          <Link to={tryPath} className="lp-cta-primary lp-cta-lg">
+          <Link to={tryPath} className="lp-cta-primary lp-cta-lg" onClick={() => trackLandingClick('final_primary', tryPath)}>
             {t('landing.finalCta.cta')}
           </Link>
         </div>
