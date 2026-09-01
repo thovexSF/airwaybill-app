@@ -15,14 +15,19 @@ const en = {
 
   // Landing
   landing: {
-    nav: { features: 'Features', pricing: 'Pricing', howItWorks: 'How it works', signIn: 'Sign in', getStarted: 'Get Started Free', goToApp: 'Go to App →' },
+    nav: { features: 'Features', pricing: 'Pricing', howItWorks: 'How it works', signIn: 'Sign in', getStarted: 'Create AWB free', goToApp: 'Go to App →' },
     hero: {
       badge: 'IATA-Compliant Air Waybill Generator',
       title: 'Generate Air Waybills in seconds',
       subtitle: 'Professional AWB documents in IATA format — directly in your browser. No software to install.',
-      cta: 'Try it free — no signup required →',
-      demo: 'Try Demo',
-      note: 'No signup required to try · 10 free documents/month when you register',
+      cta: 'Start creating an AWB now →',
+      demo: 'Browse all demos',
+      note: 'Opens the AWB editor instantly · no signup required to try',
+    },
+    fastPath: {
+      label: 'Start here',
+      title: 'Fill a sample AWB before creating an account.',
+      sub: 'If it solves your workflow, sign up from the demo to save and download 10 free documents/month.',
     },
     features: {
       label: 'Features',
@@ -32,7 +37,7 @@ const en = {
     steps: {
       label: 'How it works',
       title: 'From form to PDF in three steps',
-      cta: 'See how it works',
+      cta: 'Open the AWB demo',
     },
     pricing: {
       label: 'Pricing',
@@ -43,7 +48,7 @@ const en = {
     finalCta: {
       title: 'Ready to modernize your air freight documentation?',
       sub: 'Join freight forwarders worldwide who\'ve switched from desktop software to Airwaybill App.',
-      cta: 'Start for free — no credit card →',
+      cta: 'Create your first AWB →',
     },
     footer: {
       product: 'Product',

@@ -15,14 +15,19 @@ const es = {
 
   // Landing
   landing: {
-    nav: { features: 'Funciones', pricing: 'Precios', howItWorks: 'Cómo funciona', signIn: 'Iniciar sesión', getStarted: 'Empezar gratis', goToApp: 'Ir a la App →' },
+    nav: { features: 'Funciones', pricing: 'Precios', howItWorks: 'Cómo funciona', signIn: 'Iniciar sesión', getStarted: 'Crear AWB gratis', goToApp: 'Ir a la App →' },
     hero: {
       badge: 'Generador de Air Waybill con formato IATA',
       title: 'Genera Air Waybills en segundos',
       subtitle: 'Documentos AWB profesionales en formato IATA — directamente en tu navegador. Sin instalación.',
-      cta: 'Pruébalo gratis — sin registrarte →',
-      demo: 'Ver demo',
-      note: 'Sin registro para probar · 10 documentos gratis/mes al crear cuenta',
+      cta: 'Crear un AWB ahora →',
+      demo: 'Ver todos los demos',
+      note: 'Abre el editor AWB al instante · sin registro para probar',
+    },
+    fastPath: {
+      label: 'Empieza aquí',
+      title: 'Completa un AWB de ejemplo antes de crear cuenta.',
+      sub: 'Si te sirve, regístrate desde el demo para guardar y descargar 10 documentos gratis/mes.',
     },
     features: {
       label: 'Funciones',
@@ -32,7 +37,7 @@ const es = {
     steps: {
       label: 'Cómo funciona',
       title: 'Del formulario al PDF en tres pasos',
-      cta: 'Ver cómo funciona',
+      cta: 'Abrir demo AWB',
     },
     pricing: {
       label: 'Precios',
@@ -43,7 +48,7 @@ const es = {
     finalCta: {
       title: '¿Listo para modernizar tu documentación de carga aérea?',
       sub: 'Únete a los agentes de carga del mundo que migraron del software de escritorio a Airwaybill App.',
-      cta: 'Empieza gratis — sin tarjeta de crédito →',
+      cta: 'Crear tu primer AWB →',
     },
     footer: {
       product: 'Producto',
