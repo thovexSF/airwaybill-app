@@ -69,6 +69,27 @@
   text-align: center;
 }
 
+.auth-benefits {
+  margin: 16px 0 0;
+  padding: 11px 12px;
+  list-style: none;
+  background: #fff7f7;
+  border: 1px solid #ecd2d2;
+  border-radius: 10px;
+  color: #4f3333;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.auth-benefits li::before {
+  content: '\2713';
+  color: #8b0000;
+  font-weight: 800;
+  margin-right: 8px;
+}
+
 /* Text inputs with a leading icon, as in the B2B login */
 .auth-input-wrap {
   position: relative;
@@ -123,6 +144,17 @@
   color: #444;
   font-size: 12px;
   font-weight: 600;
+}
+
+.auth-optional,
+.auth-field-hint {
+  color: #777;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.auth-field-hint {
+  margin-top: -2px;
 }
 
 .auth-field input {
