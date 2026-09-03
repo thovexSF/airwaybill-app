@@ -77,6 +77,7 @@ const en = {
     },
     signup: {
       sub: 'Create your free account: 10 documents/month of any type, no credit card required.',
+      demoSub: 'Create your free account to download the PDF you edited in the demo. First 10 documents/month are free, no credit card required.',
       google: 'Sign up with Google',
       github: 'Sign up with GitHub',
       orEmail: 'or with email',

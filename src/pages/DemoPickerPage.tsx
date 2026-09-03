@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { usePostHog } from '@posthog/react'
 import { DOC_TYPES } from '../lib/docTypes'
 import { LangSwitcher } from '../components/LangSwitcher'
 import '../pages/LandingPage.css'
@@ -24,6 +25,21 @@ const BLURBS: Record<string, string> = {
 
 export function DemoPickerPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
+
+  function trackDemoSelection(docType: string) {
+    ;(window as any).clarity?.('event', 'demo_document_selected')
+    posthog?.capture('demo_document_selected', { doc_type: docType })
+  }
+
+  function trackSignupClick() {
+    ;(window as any).clarity?.('event', 'demo_signup_cta_clicked')
+    posthog?.capture('demo_signup_cta_clicked', {
+      doc_type: 'picker',
+      intent: 'create_account',
+      placement: 'picker_nav',
+    })
+  }
 
   return (
     <div className="lp" style={{ minHeight: '100vh', background: '#f7f7f8' }}>
@@ -35,7 +51,13 @@ export function DemoPickerPage() {
           </Link>
           <div className="lp-nav-actions">
             <Link to="/login" className="lp-btn-login">{t('landing.nav.signIn')}</Link>
-            <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+            <Link
+              to="/signup?source=demo&intent=create_account&doc_type=picker"
+              className="lp-btn-primary"
+              onClick={trackSignupClick}
+            >
+              {t('landing.nav.getStarted')}
+            </Link>
             <LangSwitcher variant="light" />
           </div>
         </div>
@@ -65,6 +87,7 @@ export function DemoPickerPage() {
               }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = type.color; e.currentTarget.style.transform = 'translateY(-2px)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#e6e6e6'; e.currentTarget.style.transform = 'none' }}
+              onClick={() => trackDemoSelection(type.type)}
             >
               <span style={{ background: type.color, color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4 }}>
                 {type.badge}

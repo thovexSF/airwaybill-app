@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
@@ -39,6 +39,10 @@ export function DemoEditorPage() {
   const { docType } = useParams<{ docType?: string }>()
   const demoDocType: 'awb' | 'hawb' = docType === 'hawb' ? 'hawb' : 'awb'
   const initialData: AWBData = { ...exampleAWB, docType: demoDocType, isDraft: true }
+  const signupTarget = useMemo(
+    () => `/signup?source=demo&intent=download_awb_pdf&doc_type=${demoDocType}`,
+    [demoDocType],
+  )
   const [data, setDataRaw] = useState<AWBData>(initialData)
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
     setDataRaw(prev => {
@@ -72,9 +76,22 @@ export function DemoEditorPage() {
     if (node) requestAnimationFrame(updatePageWidth)
   }, [updatePageWidth])
 
+  const trackSignupClick = useCallback((placement: 'banner' | 'download') => {
+    ;(window as any).clarity?.('event', 'demo_signup_cta_clicked')
+    posthog?.capture('demo_signup_cta_clicked', {
+      doc_type: demoDocType,
+      intent: 'download_awb_pdf',
+      placement,
+    })
+  }, [demoDocType, posthog])
+
   useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
+    posthog?.capture('demo_viewed', {
+      doc_type: demoDocType,
+      editor: 'awb_overlay',
+      viewport_width: window.innerWidth,
+    })
+  }, [demoDocType, posthog])
 
   useEffect(() => {
     const onResize = () => {
@@ -139,7 +156,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupTarget}
+          state={{ from: `/demo/${demoDocType}` }}
+          onClick={() => trackSignupClick('banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +192,12 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link
+            to={signupTarget}
+            state={{ from: `/demo/${demoDocType}` }}
+            className="btn-download"
+            onClick={() => trackSignupClick('download')}
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>

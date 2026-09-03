@@ -77,6 +77,7 @@ const es = {
     },
     signup: {
       sub: 'Crea tu cuenta gratis: 10 documentos/mes de cualquier tipo, sin tarjeta de credito.',
+      demoSub: 'Crea tu cuenta gratis para descargar el PDF que editaste en la demo. Los primeros 10 documentos/mes son gratis, sin tarjeta de credito.',
       google: 'Registrarse con Google',
       github: 'Registrarse con GitHub',
       orEmail: 'o con email',
