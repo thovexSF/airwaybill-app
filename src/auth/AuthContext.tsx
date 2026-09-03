@@ -40,6 +40,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN' && s?.user) {
         posthog?.identify(s.user.id, { email: s.user.email })
         const pendingProvider = sessionStorage.getItem('posthog_pending_login')
+        const pendingSignup = sessionStorage.getItem('posthog_pending_signup')
+        if (pendingSignup) {
+          sessionStorage.removeItem('posthog_pending_signup')
+          try {
+            posthog?.capture('signup_provider_returned', JSON.parse(pendingSignup))
+          } catch {
+            posthog?.capture('signup_provider_returned', { method: pendingProvider ?? 'oauth' })
+          }
+        }
         if (pendingProvider) {
           sessionStorage.removeItem('posthog_pending_login')
           posthog?.capture('user_logged_in', { method: pendingProvider })

@@ -10,6 +10,7 @@ import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
 import { useDemoMode } from './DemoMode'
 import { useTranslation } from 'react-i18next'
+import { usePostHog } from '@posthog/react'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -51,6 +52,7 @@ export function DocEditorShell<T>({
 }) {
   const demo = useDemoMode()
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
   const { plan, docsUsedThisMonth, docLimit } = usePlan()
   const [downloading, setDownloading] = useState(false)
@@ -64,6 +66,19 @@ export function DocEditorShell<T>({
   const [formWidth, setFormWidth] = useState(460)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
+  const demoDocType = typeof (data as { docType?: unknown }).docType === 'string'
+    ? (data as { docType: string }).docType
+    : fileName.split('_')[0]?.toLowerCase() || 'document'
+  const demoSignupTarget = `/signup?source=demo&intent=download_pdf&doc_type=${encodeURIComponent(demoDocType)}`
+
+  function trackDemoSignupClick(placement: 'topbar' | 'download' | 'mobile_download') {
+    ;(window as any).clarity?.('event', 'demo_signup_cta_clicked')
+    posthog?.capture('demo_signup_cta_clicked', {
+      doc_type: demoDocType,
+      intent: 'download_pdf',
+      placement,
+    })
+  }
 
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
@@ -87,6 +102,15 @@ export function DocEditorShell<T>({
     timerRef.current = setTimeout(() => { void regenerate(data) }, 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [data])
+
+  useEffect(() => {
+    if (!demo) return
+    posthog?.capture('demo_viewed', {
+      doc_type: demoDocType,
+      editor: 'shared_shell',
+      viewport_width: window.innerWidth,
+    })
+  }, [demo, demoDocType, posthog])
 
   // Release the last preview URL when the editor unmounts.
   useEffect(() => () => { setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null }) }, [])
@@ -148,7 +172,14 @@ export function DocEditorShell<T>({
                 Demo
               </span>
               <LangSwitcher />
-              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
+              <Link
+                to={demoSignupTarget}
+                className="btn-download"
+                style={{ textDecoration: 'none' }}
+                onClick={() => trackDemoSignupClick('topbar')}
+              >
+                Crear cuenta gratis
+              </Link>
             </>
           ) : (
             <>
@@ -188,7 +219,12 @@ export function DocEditorShell<T>({
           </button>
         )}
         {demo ? (
-          <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>
+          <Link
+            to={demoSignupTarget}
+            className="btn-download"
+            style={{ textDecoration: 'none' }}
+            onClick={() => trackDemoSignupClick('download')}
+          >
             Sign up to download PDF
           </Link>
         ) : pdfUrl && (
@@ -204,7 +240,8 @@ export function DocEditorShell<T>({
           <div className="form-panel">{children}</div>
           <div className="mobile-pdf-strip">
             {demo
-              ? <Link to="/signup" className="btn-download"
+              ? <Link to={demoSignupTarget} className="btn-download"
+                   onClick={() => trackDemoSignupClick('mobile_download')}
                    style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>
                   Sign up to download PDF
                 </Link>
