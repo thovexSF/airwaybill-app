@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -50,6 +50,7 @@ export function DocEditorShell<T>({
   children: React.ReactNode
 }) {
   const demo = useDemoMode()
+  const location = useLocation()
   const { t } = useTranslation()
   const { user, logout, orgName } = useAuth()
   const { plan, docsUsedThisMonth, docLimit } = usePlan()
@@ -64,6 +65,8 @@ export function DocEditorShell<T>({
   const [formWidth, setFormWidth] = useState(460)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
+  const demoDocType = location.pathname.match(/^\/demo\/([^/?#]+)/)?.[1] ?? 'document'
+  const demoSignupTarget = `/signup?source=demo&intent=download_pdf&doc_type=${encodeURIComponent(demoDocType)}`
 
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
@@ -148,7 +151,7 @@ export function DocEditorShell<T>({
                 Demo
               </span>
               <LangSwitcher />
-              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
+              <Link to={demoSignupTarget} state={{ from: location.pathname }} className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
             </>
           ) : (
             <>
@@ -188,7 +191,7 @@ export function DocEditorShell<T>({
           </button>
         )}
         {demo ? (
-          <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>
+          <Link to={demoSignupTarget} state={{ from: location.pathname }} className="btn-download" style={{ textDecoration: 'none' }}>
             Sign up to download PDF
           </Link>
         ) : pdfUrl && (
@@ -204,7 +207,7 @@ export function DocEditorShell<T>({
           <div className="form-panel">{children}</div>
           <div className="mobile-pdf-strip">
             {demo
-              ? <Link to="/signup" className="btn-download"
+              ? <Link to={demoSignupTarget} state={{ from: location.pathname }} className="btn-download"
                    style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>
                   Sign up to download PDF
                 </Link>
