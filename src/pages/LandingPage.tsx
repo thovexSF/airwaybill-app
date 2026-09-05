@@ -49,7 +49,8 @@ const STEPS = [
 export function LandingPage() {
   const { t } = useTranslation()
   const { user, orgName, logout } = useAuth()
-  const tryPath = user ? '/my-awbs' : '/demo'
+  const tryPath = user ? '/my-awbs' : '/demo?source=landing&intent=try_demo'
+  const signupPath = '/signup?source=landing&intent=create_account'
 
   return (
     <div className="lp">
@@ -72,9 +73,9 @@ export function LandingPage() {
               </>
             ) : (
               <>
-                <Link to="/demo" className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
+                <Link to={tryPath} className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
                 <Link to="/login" className="lp-btn-login">{t('landing.nav.signIn')}</Link>
-                <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+                <Link to={signupPath} className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
               </>
             )}
             <LangSwitcher variant="light" />
