@@ -15,7 +15,6 @@ import { AWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
 import { LangSwitcher } from '../components/LangSwitcher'
 import '../App.css'
-import { usePostHog } from '@posthog/react'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -33,11 +32,11 @@ function initialZoom(): number {
 
 export function DemoEditorPage() {
   const { t } = useTranslation()
-  const posthog = usePostHog()
   // Reached as /demo/awb or /demo/hawb from the demo picker; both use this
   // editor because only the AWB has the form-over-PDF overlay.
   const { docType } = useParams<{ docType?: string }>()
   const demoDocType: 'awb' | 'hawb' = docType === 'hawb' ? 'hawb' : 'awb'
+  const signupPath = `/signup?source=demo&intent=download_awb_pdf&doc_type=${demoDocType}`
   const initialData: AWBData = { ...exampleAWB, docType: demoDocType, isDraft: true }
   const [data, setDataRaw] = useState<AWBData>(initialData)
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
@@ -71,10 +70,6 @@ export function DemoEditorPage() {
     pageWrapRef.current = node
     if (node) requestAnimationFrame(updatePageWidth)
   }, [updatePageWidth])
-
-  useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
 
   useEffect(() => {
     const onResize = () => {
@@ -139,7 +134,7 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link to={signupPath} style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +165,7 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link to={signupPath} state={{ from: `/demo/${demoDocType}` }} className="btn-download">
             {t('demo.downloadCta')}
           </Link>
         </div>
