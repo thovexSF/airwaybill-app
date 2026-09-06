@@ -38,6 +38,7 @@ export function DemoEditorPage() {
   // editor because only the AWB has the form-over-PDF overlay.
   const { docType } = useParams<{ docType?: string }>()
   const demoDocType: 'awb' | 'hawb' = docType === 'hawb' ? 'hawb' : 'awb'
+  const signupUrl = `/signup?source=demo&intent=download_pdf&doc_type=${demoDocType}`
   const initialData: AWBData = { ...exampleAWB, docType: demoDocType, isDraft: true }
   const [data, setDataRaw] = useState<AWBData>(initialData)
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
@@ -139,7 +140,11 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupUrl}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+          onClick={() => posthog?.capture('demo_signup_cta_clicked', { placement: 'banner', doc_type: demoDocType, intent: 'download_pdf' })}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +175,12 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link
+            to={signupUrl}
+            state={{ from: `/demo/${demoDocType}`, source: 'demo', intent: 'download_pdf', doc_type: demoDocType }}
+            className="btn-download"
+            onClick={() => posthog?.capture('demo_signup_cta_clicked', { placement: 'download_button', doc_type: demoDocType, intent: 'download_pdf' })}
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>

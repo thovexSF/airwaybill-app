@@ -88,6 +88,10 @@ const en = {
       submitting: 'Creating account...',
       hasAccount: 'Already have an account?',
       signIn: 'Sign in',
+      errors: {
+        emailInvalid: 'Enter a valid email address.',
+        passwordTooShort: 'Password must be at least 6 characters.',
+      },
     },
     forgotPassword: {
       title: 'Reset your password',

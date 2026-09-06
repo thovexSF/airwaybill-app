@@ -35,7 +35,7 @@ export function DemoPickerPage() {
           </Link>
           <div className="lp-nav-actions">
             <Link to="/login" className="lp-btn-login">{t('landing.nav.signIn')}</Link>
-            <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+            <Link to="/signup?source=demo_picker&intent=create_account" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
             <LangSwitcher variant="light" />
           </div>
         </div>
