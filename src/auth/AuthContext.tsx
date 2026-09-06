@@ -3,6 +3,26 @@ import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { usePostHog } from '@posthog/react'
 
+type PendingSignupAttribution = {
+  method?: string
+  source?: string
+  intent?: string
+  doc_type?: string
+  from?: string
+}
+
+function readPendingSignupAttribution(): PendingSignupAttribution | null {
+  const raw = sessionStorage.getItem('posthog_pending_signup')
+  if (!raw) return null
+
+  try {
+    const parsed = JSON.parse(raw) as PendingSignupAttribution
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 type AuthContextValue = {
   user: User | null
   session: Session | null
@@ -39,6 +59,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
       if (event === 'SIGNED_IN' && s?.user) {
         posthog?.identify(s.user.id, { email: s.user.email })
+        const pendingSignup = readPendingSignupAttribution()
+        if (pendingSignup) {
+          sessionStorage.removeItem('posthog_pending_signup')
+          ;(window as any).clarity?.('event', 'signup_completed')
+          posthog?.capture('user_signed_up', {
+            ...pendingSignup,
+            method: pendingSignup.method ?? 'provider',
+            via_oauth: true,
+          })
+        }
         const pendingProvider = sessionStorage.getItem('posthog_pending_login')
         if (pendingProvider) {
           sessionStorage.removeItem('posthog_pending_login')

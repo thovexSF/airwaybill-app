@@ -88,6 +88,10 @@ const es = {
       submitting: 'Creando cuenta...',
       hasAccount: '¿Ya tienes cuenta?',
       signIn: 'Iniciar sesión',
+      errors: {
+        emailInvalid: 'Ingresa un email valido.',
+        passwordTooShort: 'La contrasena debe tener al menos 6 caracteres.',
+      },
     },
     forgotPassword: {
       title: 'Recuperar contraseña',
