@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
@@ -34,10 +34,28 @@ function initialZoom(): number {
 export function DemoEditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
+  const location = useLocation()
   // Reached as /demo/awb or /demo/hawb from the demo picker; both use this
   // editor because only the AWB has the form-over-PDF overlay.
   const { docType } = useParams<{ docType?: string }>()
   const demoDocType: 'awb' | 'hawb' = docType === 'hawb' ? 'hawb' : 'awb'
+  const demoAttribution = useMemo(() => {
+    const params = new URLSearchParams(location.search)
+    return {
+      doc_type: demoDocType,
+      page_path: location.pathname,
+      source: params.get('source') ?? 'direct',
+      intent: params.get('intent') ?? undefined,
+    }
+  }, [demoDocType, location.pathname, location.search])
+  const signupTo = useMemo(() => {
+    const params = new URLSearchParams({
+      source: 'demo_editor',
+      intent: 'download_awb_pdf',
+      doc_type: demoDocType,
+    })
+    return `/signup?${params.toString()}`
+  }, [demoDocType])
   const initialData: AWBData = { ...exampleAWB, docType: demoDocType, isDraft: true }
   const [data, setDataRaw] = useState<AWBData>(initialData)
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
@@ -61,6 +79,18 @@ export function DemoEditorPage() {
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const firstEditRef = useRef(false)
+  const firstPreviewRef = useRef(false)
+
+  const captureDemo = useCallback((event: string, props: Record<string, unknown> = {}) => {
+    posthog?.capture(event, { ...demoAttribution, ...props })
+  }, [demoAttribution, posthog])
+
+  const captureFirstEdit = useCallback((mode: string) => {
+    if (firstEditRef.current) return
+    firstEditRef.current = true
+    captureDemo('demo_first_change', { edit_mode: mode })
+  }, [captureDemo])
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -71,10 +101,6 @@ export function DemoEditorPage() {
     pageWrapRef.current = node
     if (node) requestAnimationFrame(updatePageWidth)
   }, [updatePageWidth])
-
-  useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
 
   useEffect(() => {
     const onResize = () => {
@@ -106,12 +132,14 @@ export function DemoEditorPage() {
 
   /** See `EditorPage.applyData` — keeps the carrier block in step with the prefix. */
   const applyData = useCallback((next: AWBData) => {
+    captureFirstEdit(overlayMode ? 'pdf_overlay' : 'form_panel')
     setData(prev => applyAirlineForPrefix(next, prev.awbPrefix))
-  }, [])
+  }, [captureFirstEdit, overlayMode])
 
   const applyDraft = useCallback((next: AWBData) => {
+    captureFirstEdit('mobile_dialog')
     setDraft(prev => applyAirlineForPrefix(next, (prev ?? next).awbPrefix))
-  }, [])
+  }, [captureFirstEdit])
 
   async function regenerate(d: AWBData) {
     setGenerating(true)
@@ -119,8 +147,18 @@ export function DemoEditorPage() {
       const blob = await pdf(<AWBDocument data={d} hideValues={overlayMode} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
+      if (!firstPreviewRef.current) {
+        firstPreviewRef.current = true
+        captureDemo('demo_pdf_generated', {
+          overlay_mode: overlayMode,
+          after_edit: firstEditRef.current,
+        })
+      }
     } catch (e) {
       console.error('PDF generation error:', e)
+      captureDemo('demo_pdf_failed', {
+        error_name: e instanceof Error ? e.name : 'unknown',
+      })
     }
     setGenerating(false)
   }
@@ -139,7 +177,11 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupTo}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+          onClick={() => captureDemo('demo_signup_cta_clicked', { placement: 'banner' })}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -161,16 +203,35 @@ export function DemoEditorPage() {
 
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button type="button" className="btn-example" onClick={() => setData(initialData)}>
+          <button
+            type="button"
+            className="btn-example"
+            onClick={() => {
+              captureDemo('demo_example_loaded')
+              setData(initialData)
+            }}
+          >
             {t('editor.example')}
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
-          <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
+          <button
+            type="button"
+            className="btn-example"
+            onClick={() => {
+              captureDemo('demo_copies_opened')
+              setCopiesOpen(true)
+            }}
+          >
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link
+            to={signupTo}
+            state={{ from: `/demo/${demoDocType}` }}
+            className="btn-download"
+            onClick={() => captureDemo('demo_signup_cta_clicked', { placement: 'download_button' })}
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>
@@ -185,7 +246,11 @@ export function DemoEditorPage() {
             {isWideViewport && (
               <button
                 type="button"
-                onClick={() => setOverlayMode(m => !m)}
+                onClick={() => setOverlayMode(m => {
+                  const next = !m
+                  captureDemo('demo_overlay_mode_toggled', { enabled: next })
+                  return next
+                })}
                 style={{ background: overlayMode ? '#8b0000' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
               >
                 {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}
@@ -225,7 +290,11 @@ export function DemoEditorPage() {
         <button
           type="button"
           className="edit-fab"
-          onClick={() => { setDraft(data); setFormDialogOpen(true) }}
+          onClick={() => {
+            captureDemo('demo_mobile_form_opened')
+            setDraft(data)
+            setFormDialogOpen(true)
+          }}
         >
           ✎ {t('editor.editFields')}
         </button>
@@ -240,7 +309,12 @@ export function DemoEditorPage() {
           open={formDialogOpen}
           title={demoDocType === 'hawb' ? 'HAWB' : 'AWB'}
           onCancel={() => { setDraft(null); setFormDialogOpen(false) }}
-          onSave={() => { if (draft) applyData(draft); setDraft(null); setFormDialogOpen(false) }}
+          onSave={() => {
+            captureDemo('demo_mobile_form_applied')
+            if (draft) applyData(draft)
+            setDraft(null)
+            setFormDialogOpen(false)
+          }}
           cancelLabel={t('common.cancel')}
           saveLabel={t('editor.applyChanges')}
         >
