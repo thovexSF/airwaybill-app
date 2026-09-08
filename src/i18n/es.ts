@@ -77,10 +77,12 @@ const es = {
     },
     signup: {
       sub: 'Crea tu cuenta gratis: 10 documentos/mes de cualquier tipo, sin tarjeta de credito.',
+      demoSub: 'Crea tu cuenta gratis para descargar el PDF que acabas de editar.',
+      demoNote: 'Ya viste el flujo en la demo. Regístrate para guardar documentos y descargar PDFs limpios sin watermark DRAFT.',
       google: 'Registrarse con Google',
       github: 'Registrarse con GitHub',
       orEmail: 'o con email',
-      company: 'Empresa',
+      company: 'Empresa (opcional)',
       companyPlaceholder: 'Ej: Cargo Andes SpA',
       email: 'Email',
       password: 'Contraseña',
@@ -88,6 +90,11 @@ const es = {
       submitting: 'Creando cuenta...',
       hasAccount: '¿Ya tienes cuenta?',
       signIn: 'Iniciar sesión',
+      errors: {
+        required: 'Ingresa tu email y contraseña para crear una cuenta.',
+        email: 'Ingresa un email válido.',
+        password: 'Usa al menos 6 caracteres para tu contraseña.',
+      },
     },
     forgotPassword: {
       title: 'Recuperar contraseña',

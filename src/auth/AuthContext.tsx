@@ -44,6 +44,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           sessionStorage.removeItem('posthog_pending_login')
           posthog?.capture('user_logged_in', { method: pendingProvider })
         }
+        const pendingSignupAttribution = sessionStorage.getItem('posthog_pending_signup_attribution')
+        if (pendingSignupAttribution) {
+          sessionStorage.removeItem('posthog_pending_signup_attribution')
+          try {
+            const props = JSON.parse(pendingSignupAttribution) as Record<string, unknown>
+            posthog?.capture('signup_provider_completed', {
+              ...props,
+              method: 'provider',
+              provider: props.provider ?? pendingProvider ?? 'unknown',
+            })
+          } catch {
+            posthog?.capture('signup_provider_completed', {
+              method: 'provider',
+              provider: pendingProvider ?? 'unknown',
+            })
+          }
+        }
       }
     })
 

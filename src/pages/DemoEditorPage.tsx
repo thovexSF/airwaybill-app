@@ -38,6 +38,7 @@ export function DemoEditorPage() {
   // editor because only the AWB has the form-over-PDF overlay.
   const { docType } = useParams<{ docType?: string }>()
   const demoDocType: 'awb' | 'hawb' = docType === 'hawb' ? 'hawb' : 'awb'
+  const signupPath = `/signup?source=demo&intent=download_pdf&doc_type=${demoDocType}&from=/demo/${demoDocType}`
   const initialData: AWBData = { ...exampleAWB, docType: demoDocType, isDraft: true }
   const [data, setDataRaw] = useState<AWBData>(initialData)
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
@@ -73,8 +74,20 @@ export function DemoEditorPage() {
   }, [updatePageWidth])
 
   useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
+    posthog?.capture('demo_awb_editor_viewed', {
+      doc_type: demoDocType,
+      viewport_width: window.innerWidth,
+      overlay_supported: window.innerWidth >= 900,
+    })
+  }, [posthog, demoDocType])
+
+  function captureDemoSignupClick(placement: string) {
+    posthog?.capture('demo_signup_cta_clicked', {
+      placement,
+      doc_type: demoDocType,
+      intent: 'download_pdf',
+    })
+  }
 
   useEffect(() => {
     const onResize = () => {
@@ -139,7 +152,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupPath}
+          state={{ from: `/demo/${demoDocType}`, source: 'demo', intent: 'download_pdf', docType: demoDocType }}
+          onClick={() => captureDemoSignupClick('banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +188,12 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link
+            to={signupPath}
+            state={{ from: `/demo/${demoDocType}`, source: 'demo', intent: 'download_pdf', docType: demoDocType }}
+            className="btn-download"
+            onClick={() => captureDemoSignupClick('download_button')}
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>

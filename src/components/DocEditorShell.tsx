@@ -10,6 +10,7 @@ import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
 import { useDemoMode } from './DemoMode'
 import { useTranslation } from 'react-i18next'
+import { usePostHog } from '@posthog/react'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -51,10 +52,27 @@ export function DocEditorShell<T>({
 }) {
   const demo = useDemoMode()
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
   const { plan, docsUsedThisMonth, docLimit } = usePlan()
   const [downloading, setDownloading] = useState(false)
   const [downloadMsg, setDownloadMsg] = useState<string | null>(null)
+  const demoDocType =
+    data && typeof data === 'object' && 'docType' in data
+      ? String((data as { docType?: unknown }).docType ?? '')
+      : ''
+  const demoSignupParams = new URLSearchParams({ source: 'demo', intent: 'download_pdf' })
+  if (demoDocType) demoSignupParams.set('doc_type', demoDocType)
+  if (demoDocType) demoSignupParams.set('from', `/demo/${demoDocType}`)
+  const demoSignupPath = `/signup?${demoSignupParams.toString()}`
+
+  function captureDemoSignupClick(placement: string) {
+    posthog?.capture('demo_signup_cta_clicked', {
+      placement,
+      doc_type: demoDocType || undefined,
+      intent: 'download_pdf',
+    })
+  }
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
@@ -148,7 +166,15 @@ export function DocEditorShell<T>({
                 Demo
               </span>
               <LangSwitcher />
-              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
+              <Link
+                to={demoSignupPath}
+                state={{ from: demoDocType ? `/demo/${demoDocType}` : '/demo', source: 'demo', intent: 'download_pdf', docType: demoDocType || undefined }}
+                className="btn-download"
+                style={{ textDecoration: 'none' }}
+                onClick={() => captureDemoSignupClick('topbar')}
+              >
+                {t('demo.signupCta')}
+              </Link>
             </>
           ) : (
             <>
@@ -188,8 +214,14 @@ export function DocEditorShell<T>({
           </button>
         )}
         {demo ? (
-          <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>
-            Sign up to download PDF
+          <Link
+            to={demoSignupPath}
+            state={{ from: demoDocType ? `/demo/${demoDocType}` : '/demo', source: 'demo', intent: 'download_pdf', docType: demoDocType || undefined }}
+            className="btn-download"
+            style={{ textDecoration: 'none' }}
+            onClick={() => captureDemoSignupClick('action_bar')}
+          >
+            {t('demo.downloadCta')}
           </Link>
         ) : pdfUrl && (
           <button className="btn-download" onClick={handleDownload} disabled={downloading}>
@@ -204,9 +236,14 @@ export function DocEditorShell<T>({
           <div className="form-panel">{children}</div>
           <div className="mobile-pdf-strip">
             {demo
-              ? <Link to="/signup" className="btn-download"
-                   style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>
-                  Sign up to download PDF
+              ? <Link
+                  to={demoSignupPath}
+                  state={{ from: demoDocType ? `/demo/${demoDocType}` : '/demo', source: 'demo', intent: 'download_pdf', docType: demoDocType || undefined }}
+                  className="btn-download"
+                  onClick={() => captureDemoSignupClick('mobile_strip')}
+                  style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}
+                >
+                  {t('demo.downloadCta')}
                 </Link>
               : pdfUrl
               ? <button className="btn-download" onClick={handleDownload} disabled={downloading}
