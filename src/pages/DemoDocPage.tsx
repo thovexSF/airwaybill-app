@@ -1,5 +1,5 @@
-import React from 'react'
-import { Navigate, useParams } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { Navigate, useLocation, useParams } from 'react-router-dom'
 import { DemoModeProvider } from '../components/DemoMode'
 import { DemoEditorPage } from './DemoEditorPage'
 import { LabelPage } from './LabelPage'
@@ -11,6 +11,8 @@ import { DGDPage } from './DGDPage'
 import { ManifestPage } from './ManifestPage'
 import { NeppexPage } from './NeppexPage'
 import { FWBPage, FHLPage, FFRPage } from './EDIPages'
+import { track } from '../lib/analytics'
+import { getFunnelContext, viewportProps } from '../lib/funnelAnalytics'
 
 /**
  * Signed-out demo for a single document type. The editors are the real ones —
@@ -38,7 +40,19 @@ const DEMO_EDITORS: Record<string, React.ComponentType> = {
 
 export function DemoDocPage() {
   const { docType } = useParams<{ docType: string }>()
+  const location = useLocation()
   const Editor = docType ? DEMO_EDITORS[docType] : undefined
+  const funnelContext = getFunnelContext(location.search, location.pathname)
+
+  useEffect(() => {
+    if (!docType || !Editor) return
+    track('demo_viewed', {
+      ...funnelContext,
+      source: funnelContext.source ?? 'demo',
+      doc_type: docType,
+      ...viewportProps(),
+    })
+  }, [docType, location.pathname, location.search, Editor])
 
   if (!Editor) return <Navigate to="/demo" replace />
 

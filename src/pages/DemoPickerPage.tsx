@@ -1,8 +1,10 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { DOC_TYPES } from '../lib/docTypes'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { track } from '../lib/analytics'
+import { buildPathWithFunnelContext, buildSignupPath, getFunnelContext, viewportProps } from '../lib/funnelAnalytics'
 import '../pages/LandingPage.css'
 
 /** Short pitch per document, shown on the demo picker cards. */
@@ -24,6 +26,21 @@ const BLURBS: Record<string, string> = {
 
 export function DemoPickerPage() {
   const { t } = useTranslation()
+  const location = useLocation()
+  const funnelContext = getFunnelContext(location.search, location.pathname)
+  const pickerContext = { ...funnelContext, source: funnelContext.source ?? 'demo_picker' }
+  const signupPath = buildSignupPath(pickerContext, {
+    intent: funnelContext.intent ?? 'create_account',
+    from: '/demo',
+  })
+
+  useEffect(() => {
+    track('demo_viewed', {
+      ...pickerContext,
+      doc_type: 'picker',
+      ...viewportProps(),
+    })
+  }, [location.pathname, location.search])
 
   return (
     <div className="lp" style={{ minHeight: '100vh', background: '#f7f7f8' }}>
@@ -35,7 +52,13 @@ export function DemoPickerPage() {
           </Link>
           <div className="lp-nav-actions">
             <Link to="/login" className="lp-btn-login">{t('landing.nav.signIn')}</Link>
-            <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+            <Link
+              to={signupPath}
+              className="lp-btn-primary"
+              onClick={() => track('demo_signup_cta_clicked', { ...pickerContext, placement: 'nav', doc_type: 'picker' })}
+            >
+              {t('landing.nav.getStarted')}
+            </Link>
             <LangSwitcher variant="light" />
           </div>
         </div>
@@ -58,11 +81,16 @@ export function DemoPickerPage() {
           {DOC_TYPES.map(type => (
             <Link
               key={type.type}
-              to={`/demo/${type.type}`}
+              to={buildPathWithFunnelContext(`/demo/${type.type}`, pickerContext, {
+                intent: 'try_document',
+                doc_type: type.type,
+                from: '/demo',
+              })}
               style={{
                 display: 'block', background: '#fff', border: '1px solid #e6e6e6', borderRadius: 10,
                 padding: '16px 18px', textDecoration: 'none', transition: 'border-color .15s, transform .15s',
               }}
+              onClick={() => track('demo_document_selected', { ...pickerContext, doc_type: type.type })}
               onMouseEnter={e => { e.currentTarget.style.borderColor = type.color; e.currentTarget.style.transform = 'translateY(-2px)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#e6e6e6'; e.currentTarget.style.transform = 'none' }}
             >

@@ -21,6 +21,7 @@ import { recordPdfDownload } from '../lib/pdfQuota'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { usePostHog } from '@posthog/react'
+import { getFunnelContext, viewportProps } from '../lib/funnelAnalytics'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -85,6 +86,8 @@ export function EditorPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const editorOpenTrackedRef = useRef(false)
+  const firstEditTrackedRef = useRef(false)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
 
   const updatePageWidth = useCallback(() => {
@@ -109,6 +112,31 @@ export function EditorPage() {
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }
+
+  function editorTrackingProps(extra: Record<string, unknown> = {}) {
+    return {
+      ...getFunnelContext(`?${searchParams.toString()}`, '/editor'),
+      doc_type: data.docType ?? docTypeParam ?? 'awb',
+      has_doc_id: Boolean(currentId ?? docId),
+      plan,
+      ...extra,
+    }
+  }
+
+  function trackEditorFirstEdit(surface: string) {
+    if (firstEditTrackedRef.current) return
+    firstEditTrackedRef.current = true
+    posthog?.capture('awb_editor_first_edit', editorTrackingProps({ surface }))
+  }
+
+  useEffect(() => {
+    if (editorOpenTrackedRef.current) return
+    editorOpenTrackedRef.current = true
+    posthog?.capture('awb_editor_opened', editorTrackingProps({
+      opened_existing_doc: Boolean(docId),
+      ...viewportProps(),
+    }))
+  }, [posthog])
 
   useEffect(() => {
     const onResize = () => {
@@ -205,6 +233,7 @@ export function EditorPage() {
   async function handleSave() {
     setSaving(true)
     setSaveMsg(null)
+    posthog?.capture('awb_save_clicked', editorTrackingProps())
     try {
       let payload = data
       if (
@@ -226,6 +255,7 @@ export function EditorPage() {
       posthog?.capture('awb_saved', { doc_type: payload.docType ?? 'awb', doc_id: doc.id, is_new: !currentId })
     } catch {
       setSaveMsg(t('editor.saveError'))
+      posthog?.capture('awb_save_failed', editorTrackingProps({ error_code: 'save_exception' }))
     }
     setSaving(false)
   }
@@ -278,6 +308,7 @@ export function EditorPage() {
         posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source })
       } catch (error) {
         console.error('PDF save before download failed:', error)
+        posthog?.capture('awb_save_failed', editorTrackingProps({ error_code: 'download_presave_failed', source }))
       }
     }
 
@@ -313,6 +344,7 @@ export function EditorPage() {
 
   async function handleDownloadPdf() {
     if (!pdfUrl || downloading || planLoading) return
+    posthog?.capture('awb_download_clicked', editorTrackingProps())
     if (!withinQuota()) return
 
     setSaveMsg(null)
@@ -323,6 +355,7 @@ export function EditorPage() {
     } catch {
       setSaveMsg(t('editor.downloadError'))
       setTimeout(() => setSaveMsg(null), 5000)
+      posthog?.capture('awb_download_failed', editorTrackingProps({ error_code: 'download_exception' }))
     } finally {
       setDownloading(false)
     }
@@ -334,12 +367,14 @@ export function EditorPage() {
    * `applyAirlineForPrefix`.
    */
   const applyData = useCallback((next: AWBData) => {
+    trackEditorFirstEdit(overlayMode ? 'pdf_overlay' : 'form')
     setData(prev => applyAirlineForPrefix(next, prev.awbPrefix))
-  }, [])
+  }, [overlayMode, data.docType, currentId, plan, searchParams])
 
   const applyDraft = useCallback((next: AWBData) => {
+    trackEditorFirstEdit('mobile_form')
     setDraft(prev => applyAirlineForPrefix(next, (prev ?? next).awbPrefix))
-  }, [])
+  }, [data.docType, currentId, plan, searchParams])
 
   function openFormDialog() { setDraft(data); setFormDialogOpen(true) }
   function cancelFormDialog() { setDraft(null); setFormDialogOpen(false) }
@@ -502,7 +537,11 @@ export function EditorPage() {
             {isWideViewport && (
               <button
                 type="button"
-                onClick={() => setOverlayMode(m => !m)}
+                onClick={() => setOverlayMode(m => {
+                  const next = !m
+                  posthog?.capture('awb_editor_mode_toggled', editorTrackingProps({ enabled: next }))
+                  return next
+                })}
                 style={{ background: overlayMode ? '#8b0000' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
               >
                 {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}
