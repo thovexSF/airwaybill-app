@@ -16,6 +16,18 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+function readPendingSignupContext(): Record<string, unknown> | null {
+  const raw = sessionStorage.getItem('posthog_pending_signup_context')
+  if (!raw) return null
+  sessionStorage.removeItem('posthog_pending_signup_context')
+  try {
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null
+  } catch {
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const posthog = usePostHog()
   const [session, setSession] = useState<Session | null>(null)
@@ -40,9 +52,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN' && s?.user) {
         posthog?.identify(s.user.id, { email: s.user.email })
         const pendingProvider = sessionStorage.getItem('posthog_pending_login')
+        const pendingSignupContext = readPendingSignupContext()
         if (pendingProvider) {
           sessionStorage.removeItem('posthog_pending_login')
-          posthog?.capture('user_logged_in', { method: pendingProvider })
+          if (pendingSignupContext) {
+            posthog?.capture('signup_provider_completed', {
+              ...pendingSignupContext,
+              method: pendingProvider,
+            })
+          } else {
+            posthog?.capture('user_logged_in', { method: pendingProvider })
+          }
         }
       }
     })

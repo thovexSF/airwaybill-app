@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -10,6 +10,8 @@ import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
 import { useDemoMode } from './DemoMode'
 import { useTranslation } from 'react-i18next'
+import { track } from '../lib/analytics'
+import { buildSignupPath, getDemoDocType, getFunnelContext } from '../lib/funnelAnalytics'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -51,10 +53,28 @@ export function DocEditorShell<T>({
 }) {
   const demo = useDemoMode()
   const { t } = useTranslation()
+  const location = useLocation()
   const { user, logout, orgName } = useAuth()
   const { plan, docsUsedThisMonth, docLimit } = usePlan()
   const [downloading, setDownloading] = useState(false)
   const [downloadMsg, setDownloadMsg] = useState<string | null>(null)
+  const demoDocType = getDemoDocType(location.pathname)
+  const demoContext = {
+    ...getFunnelContext(location.search, location.pathname),
+    source: getFunnelContext(location.search, location.pathname).source ?? 'demo',
+    doc_type: demoDocType,
+  }
+  const demoSignupPath = buildSignupPath(demoContext, {
+    intent: 'download_pdf',
+    from: location.pathname,
+  })
+
+  function trackDemoSignup(placement: string) {
+    track('demo_signup_cta_clicked', {
+      ...demoContext,
+      placement,
+    })
+  }
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
@@ -148,7 +168,14 @@ export function DocEditorShell<T>({
                 Demo
               </span>
               <LangSwitcher />
-              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
+              <Link
+                to={demoSignupPath}
+                className="btn-download"
+                style={{ textDecoration: 'none' }}
+                onClick={() => trackDemoSignup('topbar')}
+              >
+                Crear cuenta gratis
+              </Link>
             </>
           ) : (
             <>
@@ -188,7 +215,12 @@ export function DocEditorShell<T>({
           </button>
         )}
         {demo ? (
-          <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>
+          <Link
+            to={demoSignupPath}
+            className="btn-download"
+            style={{ textDecoration: 'none' }}
+            onClick={() => trackDemoSignup('download_bar')}
+          >
             Sign up to download PDF
           </Link>
         ) : pdfUrl && (
@@ -204,7 +236,8 @@ export function DocEditorShell<T>({
           <div className="form-panel">{children}</div>
           <div className="mobile-pdf-strip">
             {demo
-              ? <Link to="/signup" className="btn-download"
+              ? <Link to={demoSignupPath} className="btn-download"
+                   onClick={() => trackDemoSignup('mobile_download_bar')}
                    style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>
                   Sign up to download PDF
                 </Link>
