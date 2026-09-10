@@ -45,10 +45,24 @@ export function MyAWBsPage() {
   const [editorSrc, setEditorSrc] = useState('')
   const [editorTitle, setEditorTitle] = useState('')
 
-  function openEditor(path: string, title: string) {
+  function openEditor(path: string, title: string, analytics?: { source: string; docType?: string }) {
+    if (analytics) {
+      posthog?.capture('document_hub_opened_document', {
+        source: analytics.source,
+        doc_type: analytics.docType ?? activeMeta.type,
+        view,
+      })
+    }
     setEditorTitle(title)
     setEditorSrc(withHubModal(path))
     setEditorOpen(true)
+  }
+
+  function openExistingDocument(
+    row: ReturnType<typeof rowOf>,
+    source: 'card_row' | 'card_button' | 'table_row' | 'table_button',
+  ) {
+    openEditor(row.editPath, row.awbNum, { source, docType: row.meta.type })
   }
 
   function closeEditor() {
@@ -480,7 +494,7 @@ export function MyAWBsPage() {
               {filtered.map((doc, i) => {
                 const r = rowOf(doc)
                 return (
-                  <div key={doc.id} className="doc-hub-card doc-hub-row-clickable" onClick={() => openEditor(r.editPath, r.awbNum)}>
+                  <div key={doc.id} className="doc-hub-card doc-hub-row-clickable" onClick={() => openExistingDocument(r, 'card_row')}>
                     <span
                       className="doc-hub-row-num card"
                       title={t('myAwbs.deleteRightClick')}
@@ -500,6 +514,18 @@ export function MyAWBsPage() {
                         {r.eawb && <span>eAWB:{r.eawb} · </span>}
                         {fmt(doc.updated_at)} · {doc.status}
                       </div>
+                    </div>
+                    <div className="doc-hub-card-actions">
+                      <button
+                        type="button"
+                        className="doc-hub-btn sm doc-hub-open-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openExistingDocument(r, 'card_button')
+                        }}
+                      >
+                        {t('myAwbs.open')}
+                      </button>
                     </div>
                   </div>
                 )
@@ -532,6 +558,7 @@ export function MyAWBsPage() {
                         <SortIcon col={col} />
                       </th>
                     ))}
+                    <th className="sticky-right doc-hub-actions-col">{t('myAwbs.colActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -541,7 +568,7 @@ export function MyAWBsPage() {
                       <tr
                         key={doc.id}
                         className={`doc-hub-row-clickable${i % 2 ? ' alt' : ''}${deleting === doc.id ? ' deleting' : ''}`}
-                        onClick={() => openEditor(r.editPath, r.awbNum)}
+                        onClick={() => openExistingDocument(r, 'table_row')}
                       >
                         {rowNumCell(i + 1, doc.id)}
                         <td className="strong">{r.awbNum}</td>
@@ -558,6 +585,18 @@ export function MyAWBsPage() {
                           <span className={`doc-hub-status ${doc.status}`}>{doc.status}</span>
                         </td>
                         <td className="muted">{fmt(doc.updated_at)}</td>
+                        <td className="sticky-right doc-hub-actions-cell">
+                          <button
+                            type="button"
+                            className="doc-hub-btn sm doc-hub-open-btn"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openExistingDocument(r, 'table_button')
+                            }}
+                          >
+                            {t('myAwbs.open')}
+                          </button>
+                        </td>
                       </tr>
                     )
                   })}
