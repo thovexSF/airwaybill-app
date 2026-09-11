@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
@@ -15,9 +15,15 @@ import { usePostHog } from '@posthog/react'
 type ViewMode = 'cards' | 'table'
 type StatusFilter = 'all' | 'final' | 'draft'
 
-function newDocPath(meta: DocTypeMeta): string {
-  if (meta.type === 'hawb') return '/editor?docType=hawb'
-  return meta.route
+function newDocPath(meta: DocTypeMeta, source?: string): string {
+  const path = meta.type === 'hawb' ? '/editor?docType=hawb' : meta.route
+  if (!source) return path
+
+  const [pathname, query = ''] = path.split('?')
+  const params = new URLSearchParams(query)
+  params.set('source', `my_awbs_${source}`)
+  params.set('intent', meta.type === 'awb' || meta.type === 'hawb' ? 'create_first_awb' : 'create_document')
+  return `${pathname}?${params.toString()}`
 }
 
 export function MyAWBsPage() {
@@ -44,11 +50,30 @@ export function MyAWBsPage() {
   const [editorOpen, setEditorOpen] = useState(false)
   const [editorSrc, setEditorSrc] = useState('')
   const [editorTitle, setEditorTitle] = useState('')
+  const hubViewedTracked = useRef(false)
+  const emptyStateTracked = useRef(false)
 
   function openEditor(path: string, title: string) {
     setEditorTitle(title)
     setEditorSrc(withHubModal(path))
     setEditorOpen(true)
+  }
+
+  function openNewDocument(meta: DocTypeMeta, source: string) {
+    posthog?.capture('document_hub_new_document_clicked', {
+      doc_type: meta.type,
+      source,
+      total_docs: docs.length,
+    })
+    openEditor(newDocPath(meta, source), `Nuevo ${meta.badge}`)
+  }
+
+  function trackEmptyStateAction(action: string) {
+    posthog?.capture('document_hub_empty_state_action', {
+      action,
+      doc_type: activeMeta.type,
+      total_docs: docs.length,
+    })
   }
 
   function closeEditor() {
@@ -71,6 +96,16 @@ export function MyAWBsPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (loading || error || hubViewedTracked.current) return
+    hubViewedTracked.current = true
+    posthog?.capture('document_hub_viewed', {
+      active_tab: activeMeta.type,
+      total_docs: docs.length,
+      plan,
+    })
+  }, [activeMeta.type, docs.length, error, loading, plan, posthog])
 
   function setTab(type: string) {
     setSearchParams({ tab: type }, { replace: true })
@@ -245,6 +280,17 @@ export function MyAWBsPage() {
     sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'
 
   const ediTypes = DOC_TYPES.filter((d) => ['fwb', 'fhl', 'ffr'].includes(d.type))
+  const isFirstRunEmpty = !loading && !error && docs.length === 0 && !search && statusFilter === 'all'
+
+  useEffect(() => {
+    if (!isFirstRunEmpty || emptyStateTracked.current) return
+    emptyStateTracked.current = true
+    ;(window as any).clarity?.('event', 'document_hub_empty_state_shown')
+    posthog?.capture('document_hub_empty_state_shown', {
+      active_tab: activeMeta.type,
+      plan,
+    })
+  }, [activeMeta.type, isFirstRunEmpty, plan, posthog])
 
   const emptyHints: Record<string, string> = {
     awb: 'No hay MAWB registrados.',
@@ -378,7 +424,7 @@ export function MyAWBsPage() {
             <button
               type="button"
               className="doc-hub-btn primary"
-              onClick={() => openEditor(newDocPath(activeMeta), `Nuevo ${activeMeta.badge}`)}
+              onClick={() => openNewDocument(activeMeta, 'header_primary')}
             >
               + Nuevo {activeMeta.badge}
             </button>
@@ -461,17 +507,64 @@ export function MyAWBsPage() {
           )}
 
           {!loading && !error && filtered.length === 0 && (
-            <div className="doc-hub-empty-state">
-              <div style={{ fontSize: 40, marginBottom: 8 }}>✈</div>
-              <p>{emptyHints[activeMeta.type] || t('myAwbs.empty.title')}</p>
-              <button
-                type="button"
-                className="doc-hub-btn primary"
-                style={{ marginTop: 14 }}
-                onClick={() => openEditor(newDocPath(activeMeta), `Nuevo ${activeMeta.badge}`)}
-              >
-                + Nuevo {activeMeta.badge}
-              </button>
+            <div className={`doc-hub-empty-state${isFirstRunEmpty ? ' first-run' : ''}`}>
+              {isFirstRunEmpty ? (
+                <>
+                  <div className="doc-hub-empty-badge">{t('myAwbs.empty.badge')}</div>
+                  <h2>{t('myAwbs.empty.firstTitle')}</h2>
+                  <p className="doc-hub-empty-lead">{t('myAwbs.empty.firstSub')}</p>
+                  <div className="doc-hub-empty-steps" aria-label={t('myAwbs.empty.stepsLabel')}>
+                    <div>
+                      <strong>1. {t('myAwbs.empty.stepCreateTitle')}</strong>
+                      <span>{t('myAwbs.empty.stepCreateText')}</span>
+                    </div>
+                    <div>
+                      <strong>2. {t('myAwbs.empty.stepSaveTitle')}</strong>
+                      <span>{t('myAwbs.empty.stepSaveText')}</span>
+                    </div>
+                    <div>
+                      <strong>3. {t('myAwbs.empty.stepDownloadTitle')}</strong>
+                      <span>{t('myAwbs.empty.stepDownloadText')}</span>
+                    </div>
+                  </div>
+                  <div className="doc-hub-empty-actions">
+                    <button
+                      type="button"
+                      className="doc-hub-btn primary"
+                      onClick={() => openNewDocument(activeMeta, 'first_run_empty')}
+                    >
+                      {t('myAwbs.empty.firstCta', { badge: activeMeta.badge })}
+                    </button>
+                    <Link
+                      to="/settings"
+                      className="doc-hub-btn"
+                      onClick={() => trackEmptyStateAction('open_settings')}
+                    >
+                      {t('myAwbs.empty.settingsCta')}
+                    </Link>
+                    <Link
+                      to="/demo/awb?source=my_awbs_empty&intent=learn_before_first_save"
+                      className="doc-hub-empty-link"
+                      onClick={() => trackEmptyStateAction('open_demo')}
+                    >
+                      {t('myAwbs.empty.demoCta')}
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 40, marginBottom: 8 }}>✈</div>
+                  <p>{search || statusFilter !== 'all' ? t('myAwbs.noResults') : (emptyHints[activeMeta.type] || t('myAwbs.empty.title'))}</p>
+                  <button
+                    type="button"
+                    className="doc-hub-btn primary"
+                    style={{ marginTop: 14 }}
+                    onClick={() => openNewDocument(activeMeta, 'empty_tab')}
+                  >
+                    + Nuevo {activeMeta.badge}
+                  </button>
+                </>
+              )}
             </div>
           )}
 
