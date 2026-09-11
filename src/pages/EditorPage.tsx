@@ -85,6 +85,8 @@ export function EditorPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const editorOpenedTracked = useRef(false)
+  const startGuideTracked = useRef(false)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
 
   const updatePageWidth = useCallback(() => {
@@ -131,6 +133,18 @@ export function EditorPage() {
     updatePageWidth()
     return () => ro.disconnect()
   }, [overlayMode, pdfBlob, updatePageWidth])
+
+  useEffect(() => {
+    if (editorOpenedTracked.current) return
+    editorOpenedTracked.current = true
+    posthog?.capture('awb_editor_opened', {
+      doc_type: docTypeParam ?? 'awb',
+      is_existing: Boolean(docId),
+      source: searchParams.get('source') || 'direct',
+      intent: searchParams.get('intent') || undefined,
+      viewport: window.innerWidth >= 900 ? 'wide' : 'narrow',
+    })
+  }, [docId, docTypeParam, posthog, searchParams])
 
   // Auto-disable DRAFT watermark for paid plans
   useEffect(() => {
@@ -228,6 +242,31 @@ export function EditorPage() {
       setSaveMsg(t('editor.saveError'))
     }
     setSaving(false)
+  }
+
+  function loadExample(source: string): boolean {
+    if (!window.confirm(t('editor.exampleConfirm'))) return false
+    setData(exampleAWB)
+    ;(window as any).clarity?.('event', 'awb_editor_example_loaded')
+    posthog?.capture('awb_editor_example_loaded', { source, doc_type: data.docType ?? 'awb' })
+    return true
+  }
+
+  function clearEditor() {
+    if (!window.confirm(t('editor.clearConfirm'))) return
+    setData(defaultAWBData)
+    setCurrentId(null)
+    setDownloadCountedAt(null)
+    posthog?.capture('awb_editor_cleared', { doc_type: data.docType ?? 'awb' })
+  }
+
+  function trackStartGuideAction(action: string) {
+    posthog?.capture('awb_editor_start_guide_action', {
+      action,
+      doc_type: data.docType ?? 'awb',
+      source: searchParams.get('source') || 'direct',
+      overlay_mode: overlayMode,
+    })
   }
 
   /**
@@ -355,6 +394,19 @@ export function EditorPage() {
     : (data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : 'AWB')
   const atLimit = plan === 'free' && !canDownloadDocument && !downloadCountedAt
   const hawbBlocked = false
+  const showStartGuide = !currentId
+
+  useEffect(() => {
+    if (!showStartGuide || startGuideTracked.current) return
+    startGuideTracked.current = true
+    ;(window as any).clarity?.('event', 'awb_editor_start_guide_shown')
+    posthog?.capture('awb_editor_start_guide_shown', {
+      doc_type: data.docType ?? 'awb',
+      source: searchParams.get('source') || 'direct',
+      overlay_mode: overlayMode,
+      plan,
+    })
+  }, [data.docType, overlayMode, plan, posthog, searchParams, showStartGuide])
 
   return (
     <div className="app sheet-editor">
@@ -401,8 +453,8 @@ export function EditorPage() {
       {/* Row 2 — Document actions */}
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.exampleConfirm'))) setData(exampleAWB) }}>{t('editor.example')}</button>
-          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { setData(defaultAWBData); setCurrentId(null); setDownloadCountedAt(null) } }}>{t('editor.clear')}</button>
+          <button className="btn-example" onClick={() => loadExample('action_bar')}>{t('editor.example')}</button>
+          <button className="btn-example" onClick={clearEditor}>{t('editor.clear')}</button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
@@ -439,6 +491,48 @@ export function EditorPage() {
         <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{t('editor.limitBanner')}</span>
           <Link to="/pricing" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none' }}>{t('editor.upgradeNow')}</Link>
+        </div>
+      )}
+
+      {showStartGuide && (
+        <div className="editor-start-guide">
+          <div>
+            <strong>{t('editor.startGuide.title')}</strong>
+            <span>{overlayMode ? t('editor.startGuide.overlaySub') : t('editor.startGuide.formSub')}</span>
+          </div>
+          <div className="editor-start-guide-actions">
+            {isWideViewport && overlayMode && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOverlayMode(false)
+                  trackStartGuideAction('use_form')
+                }}
+              >
+                {t('editor.startGuide.useForm')}
+              </button>
+            )}
+            {!isWideViewport && (
+              <button
+                type="button"
+                onClick={() => {
+                  openFormDialog()
+                  trackStartGuideAction('edit_fields')
+                }}
+              >
+                {t('editor.editFields')}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (loadExample('start_guide')) trackStartGuideAction('load_example')
+              }}
+            >
+              {t('editor.startGuide.example')}
+            </button>
+            <span className="editor-start-guide-hint">{t('editor.startGuide.saveHint')}</span>
+          </div>
         </div>
       )}
 

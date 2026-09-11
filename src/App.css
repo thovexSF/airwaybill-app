@@ -70,6 +70,21 @@ html[data-hub-modal="1"] .app {
 }
 .btn-example:hover { background: rgba(255,255,255,0.25); }
 
+.editor-start-guide {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  padding: 10px 20px; background: #fff7ed; border-bottom: 1px solid #fed7aa; color: #3b2414;
+  font-size: 13px; flex-shrink: 0;
+}
+.editor-start-guide strong { display: block; color: #8b0000; margin-bottom: 2px; }
+.editor-start-guide span { color: #6b4b34; }
+.editor-start-guide-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.editor-start-guide-actions button {
+  border: 1px solid #f3b47a; background: #fff; color: #8b0000;
+  padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.editor-start-guide-actions button:hover { background: #fff1e0; }
+.editor-start-guide-hint { font-size: 12px; color: #7a5a42; }
+
 .main { display: flex; flex: 1; overflow: hidden; }
 
 /* ── Form Panel ── */
@@ -504,6 +519,29 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
 .doc-hub-empty, .doc-hub-empty-state {
   text-align: center; padding: 48px 16px; color: #888; font-size: 14px;
 }
+.doc-hub-empty-state.first-run {
+  max-width: 920px; margin: 0 auto; padding: 32px 24px 38px; color: #2b2b2b; text-align: left;
+}
+.doc-hub-empty-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px; background: #fff2f2; color: var(--red);
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px;
+}
+.doc-hub-empty-state.first-run h2 { margin: 0; font-size: 24px; color: #111827; }
+.doc-hub-empty-lead {
+  max-width: 680px; margin: 8px 0 18px; color: #5b6472; font-size: 14px; line-height: 1.5;
+}
+.doc-hub-empty-steps {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px;
+}
+.doc-hub-empty-steps div {
+  border: 1px solid #eadede; border-radius: 10px; padding: 12px; background: #fff;
+}
+.doc-hub-empty-steps strong { display: block; color: #8b0000; margin-bottom: 4px; font-size: 13px; }
+.doc-hub-empty-steps span { color: #667085; font-size: 12px; line-height: 1.4; }
+.doc-hub-empty-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.doc-hub-empty-link { color: #8b0000; font-size: 13px; font-weight: 700; text-decoration: none; }
+.doc-hub-empty-link:hover { text-decoration: underline; }
 .doc-hub-cards { display: flex; flex-direction: column; gap: 6px; padding: 8px; }
 .doc-hub-card {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -604,4 +642,10 @@ html[data-partner-embed="1"] .doc-hub-view-toggle button.active,
 html[data-partner-embed="1"] .doc-hub-chip.active,
 html[data-partner-embed="1"] .doc-hub-table th {
   background: #ff6600; border-color: #ff6600;
+}
+
+@media (max-width: 720px) {
+  .editor-start-guide { padding: 10px 12px; align-items: flex-start; }
+  .doc-hub-empty-state.first-run { padding: 24px 16px 30px; }
+  .doc-hub-empty-steps { grid-template-columns: 1fr; }
 }
