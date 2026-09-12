@@ -9,8 +9,13 @@ type AuthContextValue = {
   loading: boolean
   orgName: string | null
   signup: (input: { companyName: string; email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
-  login: (input: { email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
-  loginWithProvider: (provider: 'google' | 'github') => Promise<void>
+  login: (
+    input: { email: string; password: string; analytics?: Record<string, string | boolean | number | undefined> },
+  ) => Promise<{ ok: true } | { ok: false; error: string }>
+  loginWithProvider: (
+    provider: 'google' | 'github',
+    options?: { flow?: 'login' | 'signup'; attribution?: Record<string, string | boolean | number | undefined> },
+  ) => Promise<{ ok: true } | { ok: false; error: string }>
   logout: () => Promise<void>
 }
 
@@ -39,6 +44,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
       if (event === 'SIGNED_IN' && s?.user) {
         posthog?.identify(s.user.id, { email: s.user.email })
+        const pendingAuth = sessionStorage.getItem('posthog_pending_auth')
+        if (pendingAuth) {
+          sessionStorage.removeItem('posthog_pending_auth')
+          try {
+            const parsed = JSON.parse(pendingAuth) as {
+              flow?: 'login' | 'signup'
+              provider?: 'google' | 'github'
+              attribution?: Record<string, string | boolean | number | undefined>
+            }
+            if (parsed.provider) {
+              const props = {
+                method: parsed.provider,
+                provider: parsed.provider,
+                auth_flow: parsed.flow ?? 'login',
+                ...(parsed.attribution ?? {}),
+              }
+              posthog?.capture('user_logged_in', props)
+              if (parsed.flow === 'signup') posthog?.capture('user_signed_up', props)
+            }
+          } catch {
+            // Ignore malformed legacy session storage and continue auth.
+          }
+        }
         const pendingProvider = sessionStorage.getItem('posthog_pending_login')
         if (pendingProvider) {
           sessionStorage.removeItem('posthog_pending_login')
@@ -83,19 +111,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { ok: true }
     },
 
-    login: async ({ email, password }) => {
+    login: async ({ email, password, analytics }) => {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) return { ok: false, error: error.message }
-      posthog?.capture('user_logged_in', { method: 'email' })
+      posthog?.capture('user_logged_in', { method: 'email', ...(analytics ?? {}) })
       return { ok: true }
     },
 
-    loginWithProvider: async (provider) => {
-      sessionStorage.setItem('posthog_pending_login', provider)
-      await supabase.auth.signInWithOAuth({
+    loginWithProvider: async (provider, options) => {
+      sessionStorage.setItem('posthog_pending_auth', JSON.stringify({
+        flow: options?.flow ?? 'login',
+        provider,
+        attribution: options?.attribution,
+      }))
+      const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: { redirectTo: window.location.origin + '/my-awbs' },
       })
+      if (error) {
+        sessionStorage.removeItem('posthog_pending_auth')
+        return { ok: false, error: error.message }
+      }
+      return { ok: true }
     },
 
     logout: async () => {
