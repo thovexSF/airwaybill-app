@@ -8,6 +8,9 @@ import { usePostHog } from '@posthog/react'
 const ENABLED = import.meta.env.VITE_FEEDBACK_ENABLED !== 'false'
 
 type Step = 'form' | 'sending' | 'done' | 'error'
+type FeedbackTopic = 'bug' | 'feature' | 'question' | 'language'
+
+const TOPICS: FeedbackTopic[] = ['bug', 'feature', 'question', 'language']
 
 export function FeedbackWidget() {
   const { t } = useTranslation()
@@ -19,6 +22,7 @@ export function FeedbackWidget() {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [email, setEmail] = useState('')
+  const [topic, setTopic] = useState<FeedbackTopic | null>(null)
   const [step, setStep] = useState<Step>('form')
   const [errorKey, setErrorKey] = useState<string | null>(null)
 
@@ -40,6 +44,7 @@ export function FeedbackWidget() {
     setOpen(false)
     setStep('form')
     setText('')
+    setTopic(null)
     setErrorKey(null)
   }
 
@@ -58,13 +63,21 @@ export function FeedbackWidget() {
       text: trimmed,
       page: location.pathname + location.search,
       user_email: email.trim() || user?.email || undefined,
-      context: user?.id ? { user_id: user.id } : undefined,
+      context: {
+        ...(user?.id ? { user_id: user.id } : {}),
+        ...(topic ? { topic } : {}),
+      },
     })
 
     if (result.ok) {
-      posthog?.capture('feedback_submitted', { page: location.pathname })
+      posthog?.capture('feedback_submitted', {
+        page: location.pathname,
+        topic: topic ?? 'unspecified',
+        message_length: trimmed.length,
+      })
       setStep('done')
       setText('')
+      setTopic(null)
       window.setTimeout(resetAndClose, 1400)
       return
     }
@@ -175,6 +188,44 @@ export function FeedbackWidget() {
                   <p style={{ margin: '0 0 12px', fontSize: 11, color: '#8b0000', fontWeight: 600 }}>
                     {t('feedback.directNote')}
                   </p>
+
+                  <fieldset
+                    style={{
+                      border: 0,
+                      padding: 0,
+                      margin: '0 0 12px',
+                    }}
+                    disabled={step === 'sending'}
+                  >
+                    <legend style={{ fontSize: 12, color: '#555', fontWeight: 700, marginBottom: 8 }}>
+                      {t('feedback.topics.label')}
+                    </legend>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {TOPICS.map((item) => {
+                        const selected = topic === item
+                        return (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => setTopic(selected ? null : item)}
+                            aria-pressed={selected}
+                            style={{
+                              border: selected ? '1px solid #8b0000' : '1px solid #ddd',
+                              background: selected ? '#fff4f4' : '#fff',
+                              color: selected ? '#8b0000' : '#333',
+                              borderRadius: 999,
+                              padding: '7px 10px',
+                              fontSize: 12,
+                              fontWeight: selected ? 700 : 600,
+                              cursor: step === 'sending' ? 'wait' : 'pointer',
+                            }}
+                          >
+                            {t(`feedback.topics.${item}`)}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </fieldset>
 
                   <textarea
                     ref={textareaRef}
