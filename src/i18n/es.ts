@@ -134,6 +134,19 @@ const es = {
     previewLoading: 'Generando vista previa…',
     updating: 'Actualizando…',
     zoomReset: 'Reset',
+    startGuide: {
+      title: 'Crea tu primer AWB en 3 minutos',
+      subtitle: 'Parte con un ejemplo o completa los campos, luego guarda o descarga el PDF cuando la vista previa esté lista.',
+      steps: {
+        fill: 'Completa shipper, consignee, ruta y piezas',
+        preview: 'Revisa la vista previa IATA en vivo',
+        output: 'Guarda o descarga el PDF',
+      },
+      loadExample: 'Cargar ejemplo',
+      useForm: 'Usar formulario guiado',
+      editFields: 'Editar campos',
+      dismiss: 'Cerrar guía',
+    },
   },
 
   // My AWBs

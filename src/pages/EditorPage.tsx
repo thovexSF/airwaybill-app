@@ -56,6 +56,8 @@ export function EditorPage() {
   const [searchParams] = useSearchParams()
   const docId = searchParams.get('id')
   const docTypeParam = searchParams.get('docType') as 'awb' | 'hawb' | null
+  const entrySource = searchParams.get('source') ?? 'direct'
+  const entryIntent = searchParams.get('intent') ?? undefined
 
   const initialData: AWBData = docTypeParam === 'hawb'
     ? { ...defaultAWBData, docType: 'hawb', isDraft: true, copyNumber: 1, copyLabel: 'Original 1 (for Consignee)' }
@@ -74,16 +76,19 @@ export function EditorPage() {
   const [formWidth, setFormWidth] = useState(initialFormWidth)
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
-  const [overlayMode, setOverlayMode] = useState(() => window.innerWidth >= 900)
+  const [overlayMode, setOverlayMode] = useState(() => window.innerWidth >= 900 && Boolean(docId))
   // On narrow screens the sheet stays on screen and the form moves into a
   // dialog; edits are buffered there so Cancel discards them.
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [copiesOpen, setCopiesOpen] = useState(false)
   const [fwbOpen, setFwbOpen] = useState(false)
+  const [startGuideDismissed, setStartGuideDismissed] = useState(false)
   const [draft, setDraft] = useState<AWBData | null>(null)
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
+  const startGuideShownRef = useRef(false)
+  const firstEditCapturedRef = useRef(false)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
 
@@ -118,6 +123,18 @@ export function EditorPage() {
     }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    ;(window as any).clarity?.('event', 'awb_editor_opened')
+    posthog?.capture('awb_editor_opened', {
+      doc_type: docTypeParam ?? 'awb',
+      source: entrySource,
+      intent: entryIntent,
+      has_doc_id: Boolean(docId),
+      viewport_width: window.innerWidth,
+      overlay_mode: overlayMode,
+    })
   }, [])
 
   useEffect(() => {
@@ -202,7 +219,25 @@ export function EditorPage() {
     setGenerating(false)
   }
 
+  function captureEditorEvent(event: string, props: Record<string, unknown> = {}) {
+    posthog?.capture(event, {
+      doc_type: data.docType ?? 'awb',
+      source: entrySource,
+      intent: entryIntent,
+      is_new: !currentId,
+      ...props,
+    })
+  }
+
+  function loadExampleData(placement: string) {
+    if (!window.confirm(t('editor.exampleConfirm'))) return
+    setData(exampleAWB)
+    setStartGuideDismissed(true)
+    captureEditorEvent('awb_editor_example_loaded', { placement })
+  }
+
   async function handleSave() {
+    captureEditorEvent('awb_save_clicked', { plan })
     setSaving(true)
     setSaveMsg(null)
     try {
@@ -223,9 +258,10 @@ export function EditorPage() {
       setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
       ;(window as any).clarity?.('event', 'awb_saved')
-      posthog?.capture('awb_saved', { doc_type: payload.docType ?? 'awb', doc_id: doc.id, is_new: !currentId })
+      posthog?.capture('awb_saved', { doc_type: payload.docType ?? 'awb', doc_id: doc.id, is_new: !currentId, source: entrySource, intent: entryIntent })
     } catch {
       setSaveMsg(t('editor.saveError'))
+      captureEditorEvent('awb_save_failed', { plan })
     }
     setSaving(false)
   }
@@ -275,7 +311,7 @@ export function EditorPage() {
         setDownloadCountedAt(countedAt)
         navigate(`/editor?id=${doc.id}`, { replace: true })
         ;(window as any).clarity?.('event', 'awb_saved')
-        posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source })
+        posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source, entry_source: entrySource, intent: entryIntent })
       } catch (error) {
         console.error('PDF save before download failed:', error)
       }
@@ -313,6 +349,7 @@ export function EditorPage() {
 
   async function handleDownloadPdf() {
     if (!pdfUrl || downloading || planLoading) return
+    captureEditorEvent('awb_download_clicked', { plan, placement: 'download_button' })
     if (!withinQuota()) return
 
     setSaveMsg(null)
@@ -322,6 +359,7 @@ export function EditorPage() {
       await countPdfDownload('download')
     } catch {
       setSaveMsg(t('editor.downloadError'))
+      captureEditorEvent('awb_download_failed', { plan })
       setTimeout(() => setSaveMsg(null), 5000)
     } finally {
       setDownloading(false)
@@ -334,14 +372,28 @@ export function EditorPage() {
    * `applyAirlineForPrefix`.
    */
   const applyData = useCallback((next: AWBData) => {
+    if (!firstEditCapturedRef.current) {
+      firstEditCapturedRef.current = true
+      posthog?.capture('awb_editor_first_edit', {
+        doc_type: next.docType ?? 'awb',
+        source: entrySource,
+        intent: entryIntent,
+        is_new: !currentId,
+        overlay_mode: overlayMode,
+      })
+    }
     setData(prev => applyAirlineForPrefix(next, prev.awbPrefix))
-  }, [])
+  }, [currentId, entryIntent, entrySource, overlayMode, posthog])
 
   const applyDraft = useCallback((next: AWBData) => {
     setDraft(prev => applyAirlineForPrefix(next, (prev ?? next).awbPrefix))
   }, [])
 
-  function openFormDialog() { setDraft(data); setFormDialogOpen(true) }
+  function openFormDialog(placement = 'floating_button') {
+    captureEditorEvent('awb_editor_form_dialog_opened', { placement })
+    setDraft(data)
+    setFormDialogOpen(true)
+  }
   function cancelFormDialog() { setDraft(null); setFormDialogOpen(false) }
   function applyFormDialog() {
     if (draft) applyData(draft)
@@ -355,6 +407,17 @@ export function EditorPage() {
     : (data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : 'AWB')
   const atLimit = plan === 'free' && !canDownloadDocument && !downloadCountedAt
   const hawbBlocked = false
+  const showStartGuide = !currentId && !startGuideDismissed && !isHawb
+
+  useEffect(() => {
+    if (!showStartGuide || startGuideShownRef.current) return
+    startGuideShownRef.current = true
+    captureEditorEvent('awb_editor_start_guide_shown', {
+      plan,
+      overlay_mode: overlayMode,
+      viewport_width: window.innerWidth,
+    })
+  }, [showStartGuide, plan, overlayMode])
 
   return (
     <div className="app sheet-editor">
@@ -401,7 +464,7 @@ export function EditorPage() {
       {/* Row 2 — Document actions */}
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.exampleConfirm'))) setData(exampleAWB) }}>{t('editor.example')}</button>
+          <button className="btn-example" onClick={() => loadExampleData('action_bar')}>{t('editor.example')}</button>
           <button className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { setData(defaultAWBData); setCurrentId(null); setDownloadCountedAt(null) } }}>{t('editor.clear')}</button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -442,6 +505,61 @@ export function EditorPage() {
         </div>
       )}
 
+      {showStartGuide && (
+        <div className="editor-start-guide">
+          <div className="editor-start-guide-copy">
+            <strong>{t('editor.startGuide.title')}</strong>
+            <span>{t('editor.startGuide.subtitle')}</span>
+          </div>
+          <div className="editor-start-guide-steps" aria-label={t('editor.startGuide.title')}>
+            <span>1. {t('editor.startGuide.steps.fill')}</span>
+            <span>2. {t('editor.startGuide.steps.preview')}</span>
+            <span>3. {t('editor.startGuide.steps.output')}</span>
+          </div>
+          <div className="editor-start-guide-actions">
+            <button type="button" className="editor-guide-primary" onClick={() => loadExampleData('start_guide')}>
+              {t('editor.startGuide.loadExample')}
+            </button>
+            {isWideViewport && overlayMode ? (
+              <button
+                type="button"
+                className="editor-guide-secondary"
+                onClick={() => {
+                  setOverlayMode(false)
+                  setStartGuideDismissed(true)
+                  captureEditorEvent('awb_editor_start_guide_action', { action: 'use_form_view' })
+                }}
+              >
+                {t('editor.startGuide.useForm')}
+              </button>
+            ) : !isWideViewport ? (
+              <button
+                type="button"
+                className="editor-guide-secondary"
+                onClick={() => {
+                  setStartGuideDismissed(true)
+                  openFormDialog('start_guide')
+                  captureEditorEvent('awb_editor_start_guide_action', { action: 'edit_fields' })
+                }}
+              >
+                {t('editor.startGuide.editFields')}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="editor-guide-dismiss"
+              onClick={() => {
+                setStartGuideDismissed(true)
+                captureEditorEvent('awb_editor_start_guide_action', { action: 'dismiss' })
+              }}
+              aria-label={t('editor.startGuide.dismiss')}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className={`main ${overlayMode ? 'main-single' : ''}`}>
         {!overlayMode && (
           <>
@@ -464,7 +582,7 @@ export function EditorPage() {
           </>
         )}
         {/* Mobile: the form lives in a dialog over the sheet */}
-        <button type="button" className="edit-fab" onClick={openFormDialog}>
+        <button type="button" className="edit-fab" onClick={() => openFormDialog()}>
           ✎ {t('editor.editFields')}
         </button>
         <CopiesDialog
