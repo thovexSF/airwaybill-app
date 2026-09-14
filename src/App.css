@@ -70,6 +70,83 @@ html[data-hub-modal="1"] .app {
 }
 .btn-example:hover { background: rgba(255,255,255,0.25); }
 
+.editor-start-guide {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px;
+  background: #fff8ef;
+  border-bottom: 1px solid #f0d0a6;
+  color: #3a2a1a;
+  font-size: 12px;
+}
+html[data-partner-embed="1"] .editor-start-guide,
+html[data-hub-modal="1"] .editor-start-guide {
+  display: none;
+}
+.editor-start-guide-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+}
+.editor-start-guide-copy strong {
+  color: var(--red);
+  font-size: 13px;
+}
+.editor-start-guide-copy span {
+  color: #6b5a49;
+  line-height: 1.35;
+}
+.editor-start-guide-steps {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #5a4a39;
+}
+.editor-start-guide-steps span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(139, 0, 0, 0.08);
+  white-space: nowrap;
+}
+.editor-start-guide-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.editor-guide-primary,
+.editor-guide-secondary,
+.editor-guide-dismiss {
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.editor-guide-primary {
+  background: var(--red);
+  border: 1px solid var(--red);
+  color: #fff;
+  font-weight: 700;
+  padding: 7px 12px;
+}
+.editor-guide-secondary {
+  background: #fff;
+  border: 1px solid #d6b98f;
+  color: var(--red);
+  font-weight: 700;
+  padding: 7px 12px;
+}
+.editor-guide-dismiss {
+  background: transparent;
+  border: none;
+  color: #8c7155;
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
 .main { display: flex; flex: 1; overflow: hidden; }
 
 /* ── Form Panel ── */
@@ -265,6 +342,25 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
   /* Action bar: scrollable row */
   .action-bar { padding: 0 10px !important; overflow-x: auto; }
   .action-bar > div { flex-shrink: 0; }
+
+  .editor-start-guide {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .editor-start-guide-copy { min-width: 0; }
+  .editor-start-guide-steps {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+  }
+  .editor-start-guide-steps span { white-space: normal; }
+  .editor-start-guide-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
 
   /* Form sections: full width inputs */
   .field-row { flex-direction: column !important; }
