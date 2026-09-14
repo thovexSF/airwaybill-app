@@ -76,7 +76,7 @@ export function EditorPage() {
   const [formWidth, setFormWidth] = useState(initialFormWidth)
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
-  const [overlayMode, setOverlayMode] = useState(() => window.innerWidth >= 900)
+  const [overlayMode, setOverlayMode] = useState(() => window.innerWidth >= 900 && Boolean(docId))
   // On narrow screens the sheet stays on screen and the form moves into a
   // dialog; edits are buffered there so Cancel discards them.
   const [formDialogOpen, setFormDialogOpen] = useState(false)
@@ -520,7 +520,7 @@ export function EditorPage() {
             <button type="button" className="editor-guide-primary" onClick={() => loadExampleData('start_guide')}>
               {t('editor.startGuide.loadExample')}
             </button>
-            {isWideViewport ? (
+            {isWideViewport && overlayMode ? (
               <button
                 type="button"
                 className="editor-guide-secondary"
@@ -532,7 +532,7 @@ export function EditorPage() {
               >
                 {t('editor.startGuide.useForm')}
               </button>
-            ) : (
+            ) : !isWideViewport ? (
               <button
                 type="button"
                 className="editor-guide-secondary"
@@ -544,7 +544,7 @@ export function EditorPage() {
               >
                 {t('editor.startGuide.editFields')}
               </button>
-            )}
+            ) : null}
             <button
               type="button"
               className="editor-guide-dismiss"
