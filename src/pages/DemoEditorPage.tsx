@@ -39,6 +39,7 @@ export function DemoEditorPage() {
   const { docType } = useParams<{ docType?: string }>()
   const demoDocType: 'awb' | 'hawb' = docType === 'hawb' ? 'hawb' : 'awb'
   const initialData: AWBData = { ...exampleAWB, docType: demoDocType, isDraft: true }
+  const signupPath = `/signup?source=demo&intent=download_pdf&doc_type=${demoDocType}`
   const [data, setDataRaw] = useState<AWBData>(initialData)
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
     setDataRaw(prev => {
@@ -73,8 +74,14 @@ export function DemoEditorPage() {
   }, [updatePageWidth])
 
   useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
+    posthog?.capture('demo_viewed', { doc_type: demoDocType, route: `/demo/${demoDocType}` })
+  }, [posthog, demoDocType])
+
+  const captureSignupClick = (placement: 'banner' | 'action_bar') => {
+    const props = { placement, doc_type: demoDocType, intent: 'download_pdf' }
+    ;(window as any).clarity?.('event', `demo_signup_cta_${placement}`)
+    posthog?.capture('demo_signup_cta_clicked', props)
+  }
 
   useEffect(() => {
     const onResize = () => {
@@ -139,7 +146,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupPath}
+          state={{ from: `/demo/${demoDocType}` }}
+          onClick={() => captureSignupClick('banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +182,12 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link
+            to={signupPath}
+            state={{ from: `/demo/${demoDocType}` }}
+            onClick={() => captureSignupClick('action_bar')}
+            className="btn-download"
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>

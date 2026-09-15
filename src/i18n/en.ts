@@ -76,11 +76,15 @@ const en = {
       tryFree: 'Or try it free, no account needed →',
     },
     signup: {
+      title: 'Create your free account',
+      demoTitle: 'Download your edited AWB',
       sub: 'Create your free account: 10 documents/month of any type, no credit card required.',
+      demoNoteTitle: 'Your demo is ready to become a real PDF.',
+      demoNoteSub: 'Sign up free to save, remove the DRAFT watermark, and download print-ready documents.',
       google: 'Sign up with Google',
       github: 'Sign up with GitHub',
       orEmail: 'or with email',
-      company: 'Company',
+      company: 'Company (optional)',
       companyPlaceholder: 'e.g. Cargo Andes LLC',
       email: 'Email',
       password: 'Password',
@@ -232,7 +236,7 @@ const en = {
   },
 
   demo: {
-    banner: 'Demo — preview and edit with DRAFT watermark. Sign up free for 10 documents/month (any type).',
+    banner: 'Demo — edit this AWB now with a DRAFT watermark. Sign up free to download the finished PDF.',
     signupCta: 'Create free account',
     downloadCta: 'Sign up to download PDF',
     sub: 'Live demo — no signup required',

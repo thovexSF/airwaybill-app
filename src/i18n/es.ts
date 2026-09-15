@@ -76,11 +76,15 @@ const es = {
       tryFree: 'O pruébalo gratis, sin crear cuenta →',
     },
     signup: {
+      title: 'Crear cuenta gratis',
+      demoTitle: 'Descarga tu AWB editado',
       sub: 'Crea tu cuenta gratis: 10 documentos/mes de cualquier tipo, sin tarjeta de credito.',
+      demoNoteTitle: 'Tu demo ya puede convertirse en un PDF real.',
+      demoNoteSub: 'Regístrate gratis para guardar, quitar el watermark DRAFT y descargar documentos listos para imprimir.',
       google: 'Registrarse con Google',
       github: 'Registrarse con GitHub',
       orEmail: 'o con email',
-      company: 'Empresa',
+      company: 'Empresa (opcional)',
       companyPlaceholder: 'Ej: Cargo Andes SpA',
       email: 'Email',
       password: 'Contraseña',
@@ -232,7 +236,7 @@ const es = {
   },
 
   demo: {
-    banner: 'Demo — previsualiza y edita con watermark DRAFT. Regístrate gratis para 10 documentos/mes (cualquier tipo).',
+    banner: 'Demo — edita este AWB ahora con watermark DRAFT. Regístrate gratis para descargar el PDF final.',
     signupCta: 'Crear cuenta gratis',
     downloadCta: 'Registrate para descargar PDF',
     sub: 'Demo en vivo — sin registrarte',
