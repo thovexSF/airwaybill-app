@@ -247,7 +247,7 @@ const es = {
     title: 'Feedback directo',
     subtitle: 'Esto llega directo al creador de la app por Telegram — no es una cola de soporte. ¿Bug, idea o algo que no se entiende?',
     directNote: 'Línea directa con el fundador · lectura personal',
-    placeholder: '¿Qué pasó? ¿Qué estabas intentando hacer?',
+    placeholder: 'Describe un bug, una función faltante o un problema en tu flujo. Ej: "No pude descargar el AWB después de guardarlo."',
     emailPlaceholder: 'Tu email (opcional, para que el creador pueda responderte)',
     submit: 'Enviar al creador',
     sending: 'Enviando...',
