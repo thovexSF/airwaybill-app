@@ -247,7 +247,7 @@ const en = {
     title: 'Direct feedback',
     subtitle: 'This goes straight to the app creator on Telegram — not a support queue. Found a bug, missing feature, or something confusing?',
     directNote: 'Direct line to the founder · read personally',
-    placeholder: 'What happened? What were you trying to do?',
+    placeholder: 'Describe a bug, missing feature, or workflow issue. Example: "I could not download the AWB after saving."',
     emailPlaceholder: 'Your email (optional, so the creator can reply)',
     submit: 'Send to creator',
     sending: 'Sending...',
