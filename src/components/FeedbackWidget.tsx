@@ -8,9 +8,18 @@ import { usePostHog } from '@posthog/react'
 const ENABLED = import.meta.env.VITE_FEEDBACK_ENABLED !== 'false'
 
 type Step = 'form' | 'sending' | 'done' | 'error'
+type FeedbackTopic = 'bug' | 'question' | 'spanish_help' | 'feature'
+
+const TOPICS: FeedbackTopic[] = ['bug', 'question', 'spanish_help', 'feature']
+
+function messageLengthBucket(length: number): string {
+  if (length < 20) return 'short'
+  if (length < 120) return 'medium'
+  return 'long'
+}
 
 export function FeedbackWidget() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const posthog = usePostHog()
   const { user } = useAuth()
   const location = useLocation()
@@ -19,6 +28,7 @@ export function FeedbackWidget() {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [email, setEmail] = useState('')
+  const [topic, setTopic] = useState<FeedbackTopic | null>(null)
   const [step, setStep] = useState<Step>('form')
   const [errorKey, setErrorKey] = useState<string | null>(null)
 
@@ -40,6 +50,7 @@ export function FeedbackWidget() {
     setOpen(false)
     setStep('form')
     setText('')
+    setTopic(null)
     setErrorKey(null)
   }
 
@@ -58,13 +69,25 @@ export function FeedbackWidget() {
       text: trimmed,
       page: location.pathname + location.search,
       user_email: email.trim() || user?.email || undefined,
-      context: user?.id ? { user_id: user.id } : undefined,
+      context: {
+        ...(user?.id ? { user_id: user.id } : {}),
+        feedback_topic: topic ?? 'unspecified',
+        language: i18n.resolvedLanguage ?? i18n.language,
+      },
     })
 
     if (result.ok) {
-      posthog?.capture('feedback_submitted', { page: location.pathname })
+      posthog?.capture('feedback_submitted', {
+        page: location.pathname,
+        feedback_topic: topic ?? 'unspecified',
+        language: i18n.resolvedLanguage ?? i18n.language,
+        message_length_bucket: messageLengthBucket(trimmed.length),
+        has_reply_email: Boolean(email.trim() || user?.email),
+        authenticated: Boolean(user?.id),
+      })
       setStep('done')
       setText('')
+      setTopic(null)
       window.setTimeout(resetAndClose, 1400)
       return
     }
@@ -175,6 +198,29 @@ export function FeedbackWidget() {
                   <p style={{ margin: '0 0 12px', fontSize: 11, color: '#8b0000', fontWeight: 600 }}>
                     {t('feedback.directNote')}
                   </p>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                    {TOPICS.map(item => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setTopic(prev => prev === item ? null : item)}
+                        disabled={step === 'sending'}
+                        style={{
+                          border: topic === item ? '1px solid #8b0000' : '1px solid #ddd',
+                          background: topic === item ? '#fbeaea' : '#fff',
+                          color: topic === item ? '#8b0000' : '#555',
+                          borderRadius: 999,
+                          padding: '6px 10px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: step === 'sending' ? 'wait' : 'pointer',
+                        }}
+                      >
+                        {t(`feedback.topics.${item}`)}
+                      </button>
+                    ))}
+                  </div>
 
                   <textarea
                     ref={textareaRef}

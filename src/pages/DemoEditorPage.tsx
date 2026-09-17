@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
@@ -32,8 +32,9 @@ function initialZoom(): number {
 }
 
 export function DemoEditorPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const posthog = usePostHog()
+  const location = useLocation()
   // Reached as /demo/awb or /demo/hawb from the demo picker; both use this
   // editor because only the AWB has the form-over-PDF overlay.
   const { docType } = useParams<{ docType?: string }>()
@@ -61,6 +62,7 @@ export function DemoEditorPage() {
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const signupPath = `/signup?source=demo&intent=download_awb_pdf&doc_type=${demoDocType}&from=${encodeURIComponent(location.pathname)}`
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -73,8 +75,23 @@ export function DemoEditorPage() {
   }, [updatePageWidth])
 
   useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
+    posthog?.capture('demo_viewed', {
+      doc_type: demoDocType,
+      path: location.pathname,
+      language: i18n.resolvedLanguage ?? i18n.language,
+      viewport: window.innerWidth >= 900 ? 'wide' : 'narrow',
+    })
+  }, [demoDocType, i18n.language, i18n.resolvedLanguage, location.pathname, posthog])
+
+  function captureSignupClick(placement: 'banner' | 'download') {
+    posthog?.capture('demo_signup_cta_clicked', {
+      placement,
+      doc_type: demoDocType,
+      path: location.pathname,
+      intent: 'download_awb_pdf',
+      language: i18n.resolvedLanguage ?? i18n.language,
+    })
+  }
 
   useEffect(() => {
     const onResize = () => {
@@ -139,7 +156,11 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupPath}
+          onClick={() => captureSignupClick('banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +191,12 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link
+            to={signupPath}
+            state={{ from: `/demo/${demoDocType}`, source: 'demo', intent: 'download_awb_pdf', doc_type: demoDocType }}
+            onClick={() => captureSignupClick('download')}
+            className="btn-download"
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>
