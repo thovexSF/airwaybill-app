@@ -249,6 +249,12 @@ const en = {
     directNote: 'Direct line to the founder · read personally',
     placeholder: 'What happened? What were you trying to do?',
     emailPlaceholder: 'Your email (optional, so the creator can reply)',
+    topics: {
+      bug: 'Bug',
+      question: 'Question',
+      spanish_help: 'Spanish help',
+      feature: 'Feature request',
+    },
     submit: 'Send to creator',
     sending: 'Sending...',
     thanks: 'Sent! The creator will read it personally on Telegram.',

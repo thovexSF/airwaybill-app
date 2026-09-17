@@ -249,6 +249,12 @@ const es = {
     directNote: 'Línea directa con el fundador · lectura personal',
     placeholder: '¿Qué pasó? ¿Qué estabas intentando hacer?',
     emailPlaceholder: 'Tu email (opcional, para que el creador pueda responderte)',
+    topics: {
+      bug: 'Bug',
+      question: 'Pregunta',
+      spanish_help: 'Ayuda en español',
+      feature: 'Pedir función',
+    },
     submit: 'Enviar al creador',
     sending: 'Enviando...',
     thanks: '¡Enviado! El creador lo lee personalmente en Telegram.',
