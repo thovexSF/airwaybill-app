@@ -70,6 +70,27 @@ html[data-hub-modal="1"] .app {
 }
 .btn-example:hover { background: rgba(255,255,255,0.25); }
 
+.editor-save-nudge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 20px;
+  background: #fff7ed;
+  border-bottom: 1px solid #fed7aa;
+  color: #7c2d12;
+  font-size: 13px;
+}
+.editor-save-nudge strong {
+  margin-right: 4px;
+}
+.editor-save-nudge .btn-save {
+  box-shadow: none;
+  border: 1px solid #f97316;
+  color: #8b0000;
+  white-space: nowrap;
+}
+
 .main { display: flex; flex: 1; overflow: hidden; }
 
 /* ── Form Panel ── */
