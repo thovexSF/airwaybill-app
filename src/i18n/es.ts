@@ -134,6 +134,9 @@ const es = {
     previewLoading: 'Generando vista previa…',
     updating: 'Actualizando…',
     zoomReset: 'Reset',
+    saveNudgeTitle: '¿Quieres conservar este AWB?',
+    saveNudgeText: ' Guárdalo ahora para encontrarlo en Documentos y descargar el PDF final.',
+    saveNudgeCta: 'Guardar AWB',
   },
 
   // My AWBs

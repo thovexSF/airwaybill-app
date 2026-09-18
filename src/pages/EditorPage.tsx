@@ -47,6 +47,10 @@ function initialZoom(): number {
 
 const PDF_PAGE_SCALE = 1.35
 
+function sameAWBData(a: AWBData, b: AWBData): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
 export function EditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
@@ -56,12 +60,15 @@ export function EditorPage() {
   const [searchParams] = useSearchParams()
   const docId = searchParams.get('id')
   const docTypeParam = searchParams.get('docType') as 'awb' | 'hawb' | null
+  const sourceParam = searchParams.get('source') || undefined
+  const intentParam = searchParams.get('intent') || undefined
 
   const initialData: AWBData = docTypeParam === 'hawb'
     ? { ...defaultAWBData, docType: 'hawb', isDraft: true, copyNumber: 1, copyLabel: 'Original 1 (for Consignee)' }
     : defaultAWBData
   const [data, setData] = useState<AWBData>(initialData)
   const [currentId, setCurrentId] = useState<string | null>(docId)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [numPages, setNumPages] = useState<number>(1)
@@ -85,7 +92,42 @@ export function EditorPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const openTrackedRef = useRef(false)
+  const firstEditTrackedRef = useRef(false)
+  const outputThisSessionRef = useRef(false)
+  const saveNudgeShownRef = useRef(false)
+  const abandonmentTrackedRef = useRef(false)
+  const hasUnsavedChangesRef = useRef(false)
+  const editorEventContextRef = useRef<Record<string, unknown>>({})
   const draftKey = `awb-draft-${user?.id || 'anon'}`
+
+  editorEventContextRef.current = {
+    doc_type: data.docType ?? (docTypeParam === 'hawb' ? 'hawb' : 'awb'),
+    has_doc_id: Boolean(currentId),
+    source: sourceParam,
+    intent: intentParam,
+    overlay_mode: overlayMode,
+    viewport_width: typeof window === 'undefined' ? undefined : window.innerWidth,
+  }
+
+  const trackEditorEvent = useCallback((event: string, properties: Record<string, unknown> = {}) => {
+    ;(window as any).clarity?.('event', event)
+    posthog?.capture(event, {
+      ...editorEventContextRef.current,
+      ...properties,
+    })
+  }, [posthog])
+
+  const markUserEdit = useCallback((source: string) => {
+    setHasUnsavedChanges(true)
+    hasUnsavedChangesRef.current = true
+    outputThisSessionRef.current = false
+    abandonmentTrackedRef.current = false
+    if (!firstEditTrackedRef.current) {
+      firstEditTrackedRef.current = true
+      trackEditorEvent('awb_editor_first_edit', { edit_source: source })
+    }
+  }, [trackEditorEvent])
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -121,6 +163,37 @@ export function EditorPage() {
   }, [])
 
   useEffect(() => {
+    if (openTrackedRef.current) return
+    openTrackedRef.current = true
+    trackEditorEvent('awb_editor_opened')
+  }, [trackEditorEvent])
+
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges
+  }, [hasUnsavedChanges])
+
+  useEffect(() => {
+    if (!hasUnsavedChanges || saveNudgeShownRef.current) return
+    saveNudgeShownRef.current = true
+    trackEditorEvent('awb_save_nudge_shown')
+  }, [hasUnsavedChanges, trackEditorEvent])
+
+  useEffect(() => {
+    const reportAbandonment = () => {
+      if (!hasUnsavedChangesRef.current || outputThisSessionRef.current || abandonmentTrackedRef.current) return
+      abandonmentTrackedRef.current = true
+      posthog?.capture('awb_editor_left_without_output', editorEventContextRef.current)
+      ;(window as any).clarity?.('event', 'awb_editor_left_without_output')
+    }
+
+    window.addEventListener('pagehide', reportAbandonment)
+    return () => {
+      reportAbandonment()
+      window.removeEventListener('pagehide', reportAbandonment)
+    }
+  }, [posthog])
+
+  useEffect(() => {
     const el = pageWrapRef.current
     if (!el) return
     const ro = new ResizeObserver((entries) => {
@@ -146,6 +219,9 @@ export function EditorPage() {
         setData(doc.data)
         setCurrentId(doc.id)
         setDownloadCountedAt(doc.download_counted_at ?? null)
+        setHasUnsavedChanges(false)
+        hasUnsavedChangesRef.current = false
+        outputThisSessionRef.current = false
       }).catch(() => {})
     } else {
       setDownloadCountedAt(null)
@@ -202,7 +278,8 @@ export function EditorPage() {
     setGenerating(false)
   }
 
-  async function handleSave() {
+  async function handleSave(source = 'action_bar') {
+    trackEditorEvent('awb_save_clicked', { action_source: source })
     setSaving(true)
     setSaveMsg(null)
     try {
@@ -222,9 +299,14 @@ export function EditorPage() {
       navigate(`/editor?id=${doc.id}`, { replace: true })
       setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
+      setHasUnsavedChanges(false)
+      hasUnsavedChangesRef.current = false
+      outputThisSessionRef.current = true
+      saveNudgeShownRef.current = false
       ;(window as any).clarity?.('event', 'awb_saved')
-      posthog?.capture('awb_saved', { doc_type: payload.docType ?? 'awb', doc_id: doc.id, is_new: !currentId })
-    } catch {
+      posthog?.capture('awb_saved', { doc_type: payload.docType ?? 'awb', doc_id: doc.id, is_new: !currentId, source })
+    } catch (error) {
+      trackEditorEvent('awb_save_failed', { action_source: source, error: error instanceof Error ? error.name : 'unknown' })
       setSaveMsg(t('editor.saveError'))
     }
     setSaving(false)
@@ -273,6 +355,10 @@ export function EditorPage() {
         countedAt = doc.download_counted_at ?? null
         setCurrentId(doc.id)
         setDownloadCountedAt(countedAt)
+        setHasUnsavedChanges(false)
+        hasUnsavedChangesRef.current = false
+        outputThisSessionRef.current = true
+        saveNudgeShownRef.current = false
         navigate(`/editor?id=${doc.id}`, { replace: true })
         ;(window as any).clarity?.('event', 'awb_saved')
         posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source })
@@ -301,6 +387,7 @@ export function EditorPage() {
     ;(window as any).clarity?.('event', 'awb_downloaded')
     posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan, source })
     supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
+    outputThisSessionRef.current = true
     return true
   }
 
@@ -313,14 +400,16 @@ export function EditorPage() {
 
   async function handleDownloadPdf() {
     if (!pdfUrl || downloading || planLoading) return
+    trackEditorEvent('awb_download_clicked', { action_source: 'download_button', at_limit: atLimit })
     if (!withinQuota()) return
 
     setSaveMsg(null)
     setDownloading(true)
-    await downloadPdfFile()
     try {
+      await downloadPdfFile()
       await countPdfDownload('download')
-    } catch {
+    } catch (error) {
+      trackEditorEvent('awb_download_failed', { action_source: 'download_button', error: error instanceof Error ? error.name : 'unknown' })
       setSaveMsg(t('editor.downloadError'))
       setTimeout(() => setSaveMsg(null), 5000)
     } finally {
@@ -333,9 +422,12 @@ export function EditorPage() {
    * prefix. It only fills fields the user has not written themselves — see
    * `applyAirlineForPrefix`.
    */
-  const applyData = useCallback((next: AWBData) => {
-    setData(prev => applyAirlineForPrefix(next, prev.awbPrefix))
-  }, [])
+  const applyData = useCallback((next: AWBData, source = 'form') => {
+    const withAirline = applyAirlineForPrefix(next, data.awbPrefix)
+    if (sameAWBData(withAirline, data)) return
+    markUserEdit(source)
+    setData(withAirline)
+  }, [data, markUserEdit])
 
   const applyDraft = useCallback((next: AWBData) => {
     setDraft(prev => applyAirlineForPrefix(next, (prev ?? next).awbPrefix))
@@ -344,7 +436,7 @@ export function EditorPage() {
   function openFormDialog() { setDraft(data); setFormDialogOpen(true) }
   function cancelFormDialog() { setDraft(null); setFormDialogOpen(false) }
   function applyFormDialog() {
-    if (draft) applyData(draft)
+    if (draft) applyData(draft, 'form_dialog')
     setDraft(null)
     setFormDialogOpen(false)
   }
@@ -401,15 +493,15 @@ export function EditorPage() {
       {/* Row 2 — Document actions */}
       <div className="action-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.exampleConfirm'))) setData(exampleAWB) }}>{t('editor.example')}</button>
-          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { setData(defaultAWBData); setCurrentId(null); setDownloadCountedAt(null) } }}>{t('editor.clear')}</button>
+          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.exampleConfirm'))) { markUserEdit('example_button'); setData(exampleAWB) } }}>{t('editor.example')}</button>
+          <button className="btn-example" onClick={() => { if (window.confirm(t('editor.clearConfirm'))) { trackEditorEvent('awb_editor_clear_clicked'); setData(defaultAWBData); setCurrentId(null); setDownloadCountedAt(null); setHasUnsavedChanges(false); hasUnsavedChangesRef.current = false } }}>{t('editor.clear')}</button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
           {saveMsg && <span style={{ color: saveMsg.includes('Error') ? '#ffaaaa' : 'rgba(255,255,255,0.8)', fontSize: 12 }}>{saveMsg}</span>}
           <button
             className="btn-save"
-            onClick={handleSave}
+            onClick={() => handleSave('action_bar')}
             disabled={saving || hawbBlocked}
             title={hawbBlocked ? 'Upgrade to Pro to save HAWBs' : undefined}
           >
@@ -439,6 +531,23 @@ export function EditorPage() {
         <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{t('editor.limitBanner')}</span>
           <Link to="/pricing" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none' }}>{t('editor.upgradeNow')}</Link>
+        </div>
+      )}
+
+      {hasUnsavedChanges && (
+        <div className="editor-save-nudge">
+          <div>
+            <strong>{t('editor.saveNudgeTitle')}</strong>
+            <span>{t('editor.saveNudgeText')}</span>
+          </div>
+          <button
+            className="btn-save"
+            type="button"
+            onClick={() => handleSave('save_nudge')}
+            disabled={saving || hawbBlocked}
+          >
+            {saving ? t('editor.saving') : t('editor.saveNudgeCta')}
+          </button>
         </div>
       )}
 
