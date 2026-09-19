@@ -239,6 +239,11 @@ const en = {
     pickTitle: 'Pick a document to try',
     pickSub: 'Every document type, free and without an account. Sign up when you want to download.',
     modeLabel: 'Demo',
+    nextTitle: 'Ready to use this waybill for real?',
+    nextSub: 'Create a free account to remove the DRAFT watermark, download the PDF, and keep your edited documents.',
+    nextBulletDownload: 'Download print-ready PDF',
+    nextBulletSave: 'Save 10 free documents/month',
+    nextCta: 'Create account to download',
   },
 
   feedback: {
