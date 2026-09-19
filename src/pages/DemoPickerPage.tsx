@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { usePostHog } from '@posthog/react'
 import { DOC_TYPES } from '../lib/docTypes'
 import { LangSwitcher } from '../components/LangSwitcher'
 import '../pages/LandingPage.css'
@@ -24,6 +25,11 @@ const BLURBS: Record<string, string> = {
 
 export function DemoPickerPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
+
+  useEffect(() => {
+    posthog?.capture('demo_picker_viewed')
+  }, [posthog])
 
   return (
     <div className="lp" style={{ minHeight: '100vh', background: '#f7f7f8' }}>
@@ -58,7 +64,12 @@ export function DemoPickerPage() {
           {DOC_TYPES.map(type => (
             <Link
               key={type.type}
-              to={`/demo/${type.type}`}
+              to={`/demo/${type.type}?source=demo_picker&intent=try_document&doc_type=${type.type}`}
+              onClick={() => posthog?.capture('demo_doc_selected', {
+                doc_type: type.type,
+                source: 'demo_picker',
+                intent: 'try_document',
+              })}
               style={{
                 display: 'block', background: '#fff', border: '1px solid #e6e6e6', borderRadius: 10,
                 padding: '16px 18px', textDecoration: 'none', transition: 'border-color .15s, transform .15s',

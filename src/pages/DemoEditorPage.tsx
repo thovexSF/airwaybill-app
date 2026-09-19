@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
@@ -37,7 +37,10 @@ export function DemoEditorPage() {
   // Reached as /demo/awb or /demo/hawb from the demo picker; both use this
   // editor because only the AWB has the form-over-PDF overlay.
   const { docType } = useParams<{ docType?: string }>()
+  const [searchParams] = useSearchParams()
   const demoDocType: 'awb' | 'hawb' = docType === 'hawb' ? 'hawb' : 'awb'
+  const entrySource = searchParams.get('source') ?? 'direct'
+  const entryIntent = searchParams.get('intent') ?? undefined
   const initialData: AWBData = { ...exampleAWB, docType: demoDocType, isDraft: true }
   const [data, setDataRaw] = useState<AWBData>(initialData)
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
@@ -67,11 +70,12 @@ export function DemoEditorPage() {
     ;(window as any).clarity?.('event', 'demo_signup_cta_clicked')
     posthog?.capture('demo_signup_cta_clicked', {
       source: 'demo',
+      entry_source: entrySource,
       intent: 'download_awb_pdf',
       doc_type: demoDocType,
       placement,
     })
-  }, [demoDocType, posthog])
+  }, [demoDocType, entrySource, posthog])
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -86,9 +90,11 @@ export function DemoEditorPage() {
   useEffect(() => {
     posthog?.capture('demo_viewed', {
       doc_type: demoDocType,
+      source: entrySource,
+      intent: entryIntent,
       viewport: window.innerWidth >= 900 ? 'wide' : 'narrow',
     })
-  }, [demoDocType, posthog])
+  }, [demoDocType, entryIntent, entrySource, posthog])
 
   useEffect(() => {
     const onResize = () => {
