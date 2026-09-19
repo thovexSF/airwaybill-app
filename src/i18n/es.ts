@@ -239,6 +239,11 @@ const es = {
     pickTitle: 'Elige un documento para probar',
     pickSub: 'Todos los tipos de documento, gratis y sin cuenta. Regístrate cuando quieras descargar.',
     modeLabel: 'Demo',
+    nextTitle: '¿Listo para usar este AWB de verdad?',
+    nextSub: 'Crea una cuenta gratis para quitar el watermark DRAFT, descargar el PDF y guardar tus documentos editados.',
+    nextBulletDownload: 'Descargar PDF listo para imprimir',
+    nextBulletSave: 'Guardar 10 documentos gratis/mes',
+    nextCta: 'Crear cuenta y descargar',
   },
 
   feedback: {

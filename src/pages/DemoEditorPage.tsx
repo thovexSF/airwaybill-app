@@ -61,6 +61,17 @@ export function DemoEditorPage() {
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const signupPath = `/signup?source=demo&intent=download_awb_pdf&doc_type=${demoDocType}&from=/demo/${demoDocType}`
+
+  const captureSignupClick = useCallback((placement: string) => {
+    ;(window as any).clarity?.('event', 'demo_signup_cta_clicked')
+    posthog?.capture('demo_signup_cta_clicked', {
+      source: 'demo',
+      intent: 'download_awb_pdf',
+      doc_type: demoDocType,
+      placement,
+    })
+  }, [demoDocType, posthog])
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -73,8 +84,11 @@ export function DemoEditorPage() {
   }, [updatePageWidth])
 
   useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
+    posthog?.capture('demo_viewed', {
+      doc_type: demoDocType,
+      viewport: window.innerWidth >= 900 ? 'wide' : 'narrow',
+    })
+  }, [demoDocType, posthog])
 
   useEffect(() => {
     const onResize = () => {
@@ -139,7 +153,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupPath}
+          state={{ from: `/demo/${demoDocType}` }}
+          onClick={() => captureSignupClick('top_banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +189,12 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link
+            to={signupPath}
+            state={{ from: `/demo/${demoDocType}` }}
+            className="btn-download"
+            onClick={() => captureSignupClick('action_bar_download')}
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>
@@ -195,6 +219,37 @@ export function DemoEditorPage() {
 
           {pdfBlob ? (
             <div style={{ overflow: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 'min(100%, 760px)',
+                background: '#fff',
+                color: '#222',
+                border: '1px solid #ead1d1',
+                borderRadius: 10,
+                boxShadow: '0 8px 22px rgba(0,0,0,0.18)',
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 14,
+                flexWrap: 'wrap',
+              }}>
+                <div style={{ minWidth: 240, flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#8b0000', marginBottom: 4 }}>{t('demo.nextTitle')}</div>
+                  <div style={{ fontSize: 13, color: '#555', lineHeight: 1.45 }}>{t('demo.nextSub')}</div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8, fontSize: 12, color: '#666' }}>
+                    <span>✓ {t('demo.nextBulletDownload')}</span>
+                    <span>✓ {t('demo.nextBulletSave')}</span>
+                  </div>
+                </div>
+                <Link
+                  to={signupPath}
+                  state={{ from: `/demo/${demoDocType}` }}
+                  className="btn-download"
+                  onClick={() => captureSignupClick('preview_next_step')}
+                >
+                  {t('demo.nextCta')}
+                </Link>
+              </div>
               <div style={{ opacity: generating ? 0.65 : 1, transition: 'opacity 180ms' }}>
                 <Document file={pdfBlob} onLoadSuccess={({ numPages: n }) => setNumPages(n)} loading={null}>
                   {Array.from({ length: numPages }, (_, i) => (

@@ -49,7 +49,7 @@ const STEPS = [
 export function LandingPage() {
   const { t } = useTranslation()
   const { user, orgName, logout } = useAuth()
-  const tryPath = user ? '/my-awbs' : '/demo'
+  const tryPath = user ? '/my-awbs' : '/demo/awb?source=landing&intent=create_first_awb'
 
   return (
     <div className="lp">
