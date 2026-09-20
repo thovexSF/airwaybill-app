@@ -88,12 +88,17 @@ export function EditorPage() {
   const dragRef = useRef(false)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
   const dataRef = useRef<AWBData>(initialData)
+  const initialDocIdRef = useRef<string | null>(docId)
   const currentIdRef = useRef<string | null>(docId)
   const overlayModeRef = useRef(overlayMode)
   const planRef = useRef(plan)
   const firstEditTrackedRef = useRef(false)
   const hasUserEditRef = useRef(false)
+  const savedThisSessionRef = useRef(false)
+  const downloadedThisSessionRef = useRef(false)
   const outputCreatedRef = useRef(Boolean(docId))
+  const leftWithoutOutputTrackedRef = useRef(false)
+  const sessionSummaryTrackedRef = useRef(false)
   const openedAtRef = useRef(Date.now())
   const draftKey = `awb-draft-${user?.id || 'anon'}`
 
@@ -170,20 +175,41 @@ export function EditorPage() {
   }, [plan])
 
   useEffect(() => {
-    outputCreatedRef.current = Boolean(docId)
+    outputCreatedRef.current = Boolean(initialDocIdRef.current)
     firstEditTrackedRef.current = false
     hasUserEditRef.current = false
+    savedThisSessionRef.current = false
+    downloadedThisSessionRef.current = false
+    leftWithoutOutputTrackedRef.current = false
+    sessionSummaryTrackedRef.current = false
     openedAtRef.current = Date.now()
 
     captureEditorEvent('awb_editor_opened', {
-      is_new_document: !docId,
+      is_new_document: !initialDocIdRef.current,
       viewport_width: window.innerWidth,
       overlay_mode: overlayModeRef.current,
     })
 
-    const trackExitWithoutOutput = () => {
-      if (outputCreatedRef.current || !hasUserEditRef.current) return
-      outputCreatedRef.current = true
+    const trackEditorSessionSummary = () => {
+      if (sessionSummaryTrackedRef.current) return
+      sessionSummaryTrackedRef.current = true
+      captureEditorEvent('awb_editor_session_summary', {
+        is_new_document: !initialDocIdRef.current,
+        edited: hasUserEditRef.current,
+        saved: savedThisSessionRef.current,
+        downloaded: downloadedThisSessionRef.current,
+        output_created: outputCreatedRef.current,
+        time_on_page_seconds: Math.round((Date.now() - openedAtRef.current) / 1000),
+        viewport_width: window.innerWidth,
+        overlay_mode: overlayModeRef.current,
+      })
+    }
+
+    const trackEditorExit = () => {
+      const outputCreated = outputCreatedRef.current
+      trackEditorSessionSummary()
+      if (outputCreated || !hasUserEditRef.current || leftWithoutOutputTrackedRef.current) return
+      leftWithoutOutputTrackedRef.current = true
       captureEditorEvent('awb_editor_left_without_output', {
         is_new_document: !currentIdRef.current,
         edited_before_exit: true,
@@ -193,12 +219,12 @@ export function EditorPage() {
       })
     }
 
-    window.addEventListener('pagehide', trackExitWithoutOutput)
+    window.addEventListener('pagehide', trackEditorExit)
     return () => {
-      trackExitWithoutOutput()
-      window.removeEventListener('pagehide', trackExitWithoutOutput)
+      trackEditorExit()
+      window.removeEventListener('pagehide', trackEditorExit)
     }
-  }, [captureEditorEvent, docId])
+  }, [captureEditorEvent])
 
   useEffect(() => {
     const el = pageWrapRef.current
@@ -300,6 +326,7 @@ export function EditorPage() {
       const doc = await saveAWB(payload, currentId ?? undefined, orgId ?? undefined)
       setCurrentId(doc.id)
       setDownloadCountedAt(doc.download_counted_at ?? null)
+      savedThisSessionRef.current = true
       outputCreatedRef.current = true
       navigate(`/editor?id=${doc.id}`, { replace: true })
       setSaveMsg(t('editor.saved'))
@@ -356,6 +383,7 @@ export function EditorPage() {
         countedAt = doc.download_counted_at ?? null
         setCurrentId(doc.id)
         setDownloadCountedAt(countedAt)
+        savedThisSessionRef.current = true
         outputCreatedRef.current = true
         navigate(`/editor?id=${doc.id}`, { replace: true })
         ;(window as any).clarity?.('event', 'awb_saved')
@@ -384,6 +412,7 @@ export function EditorPage() {
 
     ;(window as any).clarity?.('event', 'awb_downloaded')
     posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan, source })
+    downloadedThisSessionRef.current = true
     outputCreatedRef.current = true
     supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
     return true
