@@ -56,6 +56,8 @@ export function EditorPage() {
   const [searchParams] = useSearchParams()
   const docId = searchParams.get('id')
   const docTypeParam = searchParams.get('docType') as 'awb' | 'hawb' | null
+  const entrySource = searchParams.get('source') || 'direct'
+  const entryIntent = searchParams.get('intent') || undefined
 
   const initialData: AWBData = docTypeParam === 'hawb'
     ? { ...defaultAWBData, docType: 'hawb', isDraft: true, copyNumber: 1, copyLabel: 'Original 1 (for Consignee)' }
@@ -85,7 +87,38 @@ export function EditorPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const dataRef = useRef<AWBData>(initialData)
+  const currentIdRef = useRef<string | null>(docId)
+  const overlayModeRef = useRef(overlayMode)
+  const planRef = useRef(plan)
+  const firstEditTrackedRef = useRef(false)
+  const hasUserEditRef = useRef(false)
+  const outputCreatedRef = useRef(Boolean(docId))
+  const openedAtRef = useRef(Date.now())
   const draftKey = `awb-draft-${user?.id || 'anon'}`
+
+  const captureEditorEvent = useCallback((event: string, properties?: Record<string, unknown>) => {
+    posthog?.capture(event, {
+      doc_type: dataRef.current.docType ?? 'awb',
+      has_doc_id: Boolean(currentIdRef.current),
+      source: entrySource,
+      intent: entryIntent,
+      plan: planRef.current,
+      ...properties,
+    })
+  }, [entryIntent, entrySource, posthog])
+
+  const trackFirstUserEdit = useCallback((entryMode: 'form' | 'overlay' | 'dialog') => {
+    hasUserEditRef.current = true
+    if (firstEditTrackedRef.current) return
+    firstEditTrackedRef.current = true
+    captureEditorEvent('awb_editor_first_edit', {
+      entry_mode: entryMode,
+      viewport_width: window.innerWidth,
+      overlay_mode: overlayModeRef.current,
+      seconds_to_first_edit: Math.round((Date.now() - openedAtRef.current) / 1000),
+    })
+  }, [captureEditorEvent])
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -119,6 +152,53 @@ export function EditorPage() {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  useEffect(() => {
+    dataRef.current = data
+  }, [data])
+
+  useEffect(() => {
+    currentIdRef.current = currentId
+  }, [currentId])
+
+  useEffect(() => {
+    overlayModeRef.current = overlayMode
+  }, [overlayMode])
+
+  useEffect(() => {
+    planRef.current = plan
+  }, [plan])
+
+  useEffect(() => {
+    outputCreatedRef.current = Boolean(docId)
+    firstEditTrackedRef.current = false
+    hasUserEditRef.current = false
+    openedAtRef.current = Date.now()
+
+    captureEditorEvent('awb_editor_opened', {
+      is_new_document: !docId,
+      viewport_width: window.innerWidth,
+      overlay_mode: overlayModeRef.current,
+    })
+
+    const trackExitWithoutOutput = () => {
+      if (outputCreatedRef.current || !hasUserEditRef.current) return
+      outputCreatedRef.current = true
+      captureEditorEvent('awb_editor_left_without_output', {
+        is_new_document: !currentIdRef.current,
+        edited_before_exit: true,
+        time_on_page_seconds: Math.round((Date.now() - openedAtRef.current) / 1000),
+        viewport_width: window.innerWidth,
+        overlay_mode: overlayModeRef.current,
+      })
+    }
+
+    window.addEventListener('pagehide', trackExitWithoutOutput)
+    return () => {
+      trackExitWithoutOutput()
+      window.removeEventListener('pagehide', trackExitWithoutOutput)
+    }
+  }, [captureEditorEvent, docId])
 
   useEffect(() => {
     const el = pageWrapRef.current
@@ -205,6 +285,7 @@ export function EditorPage() {
   async function handleSave() {
     setSaving(true)
     setSaveMsg(null)
+    captureEditorEvent('awb_save_clicked', { is_new: !currentIdRef.current })
     try {
       let payload = data
       if (
@@ -219,6 +300,7 @@ export function EditorPage() {
       const doc = await saveAWB(payload, currentId ?? undefined, orgId ?? undefined)
       setCurrentId(doc.id)
       setDownloadCountedAt(doc.download_counted_at ?? null)
+      outputCreatedRef.current = true
       navigate(`/editor?id=${doc.id}`, { replace: true })
       setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
@@ -226,6 +308,7 @@ export function EditorPage() {
       posthog?.capture('awb_saved', { doc_type: payload.docType ?? 'awb', doc_id: doc.id, is_new: !currentId })
     } catch {
       setSaveMsg(t('editor.saveError'))
+      captureEditorEvent('awb_save_failed', { is_new: !currentIdRef.current })
     }
     setSaving(false)
   }
@@ -273,6 +356,7 @@ export function EditorPage() {
         countedAt = doc.download_counted_at ?? null
         setCurrentId(doc.id)
         setDownloadCountedAt(countedAt)
+        outputCreatedRef.current = true
         navigate(`/editor?id=${doc.id}`, { replace: true })
         ;(window as any).clarity?.('event', 'awb_saved')
         posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source })
@@ -300,6 +384,7 @@ export function EditorPage() {
 
     ;(window as any).clarity?.('event', 'awb_downloaded')
     posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan, source })
+    outputCreatedRef.current = true
     supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
     return true
   }
@@ -317,12 +402,14 @@ export function EditorPage() {
 
     setSaveMsg(null)
     setDownloading(true)
-    await downloadPdfFile()
+    captureEditorEvent('awb_download_clicked', { is_saved: Boolean(currentIdRef.current) })
     try {
+      await downloadPdfFile()
       await countPdfDownload('download')
     } catch {
       setSaveMsg(t('editor.downloadError'))
       setTimeout(() => setSaveMsg(null), 5000)
+      captureEditorEvent('awb_download_failed', { is_saved: Boolean(currentIdRef.current) })
     } finally {
       setDownloading(false)
     }
@@ -334,12 +421,14 @@ export function EditorPage() {
    * `applyAirlineForPrefix`.
    */
   const applyData = useCallback((next: AWBData) => {
+    trackFirstUserEdit(overlayMode ? 'overlay' : 'form')
     setData(prev => applyAirlineForPrefix(next, prev.awbPrefix))
-  }, [])
+  }, [overlayMode, trackFirstUserEdit])
 
   const applyDraft = useCallback((next: AWBData) => {
+    trackFirstUserEdit('dialog')
     setDraft(prev => applyAirlineForPrefix(next, (prev ?? next).awbPrefix))
-  }, [])
+  }, [trackFirstUserEdit])
 
   function openFormDialog() { setDraft(data); setFormDialogOpen(true) }
   function cancelFormDialog() { setDraft(null); setFormDialogOpen(false) }
