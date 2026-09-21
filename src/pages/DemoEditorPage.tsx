@@ -61,6 +61,16 @@ export function DemoEditorPage() {
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const signupPath = `/signup?source=demo&intent=download_awb_pdf&doc_type=${demoDocType}&from=${encodeURIComponent(`/demo/${demoDocType}`)}`
+
+  function trackSignupClick(placement: 'banner' | 'download_gate') {
+    ;(window as any).clarity?.('event', 'demo_signup_cta_clicked')
+    posthog?.capture('demo_signup_cta_clicked', {
+      doc_type: demoDocType,
+      placement,
+      intent: 'download_awb_pdf',
+    })
+  }
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -73,8 +83,8 @@ export function DemoEditorPage() {
   }, [updatePageWidth])
 
   useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
+    posthog?.capture('demo_viewed', { doc_type: demoDocType })
+  }, [demoDocType, posthog])
 
   useEffect(() => {
     const onResize = () => {
@@ -139,7 +149,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupPath}
+          state={{ from: `/demo/${demoDocType}`, source: 'demo', intent: 'download_awb_pdf', docType: demoDocType }}
+          onClick={() => trackSignupClick('banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +185,12 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link
+            to={signupPath}
+            state={{ from: `/demo/${demoDocType}`, source: 'demo', intent: 'download_awb_pdf', docType: demoDocType }}
+            onClick={() => trackSignupClick('download_gate')}
+            className="btn-download"
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>

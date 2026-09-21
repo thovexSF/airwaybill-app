@@ -10,7 +10,7 @@ type AuthContextValue = {
   orgName: string | null
   signup: (input: { companyName: string; email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
   login: (input: { email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
-  loginWithProvider: (provider: 'google' | 'github') => Promise<void>
+  loginWithProvider: (provider: 'google' | 'github', options?: { redirectTo?: string }) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -90,11 +90,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { ok: true }
     },
 
-    loginWithProvider: async (provider) => {
+    loginWithProvider: async (provider, options) => {
+      const redirectPath = options?.redirectTo?.startsWith('/') && !options.redirectTo.startsWith('//')
+        ? options.redirectTo
+        : '/my-awbs'
       sessionStorage.setItem('posthog_pending_login', provider)
       await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: window.location.origin + '/my-awbs' },
+        options: { redirectTo: window.location.origin + redirectPath },
       })
     },
 
