@@ -47,6 +47,16 @@ function initialZoom(): number {
 
 const PDF_PAGE_SCALE = 1.35
 
+type EditorEventProperties = Record<string, string | number | boolean | null | undefined>
+
+function hasText(value: string | null | undefined): boolean {
+  return Boolean(String(value ?? '').trim())
+}
+
+function secondsSince(startedAt: number): number {
+  return Math.round((Date.now() - startedAt) / 1000)
+}
+
 export function EditorPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
@@ -86,6 +96,86 @@ export function EditorPage() {
   const dragRef = useRef(false)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
+  const editorSessionRef = useRef({
+    startedAt: Date.now(),
+    edited: false,
+    saved: false,
+    downloaded: false,
+    exitReported: false,
+  })
+  const editorContextRef = useRef<EditorEventProperties>({})
+
+  useEffect(() => {
+    const activeRateItems = data.rateItems.filter(item =>
+      hasText(item.pieces) ||
+      hasText(item.grossWeight) ||
+      hasText(item.chargeableWeight) ||
+      hasText(item.rateCharge) ||
+      hasText(item.natureAndQuantity)
+    ).length
+
+    editorContextRef.current = {
+      doc_type: data.docType ?? 'awb',
+      has_doc_id: Boolean(currentId),
+      plan,
+      overlay_mode: overlayMode,
+      form_dialog_open: formDialogOpen,
+      viewport_width: typeof window === 'undefined' ? undefined : window.innerWidth,
+      viewport_height: typeof window === 'undefined' ? undefined : window.innerHeight,
+      has_awb_prefix: hasText(data.awbPrefix),
+      has_awb_serial: hasText(data.awbSerial),
+      has_hawb_number: hasText(data.hawbNumber),
+      has_shipper: hasText(data.shipperNameAndAddress),
+      has_consignee: hasText(data.consigneeNameAndAddress),
+      has_departure: hasText(data.airportOfDeparture),
+      has_destination: hasText(data.airportOfDestination),
+      has_rate_lines: activeRateItems > 0,
+      active_rate_line_count: activeRateItems,
+    }
+  }, [currentId, data, formDialogOpen, overlayMode, plan])
+
+  const captureEditorEvent = useCallback((event: string, properties: EditorEventProperties = {}) => {
+    posthog?.capture(event, {
+      ...editorContextRef.current,
+      session_age_seconds: secondsSince(editorSessionRef.current.startedAt),
+      edited: editorSessionRef.current.edited,
+      ...properties,
+    })
+  }, [posthog])
+
+  const markEditorEdited = useCallback((surface: string) => {
+    if (editorSessionRef.current.edited) return
+    editorSessionRef.current.edited = true
+    captureEditorEvent('awb_editor_first_edit', { surface })
+  }, [captureEditorEvent])
+
+  useEffect(() => {
+    captureEditorEvent('awb_editor_opened', {
+      has_query_doc_id: Boolean(docId),
+      entry_source: searchParams.get('source'),
+      entry_intent: searchParams.get('intent'),
+    })
+  // Capture only the initial editor entry; later field changes update the context ref.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    const reportExitWithoutOutput = () => {
+      if (editorSessionRef.current.exitReported) return
+      editorSessionRef.current.exitReported = true
+      if (editorSessionRef.current.saved || editorSessionRef.current.downloaded) return
+
+      captureEditorEvent('awb_editor_left_without_output', {
+        duration_seconds: secondsSince(editorSessionRef.current.startedAt),
+      })
+    }
+
+    window.addEventListener('pagehide', reportExitWithoutOutput)
+    return () => {
+      window.removeEventListener('pagehide', reportExitWithoutOutput)
+      reportExitWithoutOutput()
+    }
+  }, [captureEditorEvent])
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -203,6 +293,7 @@ export function EditorPage() {
   }
 
   async function handleSave() {
+    captureEditorEvent('awb_save_clicked', { is_new: !currentId })
     setSaving(true)
     setSaveMsg(null)
     try {
@@ -223,8 +314,11 @@ export function EditorPage() {
       setSaveMsg(t('editor.saved'))
       setTimeout(() => setSaveMsg(null), 2500)
       ;(window as any).clarity?.('event', 'awb_saved')
+      editorSessionRef.current.saved = true
       posthog?.capture('awb_saved', { doc_type: payload.docType ?? 'awb', doc_id: doc.id, is_new: !currentId })
-    } catch {
+    } catch (error) {
+      console.error('AWB save failed:', error)
+      captureEditorEvent('awb_save_failed', { is_new: !currentId })
       setSaveMsg(t('editor.saveError'))
     }
     setSaving(false)
@@ -257,6 +351,7 @@ export function EditorPage() {
     setSaveMsg(t('editor.limitReached'))
     setTimeout(() => setSaveMsg(null), 5000)
     ;(window as any).clarity?.('event', 'free_pdf_limit_reached')
+    captureEditorEvent('awb_download_blocked', { reason: 'free_limit' })
     posthog?.capture('free_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
     return false
   }
@@ -275,9 +370,11 @@ export function EditorPage() {
         setDownloadCountedAt(countedAt)
         navigate(`/editor?id=${doc.id}`, { replace: true })
         ;(window as any).clarity?.('event', 'awb_saved')
+        editorSessionRef.current.saved = true
         posthog?.capture('awb_saved', { doc_type: data.docType ?? 'awb', doc_id: doc.id, is_new: true, source })
       } catch (error) {
         console.error('PDF save before download failed:', error)
+        captureEditorEvent('awb_save_failed', { is_new: true, source })
       }
     }
 
@@ -299,6 +396,7 @@ export function EditorPage() {
     }
 
     ;(window as any).clarity?.('event', 'awb_downloaded')
+    editorSessionRef.current.downloaded = true
     posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan, source })
     supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
     return true
@@ -315,12 +413,15 @@ export function EditorPage() {
     if (!pdfUrl || downloading || planLoading) return
     if (!withinQuota()) return
 
+    captureEditorEvent('awb_download_clicked', { source: 'download' })
     setSaveMsg(null)
     setDownloading(true)
-    await downloadPdfFile()
     try {
+      await downloadPdfFile()
       await countPdfDownload('download')
-    } catch {
+    } catch (error) {
+      console.error('AWB download failed:', error)
+      captureEditorEvent('awb_download_failed', { source: 'download' })
       setSaveMsg(t('editor.downloadError'))
       setTimeout(() => setSaveMsg(null), 5000)
     } finally {
@@ -334,12 +435,14 @@ export function EditorPage() {
    * `applyAirlineForPrefix`.
    */
   const applyData = useCallback((next: AWBData) => {
+    markEditorEdited('editor')
     setData(prev => applyAirlineForPrefix(next, prev.awbPrefix))
-  }, [])
+  }, [markEditorEdited])
 
   const applyDraft = useCallback((next: AWBData) => {
+    markEditorEdited('mobile_dialog')
     setDraft(prev => applyAirlineForPrefix(next, (prev ?? next).awbPrefix))
-  }, [])
+  }, [markEditorEdited])
 
   function openFormDialog() { setDraft(data); setFormDialogOpen(true) }
   function cancelFormDialog() { setDraft(null); setFormDialogOpen(false) }
