@@ -8,6 +8,31 @@ import { PLANS, PRICE_IDS } from '../data/plans'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { supabase } from '../lib/supabase'
 import { usePostHog } from '@posthog/react'
+import type { PaddleEventData } from '@paddle/paddle-js'
+
+const CHECKOUT_ANALYTICS_EVENTS: Record<string, string> = {
+  'checkout.loaded': 'checkout_opened',
+  'checkout.closed': 'checkout_closed',
+  'checkout.completed': 'checkout_completed',
+  'checkout.error': 'checkout_error',
+  'checkout.failed': 'checkout_failed',
+  'checkout.payment.failed': 'checkout_payment_failed',
+  'checkout.payment.error': 'checkout_payment_error',
+}
+
+function checkoutEventProperties(event: PaddleEventData, planId: string, fromPlan: string) {
+  return {
+    plan_id: planId,
+    from_plan: fromPlan,
+    paddle_event: event.name,
+    checkout_status: event.data?.status,
+    currency_code: event.data?.currency_code,
+    display_mode: event.data?.settings?.display_mode,
+    payment_method_type: event.data?.payment?.method_details?.type,
+    error_type: event.type,
+    error_code: event.code,
+  }
+}
 
 export function PricingPage() {
   const { t } = useTranslation()
@@ -35,11 +60,27 @@ export function PricingPage() {
     if (!user || !orgId) { navigate('/signup'); return }
     setLoading(planId)
     setError(null)
+    const analyticsBase = { plan_id: planId, from_plan: currentPlan }
     try {
-      ;(window as any).clarity?.('event', 'checkout_opened')
-      posthog?.capture('checkout_opened', { plan_id: planId, from_plan: currentPlan })
-      await openCheckout({ priceId, email: user.email!, orgId })
+      ;(window as any).clarity?.('event', 'checkout_started')
+      posthog?.capture('checkout_started', analyticsBase)
+      await openCheckout({
+        priceId,
+        email: user.email!,
+        orgId,
+        onEvent: (event) => {
+          const eventName = event.name ? CHECKOUT_ANALYTICS_EVENTS[event.name] : null
+          if (!eventName) return
+          ;(window as any).clarity?.('event', eventName)
+          posthog?.capture(eventName, checkoutEventProperties(event, planId, currentPlan))
+        },
+      })
     } catch (e: any) {
+      ;(window as any).clarity?.('event', 'checkout_failed_to_open')
+      posthog?.capture('checkout_failed_to_open', {
+        ...analyticsBase,
+        error_name: e?.name ?? 'unknown',
+      })
       setError(e.message)
     }
     setLoading(null)
