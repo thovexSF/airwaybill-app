@@ -44,6 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           sessionStorage.removeItem('posthog_pending_login')
           posthog?.capture('user_logged_in', { method: pendingProvider })
         }
+        supabase.rpc('record_login').then(({ error }) => {
+          if (error) console.error('record_login failed:', error)
+        })
       }
     })
 

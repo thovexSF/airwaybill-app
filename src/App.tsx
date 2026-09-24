@@ -28,6 +28,7 @@ import { DemoEditorPage } from './pages/DemoEditorPage'
 import { DemoPickerPage } from './pages/DemoPickerPage'
 import { DemoDocPage } from './pages/DemoDocPage'
 import { PartnerEntryPage } from './pages/PartnerEntryPage'
+import { AdminPage } from './pages/AdminPage'
 import { FeedbackWidget } from './components/FeedbackWidget'
 import { isPartnerEmbed } from './lib/partnerTheme'
 
@@ -92,6 +93,7 @@ export default function App() {
           )}
         />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

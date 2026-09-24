@@ -14,6 +14,7 @@
  *   GET    /v1/documents/:id/pdf
  *   POST   /v1/fwb/preview        { data } → FWB/17 text
  *   POST   /v1/documents/:id/fwb  → generate + persist eAwb* on document
+ *   GET    /v1/admin/overview     → backoffice stats (Authorization: Supabase user JWT, ADMIN_EMAILS-gated)
  */
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -21,6 +22,7 @@ import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
 import { adminClient, authenticateApiKey, effectivePlan } from './partnerAuth'
+import { requireAdmin } from './adminAuth'
 import { renderDocumentPdf } from './renderPdf'
 import { applyEAwbResult, buildFwbFromAwb } from '../src/lib/awbToFwb'
 import type { AWBData } from '../src/types/awb'
@@ -48,6 +50,157 @@ app.use((_req, res, next) => {
 
 app.get('/v1/health', (_req, res) => {
   res.json({ ok: true, service: 'airwaybill-partner-api' })
+})
+
+const PLAN_DOC_LIMIT: Record<string, number | null> = {
+  free: 10, starter: null, pro: null, enterprise: null,
+}
+
+function docTypeOf(doc: { data: unknown }): string {
+  return (doc.data as any)?.docType || 'awb'
+}
+
+/**
+ * Backoffice read model: who's logging in, who's close to (or blowing past)
+ * the free-tier limit, and whether a high PDF count is real distinct usage
+ * or the same handful of documents re-downloaded/re-printed — pdf_events
+ * logs every authorize() call, not just the ones that charge a quota unit.
+ */
+app.get('/v1/admin/overview', async (req, res) => {
+  const auth = await requireAdmin(req.header('authorization') ?? undefined)
+  if ('error' in auth) {
+    const body = auth.error === 503 ? { error: 'admin_not_configured', message: 'ADMIN_EMAILS is not set on the server' }
+      : auth.error === 401 ? { error: 'unauthorized' }
+      : { error: 'forbidden' }
+    return res.status(auth.error).json(body)
+  }
+  const { supabase } = auth
+
+  try {
+    const month = new Date().toISOString().slice(0, 7)
+
+    const [orgsRes, membersRes, loginsRes, usageRes, docsRes, eventsRes] = await Promise.all([
+      supabase.from('organizations').select('id, name, plan, plan_expires_at, created_at'),
+      supabase.from('organization_members').select('organization_id, user_id, role, joined_at'),
+      supabase.from('user_logins').select('user_id, login_count, first_login_at, last_login_at'),
+      supabase.from('awb_usage').select('organization_id, count').eq('month', month),
+      supabase
+        .from('awb_documents')
+        .select('id, user_id, organization_id, data, status, download_counted_at, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5000),
+      supabase
+        .from('pdf_events')
+        .select('id, organization_id, user_id, awb_document_id, result, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5000),
+    ])
+
+    for (const r of [orgsRes, membersRes, loginsRes, usageRes, docsRes, eventsRes]) {
+      if (r.error) return res.status(500).json({ error: r.error.message })
+    }
+
+    // auth.users isn't queryable via postgrest; page through the admin API.
+    const authUsers: { id: string; email?: string; created_at: string; last_sign_in_at?: string | null }[] = []
+    for (let page = 1; page <= 20; page++) {
+      const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 })
+      if (error) return res.status(500).json({ error: error.message })
+      authUsers.push(...data.users)
+      if (data.users.length < 200) break
+    }
+
+    const orgs = orgsRes.data || []
+    const members = membersRes.data || []
+    const logins = loginsRes.data || []
+    const usage = usageRes.data || []
+    const docs = docsRes.data || []
+    const events = eventsRes.data || []
+
+    const orgById = new Map(orgs.map((o) => [o.id, o]))
+    const membershipByUser = new Map(members.map((m) => [m.user_id, m]))
+    const loginByUser = new Map(logins.map((l) => [l.user_id, l]))
+    const usageByOrg = new Map(usage.map((u) => [u.organization_id, u.count]))
+    const docById = new Map(docs.map((d) => [d.id, d]))
+    const emailByUser = new Map(authUsers.map((u) => [u.id, u.email || '(sin email)']))
+
+    const users = authUsers
+      .map((u) => {
+        const membership = membershipByUser.get(u.id)
+        const org = membership ? orgById.get(membership.organization_id) : undefined
+        const login = loginByUser.get(u.id)
+        return {
+          id: u.id,
+          email: u.email || '(sin email)',
+          createdAt: u.created_at,
+          lastSignInAt: u.last_sign_in_at || null,
+          loginCount: login?.login_count ?? 0,
+          orgId: org?.id ?? null,
+          orgName: org?.name ?? null,
+          orgPlan: org?.plan ?? null,
+          role: membership?.role ?? null,
+        }
+      })
+      .sort((a, b) => b.loginCount - a.loginCount)
+
+    const organizations = orgs
+      .map((org) => {
+        const orgDocs = docs.filter((d) => d.organization_id === org.id)
+        const downloaded = orgDocs.filter((d) => d.download_counted_at)
+        const docTypeBreakdown: Record<string, number> = {}
+        for (const d of downloaded) {
+          const t = docTypeOf(d)
+          docTypeBreakdown[t] = (docTypeBreakdown[t] || 0) + 1
+        }
+        return {
+          id: org.id,
+          name: org.name,
+          plan: org.plan,
+          planExpiresAt: org.plan_expires_at,
+          createdAt: org.created_at,
+          membersCount: members.filter((m) => m.organization_id === org.id).length,
+          docsThisMonth: usageByOrg.get(org.id) ?? 0,
+          docLimit: PLAN_DOC_LIMIT[org.plan] ?? null,
+          totalDocuments: orgDocs.length,
+          totalDownloadedDocuments: downloaded.length,
+          docTypeBreakdown,
+        }
+      })
+      .sort((a, b) => b.docsThisMonth - a.docsThisMonth)
+
+    // Same document, more than one authorize() call: re-downloads/re-prints,
+    // not new usage — this is what answers "fueron del mismo documento?".
+    const eventsByDoc = new Map<string, typeof events>()
+    for (const ev of events) {
+      if (!ev.awb_document_id) continue
+      const list = eventsByDoc.get(ev.awb_document_id) || []
+      list.push(ev)
+      eventsByDoc.set(ev.awb_document_id, list)
+    }
+
+    const repeats = Array.from(eventsByDoc.entries())
+      .filter(([, evs]) => evs.length > 1)
+      .map(([documentId, evs]) => {
+        const doc = docById.get(documentId)
+        const org = doc?.organization_id ? orgById.get(doc.organization_id) : undefined
+        const sorted = [...evs].sort((a, b) => a.created_at.localeCompare(b.created_at))
+        return {
+          documentId,
+          docType: doc ? docTypeOf(doc) : 'unknown',
+          orgId: org?.id ?? null,
+          orgName: org?.name ?? null,
+          userEmail: doc?.user_id ? emailByUser.get(doc.user_id) ?? null : null,
+          eventCount: evs.length,
+          firstEventAt: sorted[0]?.created_at ?? null,
+          lastEventAt: sorted[sorted.length - 1]?.created_at ?? null,
+        }
+      })
+      .sort((a, b) => b.eventCount - a.eventCount)
+      .slice(0, 100)
+
+    res.json({ generatedAt: new Date().toISOString(), month, users, organizations, repeats })
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || 'admin_overview_failed' })
+  }
 })
 
 /**
