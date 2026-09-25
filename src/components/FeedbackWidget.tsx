@@ -2,15 +2,22 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
-import { submitFeedback } from '../lib/feedbackService'
+import { MIN_FEEDBACK_CHARS, submitFeedback } from '../lib/feedbackService'
 import { usePostHog } from '@posthog/react'
 
 const ENABLED = import.meta.env.VITE_FEEDBACK_ENABLED !== 'false'
 
 type Step = 'form' | 'sending' | 'done' | 'error'
 
+function getMessageLengthBucket(length: number) {
+  if (length < MIN_FEEDBACK_CHARS) return 'too_short'
+  if (length < 80) return 'short'
+  if (length < 250) return 'medium'
+  return 'long'
+}
+
 export function FeedbackWidget() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const posthog = usePostHog()
   const { user } = useAuth()
   const location = useLocation()
@@ -36,6 +43,9 @@ export function FeedbackWidget() {
 
   if (!ENABLED) return null
 
+  const trimmedTextLength = text.trim().length
+  const canSubmit = trimmedTextLength >= MIN_FEEDBACK_CHARS && step !== 'sending'
+
   function resetAndClose() {
     setOpen(false)
     setStep('form')
@@ -46,7 +56,7 @@ export function FeedbackWidget() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const trimmed = text.trim()
-    if (trimmed.length < 3) {
+    if (trimmed.length < MIN_FEEDBACK_CHARS) {
       setErrorKey('too_short')
       return
     }
@@ -58,11 +68,21 @@ export function FeedbackWidget() {
       text: trimmed,
       page: location.pathname + location.search,
       user_email: email.trim() || user?.email || undefined,
-      context: user?.id ? { user_id: user.id } : undefined,
+      context: {
+        ...(user?.id ? { user_id: user.id } : {}),
+        authenticated: Boolean(user?.id),
+        locale: i18n.language,
+        message_length_bucket: getMessageLengthBucket(trimmed.length),
+      },
     })
 
     if (result.ok) {
-      posthog?.capture('feedback_submitted', { page: location.pathname })
+      posthog?.capture('feedback_submitted', {
+        page: location.pathname,
+        authenticated: Boolean(user?.id),
+        locale: i18n.language,
+        message_length_bucket: getMessageLengthBucket(trimmed.length),
+      })
       setStep('done')
       setText('')
       window.setTimeout(resetAndClose, 1400)
@@ -182,7 +202,7 @@ export function FeedbackWidget() {
                     onChange={(e) => setText(e.target.value)}
                     placeholder={t('feedback.placeholder')}
                     required
-                    minLength={3}
+                    minLength={MIN_FEEDBACK_CHARS}
                     maxLength={2000}
                     disabled={step === 'sending'}
                     rows={5}
@@ -198,6 +218,9 @@ export function FeedbackWidget() {
                       marginBottom: 10,
                     }}
                   />
+                  <p style={{ margin: '-4px 0 10px', fontSize: 11, color: '#777', lineHeight: 1.4 }}>
+                    {t('feedback.minimumHint', { count: MIN_FEEDBACK_CHARS })}
+                  </p>
 
                   <input
                     type="email"
@@ -247,7 +270,7 @@ export function FeedbackWidget() {
                     </button>
                     <button
                       type="submit"
-                      disabled={step === 'sending'}
+                      disabled={!canSubmit}
                       style={{
                         background: '#8b0000',
                         color: '#fff',
@@ -256,8 +279,8 @@ export function FeedbackWidget() {
                         padding: '9px 24px',
                         fontWeight: 700,
                         fontSize: 13,
-                        cursor: step === 'sending' ? 'wait' : 'pointer',
-                        opacity: step === 'sending' ? 0.75 : 1,
+                        cursor: step === 'sending' ? 'wait' : canSubmit ? 'pointer' : 'not-allowed',
+                        opacity: canSubmit ? 1 : 0.6,
                       }}
                     >
                       {step === 'sending' ? t('feedback.sending') : t('feedback.submit')}
