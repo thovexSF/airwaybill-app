@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { DOC_TYPES } from '../lib/docTypes'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { buildSignupUrl } from '../lib/signupAttribution'
 import '../pages/LandingPage.css'
 
 /** Short pitch per document, shown on the demo picker cards. */
@@ -24,6 +25,7 @@ const BLURBS: Record<string, string> = {
 
 export function DemoPickerPage() {
   const { t } = useTranslation()
+  const signupUrl = buildSignupUrl({ source: 'demo_picker', intent: 'create_account' })
 
   return (
     <div className="lp" style={{ minHeight: '100vh', background: '#f7f7f8' }}>
@@ -35,7 +37,7 @@ export function DemoPickerPage() {
           </Link>
           <div className="lp-nav-actions">
             <Link to="/login" className="lp-btn-login">{t('landing.nav.signIn')}</Link>
-            <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+            <Link to={signupUrl} className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
             <LangSwitcher variant="light" />
           </div>
         </div>

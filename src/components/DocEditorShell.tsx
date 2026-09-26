@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -10,6 +10,8 @@ import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
 import { useDemoMode } from './DemoMode'
 import { useTranslation } from 'react-i18next'
+import { usePostHog } from '@posthog/react'
+import { buildSignupUrl, demoDocTypeFromPath } from '../lib/signupAttribution'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -51,6 +53,8 @@ export function DocEditorShell<T>({
 }) {
   const demo = useDemoMode()
   const { t } = useTranslation()
+  const posthog = usePostHog()
+  const location = useLocation()
   const { user, logout, orgName } = useAuth()
   const { plan, docsUsedThisMonth, docLimit } = usePlan()
   const [downloading, setDownloading] = useState(false)
@@ -64,6 +68,8 @@ export function DocEditorShell<T>({
   const [formWidth, setFormWidth] = useState(460)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
+  const demoDocType = demo ? demoDocTypeFromPath(location.pathname) : undefined
+  const demoSignupUrl = buildSignupUrl({ source: 'demo', intent: 'download_pdf', docType: demoDocType })
 
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
@@ -128,6 +134,16 @@ export function DocEditorShell<T>({
     setGenerating(false)
   }
 
+  function trackDemoSignupClick(placement: string) {
+    ;(window as any).clarity?.('event', `demo_signup_${placement}`)
+    posthog?.capture('demo_signup_cta_clicked', {
+      placement,
+      source: 'demo',
+      intent: 'download_pdf',
+      doc_type: demoDocType,
+    })
+  }
+
   return (
     <div className="app">
       {/* ── Topbar ── */}
@@ -148,7 +164,7 @@ export function DocEditorShell<T>({
                 Demo
               </span>
               <LangSwitcher />
-              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
+              <Link to={demoSignupUrl} onClick={() => trackDemoSignupClick('topbar')} className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
             </>
           ) : (
             <>
@@ -188,7 +204,7 @@ export function DocEditorShell<T>({
           </button>
         )}
         {demo ? (
-          <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>
+          <Link to={demoSignupUrl} onClick={() => trackDemoSignupClick('download_bar')} className="btn-download" style={{ textDecoration: 'none' }}>
             Sign up to download PDF
           </Link>
         ) : pdfUrl && (
@@ -204,7 +220,7 @@ export function DocEditorShell<T>({
           <div className="form-panel">{children}</div>
           <div className="mobile-pdf-strip">
             {demo
-              ? <Link to="/signup" className="btn-download"
+              ? <Link to={demoSignupUrl} onClick={() => trackDemoSignupClick('mobile_download')} className="btn-download"
                    style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>
                   Sign up to download PDF
                 </Link>
