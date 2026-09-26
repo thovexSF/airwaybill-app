@@ -77,6 +77,10 @@ const es = {
     },
     signup: {
       sub: 'Crea tu cuenta gratis: 10 documentos/mes de cualquier tipo, sin tarjeta de credito.',
+      demoSub: 'Crea tu cuenta gratis para descargar sin watermark DRAFT el PDF que acabas de editar.',
+      benefitDownload: 'Descarga PDFs limpios y guarda tus documentos.',
+      benefitFree: 'Incluye 10 documentos gratis/mes de cualquier tipo.',
+      benefitNoCard: 'Sin tarjeta de credito.',
       google: 'Registrarse con Google',
       github: 'Registrarse con GitHub',
       orEmail: 'o con email',
