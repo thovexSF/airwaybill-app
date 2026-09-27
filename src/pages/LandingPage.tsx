@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { PLANS } from '../data/plans'
 import './LandingPage.css'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { track } from '../lib/analytics'
 
 const FEATURES = [
   {
@@ -49,7 +50,24 @@ const STEPS = [
 export function LandingPage() {
   const { t } = useTranslation()
   const { user, orgName, logout } = useAuth()
-  const tryPath = user ? '/my-awbs' : '/demo'
+  const isAuthenticated = Boolean(user)
+  const demoPickerPath = isAuthenticated ? '/my-awbs' : '/demo?source=landing&intent=choose_document'
+  const primaryTryPath = isAuthenticated ? '/my-awbs' : '/demo/awb?source=landing&intent=create_first_awb'
+
+  function trackLandingCta(
+    placement: string,
+    destination: string,
+    intent: string,
+    extra?: Record<string, unknown>,
+  ) {
+    track('landing_cta_clicked', {
+      placement,
+      destination,
+      intent,
+      authenticated: isAuthenticated,
+      ...extra,
+    })
+  }
 
   return (
     <div className="lp">
@@ -72,9 +90,27 @@ export function LandingPage() {
               </>
             ) : (
               <>
-                <Link to="/demo" className="lp-btn-ghost">{t('landing.hero.demo')}</Link>
-                <Link to="/login" className="lp-btn-login">{t('landing.nav.signIn')}</Link>
-                <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+                <Link
+                  to={demoPickerPath}
+                  className="lp-btn-ghost"
+                  onClick={() => trackLandingCta('nav_demo', demoPickerPath, 'choose_document')}
+                >
+                  {t('landing.hero.demo')}
+                </Link>
+                <Link
+                  to="/login"
+                  className="lp-btn-login"
+                  onClick={() => trackLandingCta('nav_login', '/login', 'sign_in')}
+                >
+                  {t('landing.nav.signIn')}
+                </Link>
+                <Link
+                  to="/signup?source=landing&intent=create_account"
+                  className="lp-btn-primary"
+                  onClick={() => trackLandingCta('nav_signup', '/signup', 'create_account')}
+                >
+                  {t('landing.nav.getStarted')}
+                </Link>
               </>
             )}
             <LangSwitcher variant="light" />
@@ -93,19 +129,34 @@ export function LandingPage() {
             {t('landing.hero.subtitle')}
           </p>
           <div className="lp-hero-ctas">
-            <Link to={tryPath} className="lp-cta-primary">
+            <Link
+              to={primaryTryPath}
+              className="lp-cta-primary"
+              onClick={() => trackLandingCta('hero_primary', primaryTryPath, isAuthenticated ? 'open_app' : 'create_first_awb', { doc_type: 'awb' })}
+            >
               {t('landing.hero.cta')}
             </Link>
-            <a href="#how" className="lp-cta-ghost">{t('landing.steps.cta')}</a>
+            <a
+              href="#how"
+              className="lp-cta-ghost"
+              onClick={() => trackLandingCta('hero_secondary_how', '#how', 'learn_more')}
+            >
+              {t('landing.steps.cta')}
+            </a>
           </div>
           <p className="lp-hero-note">{t('landing.hero.note')}</p>
         </div>
 
         {/* Mockup — clickable, opens demo editor */}
-        <Link to={tryPath} className="lp-hero-mockup" aria-label={t('landing.hero.cta')}>
+        <Link
+          to={primaryTryPath}
+          className="lp-hero-mockup"
+          aria-label={t('landing.hero.cta')}
+          onClick={() => trackLandingCta('hero_mockup', primaryTryPath, isAuthenticated ? 'open_app' : 'create_first_awb', { doc_type: 'awb' })}
+        >
           <div className="lp-mockup-bar">
             <span /><span /><span />
-            <div className="lp-mockup-url">airwaybill.app/demo</div>
+            <div className="lp-mockup-url">airwaybill.app/demo/awb</div>
           </div>
           <div className="lp-mockup-body">
             <div className="lp-mockup-sidebar">
@@ -146,7 +197,12 @@ export function LandingPage() {
           <p className="lp-section-sub">{t('landing.features.sub')}</p>
           <div className="lp-features-grid">
             {FEATURES.map(f => (
-              <Link key={f.title} to={tryPath} className="lp-feature-card">
+              <Link
+                key={f.title}
+                to={demoPickerPath}
+                className="lp-feature-card"
+                onClick={() => trackLandingCta('feature_card', demoPickerPath, isAuthenticated ? 'open_app' : 'choose_document', { feature: f.title })}
+              >
                 <div className="lp-feature-icon">{f.icon}</div>
                 <h3>{f.title}</h3>
                 <p>{f.desc}</p>
@@ -171,7 +227,13 @@ export function LandingPage() {
             ))}
           </div>
           <div className="lp-how-cta">
-            <Link to={tryPath} className="lp-cta-primary">{t('landing.steps.cta')}</Link>
+            <Link
+              to={primaryTryPath}
+              className="lp-cta-primary"
+              onClick={() => trackLandingCta('how_cta', primaryTryPath, isAuthenticated ? 'open_app' : 'create_first_awb', { doc_type: 'awb' })}
+            >
+              {t('landing.steps.cta')}
+            </Link>
           </div>
         </div>
       </section>
@@ -200,6 +262,7 @@ export function LandingPage() {
                 <Link
                   to={plan.ctaLink ?? '/pricing'}
                   className={`lp-plan-cta ${plan.highlight ? 'lp-plan-cta-primary' : 'lp-plan-cta-ghost'}`}
+                  onClick={() => trackLandingCta('pricing_plan', plan.ctaLink ?? '/pricing', plan.ctaLink === '/contact' ? 'contact_sales' : 'view_plan', { plan: plan.name })}
                 >
                   {plan.cta}
                 </Link>
@@ -214,7 +277,11 @@ export function LandingPage() {
         <div className="lp-section-inner" style={{ textAlign: 'center' }}>
           <h2>{t('landing.finalCta.title')}</h2>
           <p>{t('landing.finalCta.sub')}</p>
-          <Link to={tryPath} className="lp-cta-primary lp-cta-lg">
+          <Link
+            to={primaryTryPath}
+            className="lp-cta-primary lp-cta-lg"
+            onClick={() => trackLandingCta('final_cta', primaryTryPath, isAuthenticated ? 'open_app' : 'create_first_awb', { doc_type: 'awb' })}
+          >
             {t('landing.finalCta.cta')}
           </Link>
         </div>
@@ -232,7 +299,12 @@ export function LandingPage() {
               <strong>{t('landing.footer.product')}</strong>
               <a href="#features">{t('landing.nav.features')}</a>
               <a href="#pricing">{t('landing.nav.pricing')}</a>
-              <Link to={tryPath}>Editor</Link>
+              <Link
+                to={demoPickerPath}
+                onClick={() => trackLandingCta('footer_editor', demoPickerPath, isAuthenticated ? 'open_app' : 'choose_document')}
+              >
+                Editor
+              </Link>
             </div>
             <div>
               <strong>{t('landing.footer.company')}</strong>

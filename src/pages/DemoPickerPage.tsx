@@ -1,9 +1,10 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { DOC_TYPES } from '../lib/docTypes'
 import { LangSwitcher } from '../components/LangSwitcher'
 import '../pages/LandingPage.css'
+import { track } from '../lib/analytics'
 
 /** Short pitch per document, shown on the demo picker cards. */
 const BLURBS: Record<string, string> = {
@@ -24,6 +25,13 @@ const BLURBS: Record<string, string> = {
 
 export function DemoPickerPage() {
   const { t } = useTranslation()
+  const [searchParams] = useSearchParams()
+  const source = searchParams.get('source') ?? 'direct'
+  const intent = searchParams.get('intent') ?? 'choose_document'
+
+  useEffect(() => {
+    track('demo_picker_viewed', { source, intent })
+  }, [source, intent])
 
   return (
     <div className="lp" style={{ minHeight: '100vh', background: '#f7f7f8' }}>
@@ -58,11 +66,17 @@ export function DemoPickerPage() {
           {DOC_TYPES.map(type => (
             <Link
               key={type.type}
-              to={`/demo/${type.type}`}
+              to={`/demo/${type.type}?source=${encodeURIComponent(source)}&intent=try_document&doc_type=${encodeURIComponent(type.type)}`}
               style={{
                 display: 'block', background: '#fff', border: '1px solid #e6e6e6', borderRadius: 10,
                 padding: '16px 18px', textDecoration: 'none', transition: 'border-color .15s, transform .15s',
               }}
+              onClick={() => track('demo_doc_selected', {
+                source,
+                intent,
+                doc_type: type.type,
+                destination: `/demo/${type.type}`,
+              })}
               onMouseEnter={e => { e.currentTarget.style.borderColor = type.color; e.currentTarget.style.transform = 'translateY(-2px)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#e6e6e6'; e.currentTarget.style.transform = 'none' }}
             >
