@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { DOC_TYPES } from '../lib/docTypes'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { demoSignupPath } from '../lib/signupAttribution'
 import '../pages/LandingPage.css'
+import { usePostHog } from '@posthog/react'
 
 /** Short pitch per document, shown on the demo picker cards. */
 const BLURBS: Record<string, string> = {
@@ -24,6 +26,14 @@ const BLURBS: Record<string, string> = {
 
 export function DemoPickerPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
+
+  function trackSignupCta(placement: string) {
+    posthog?.capture('demo_signup_cta_clicked', {
+      intent: 'create_account',
+      placement,
+    })
+  }
 
   return (
     <div className="lp" style={{ minHeight: '100vh', background: '#f7f7f8' }}>
@@ -35,7 +45,13 @@ export function DemoPickerPage() {
           </Link>
           <div className="lp-nav-actions">
             <Link to="/login" className="lp-btn-login">{t('landing.nav.signIn')}</Link>
-            <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+            <Link
+              to={demoSignupPath({ placement: 'picker_nav', intent: 'create_account', from: '/demo' })}
+              onClick={() => trackSignupCta('picker_nav')}
+              className="lp-btn-primary"
+            >
+              {t('landing.nav.getStarted')}
+            </Link>
             <LangSwitcher variant="light" />
           </div>
         </div>

@@ -81,6 +81,7 @@ const en = {
       github: 'Sign up with GitHub',
       orEmail: 'or with email',
       company: 'Company',
+      companyOptional: 'Company (optional)',
       companyPlaceholder: 'e.g. Cargo Andes LLC',
       email: 'Email',
       password: 'Password',
@@ -88,6 +89,8 @@ const en = {
       submitting: 'Creating account...',
       hasAccount: 'Already have an account?',
       signIn: 'Sign in',
+      demoTitle: 'Keep the document you just built',
+      demoSub: 'Create a free account to save drafts, remove the DRAFT watermark, and download 10 PDFs each month.',
     },
     forgotPassword: {
       title: 'Reset your password',
