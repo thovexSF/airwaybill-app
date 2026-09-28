@@ -14,6 +14,7 @@ import { applyAirlineForPrefix } from '../lib/airlines'
 import { AWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { demoSignupPath } from '../lib/signupAttribution'
 import '../App.css'
 import { usePostHog } from '@posthog/react'
 
@@ -61,6 +62,19 @@ export function DemoEditorPage() {
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
+  const demoFromPath = `/demo/${demoDocType}`
+
+  function signupPath(placement: string) {
+    return demoSignupPath({ docType: demoDocType, placement, from: demoFromPath })
+  }
+
+  function trackSignupCta(placement: string) {
+    posthog?.capture('demo_signup_cta_clicked', {
+      doc_type: demoDocType,
+      intent: 'download_pdf',
+      placement,
+    })
+  }
 
   const updatePageWidth = useCallback(() => {
     const width = pageWrapRef.current?.getBoundingClientRect().width
@@ -73,8 +87,8 @@ export function DemoEditorPage() {
   }, [updatePageWidth])
 
   useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
+    posthog?.capture('demo_viewed', { doc_type: demoDocType, route: demoFromPath })
+  }, [demoDocType, demoFromPath, posthog])
 
   useEffect(() => {
     const onResize = () => {
@@ -139,7 +153,11 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupPath('banner')}
+          onClick={() => trackSignupCta('banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +188,11 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link
+            to={signupPath('download_button')}
+            onClick={() => trackSignupCta('download_button')}
+            className="btn-download"
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>

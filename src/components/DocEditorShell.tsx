@@ -10,6 +10,8 @@ import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
 import { useDemoMode } from './DemoMode'
 import { useTranslation } from 'react-i18next'
+import { usePostHog } from '@posthog/react'
+import { demoSignupPath } from '../lib/signupAttribution'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -51,6 +53,7 @@ export function DocEditorShell<T>({
 }) {
   const demo = useDemoMode()
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
   const { plan, docsUsedThisMonth, docLimit } = usePlan()
   const [downloading, setDownloading] = useState(false)
@@ -64,6 +67,20 @@ export function DocEditorShell<T>({
   const [formWidth, setFormWidth] = useState(460)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
+  const demoDocType = getDocType(data)
+  const demoFromPath = demoDocType ? `/demo/${demoDocType}` : '/demo'
+
+  function demoSignupTo(placement: string) {
+    return demoSignupPath({ docType: demoDocType, placement, from: demoFromPath })
+  }
+
+  function trackDemoSignupCta(placement: string) {
+    posthog?.capture('demo_signup_cta_clicked', {
+      doc_type: demoDocType ?? 'unknown',
+      intent: 'download_pdf',
+      placement,
+    })
+  }
 
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
@@ -148,7 +165,14 @@ export function DocEditorShell<T>({
                 Demo
               </span>
               <LangSwitcher />
-              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
+              <Link
+                to={demoSignupTo('topbar')}
+                onClick={() => trackDemoSignupCta('topbar')}
+                className="btn-download"
+                style={{ textDecoration: 'none' }}
+              >
+                {t('demo.signupCta')}
+              </Link>
             </>
           ) : (
             <>
@@ -188,8 +212,13 @@ export function DocEditorShell<T>({
           </button>
         )}
         {demo ? (
-          <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>
-            Sign up to download PDF
+          <Link
+            to={demoSignupTo('download_button')}
+            onClick={() => trackDemoSignupCta('download_button')}
+            className="btn-download"
+            style={{ textDecoration: 'none' }}
+          >
+            {t('demo.downloadCta')}
           </Link>
         ) : pdfUrl && (
           <button className="btn-download" onClick={handleDownload} disabled={downloading}>
@@ -204,9 +233,10 @@ export function DocEditorShell<T>({
           <div className="form-panel">{children}</div>
           <div className="mobile-pdf-strip">
             {demo
-              ? <Link to="/signup" className="btn-download"
+              ? <Link to={demoSignupTo('mobile_download_button')} className="btn-download"
+                   onClick={() => trackDemoSignupCta('mobile_download_button')}
                    style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>
-                  Sign up to download PDF
+                  {t('demo.downloadCta')}
                 </Link>
               : pdfUrl
               ? <button className="btn-download" onClick={handleDownload} disabled={downloading}
@@ -243,4 +273,10 @@ export function DocEditorShell<T>({
       </div>
     </div>
   )
+}
+
+function getDocType<T>(data: T): string | undefined {
+  if (!data || typeof data !== 'object' || !('docType' in data)) return undefined
+  const docType = (data as { docType?: unknown }).docType
+  return typeof docType === 'string' && docType.trim() ? docType : undefined
 }
