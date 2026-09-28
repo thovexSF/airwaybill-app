@@ -1,9 +1,11 @@
-import React, { FormEvent, useState } from 'react'
+import React, { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import './AuthPage.css'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { usePostHog } from '@posthog/react'
+import { authAttributionFrom, authEventProps, classifyAuthError } from '../lib/authAnalytics'
 
 const MailIcon = () => (
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -35,9 +37,12 @@ const EyeOffIcon = () => (
 
 export function LoginPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
   const { login, loginWithProvider, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const attribution = useMemo(() => authAttributionFrom(location.search, location.state), [location.search, location.state])
+  const trackedFormStart = useRef(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -45,21 +50,53 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   const destination = (location.state as { from?: string } | undefined)?.from ?? '/my-awbs'
+  useEffect(() => {
+    posthog?.capture('login_page_viewed', authEventProps(attribution, { destination }))
+  }, [attribution, destination, posthog])
+
   if (user) return <Navigate to={destination} replace />
+
+  function trackFormStart() {
+    if (trackedFormStart.current) return
+    trackedFormStart.current = true
+    posthog?.capture('login_form_started', authEventProps(attribution, { destination }))
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const result = await login({ email: email.toLowerCase().trim(), password })
+    posthog?.capture('login_attempted', authEventProps(attribution, { method: 'email', destination }))
+    const result = await login({
+      email: email.toLowerCase().trim(),
+      password,
+      analytics: authEventProps(attribution, { destination }),
+    })
     setLoading(false)
-    if (!result.ok) { setError(result.error); return }
+    if (!result.ok) {
+      setError(result.error)
+      posthog?.capture('login_failed', authEventProps(attribution, {
+        method: 'email',
+        destination,
+        reason: classifyAuthError(result.error),
+      }))
+      return
+    }
     navigate(destination, { replace: true })
   }
 
   async function handleProvider(provider: 'google' | 'github') {
     setError('')
-    await loginWithProvider(provider)
+    posthog?.capture('login_provider_clicked', authEventProps(attribution, { provider, destination }))
+    const result = await loginWithProvider(provider, { flow: 'login', attribution: authEventProps(attribution, { destination }) })
+    if (!result.ok) {
+      setError(result.error)
+      posthog?.capture('login_provider_failed', authEventProps(attribution, {
+        provider,
+        destination,
+        reason: classifyAuthError(result.error),
+      }))
+    }
   }
 
   return (
@@ -88,7 +125,7 @@ export function LoginPage() {
                 type="email"
                 autoComplete="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={e => { trackFormStart(); setEmail(e.target.value) }}
                 placeholder="operaciones@empresa.com"
                 autoFocus
                 required
@@ -105,7 +142,7 @@ export function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => { trackFormStart(); setPassword(e.target.value) }}
                 placeholder="••••••"
                 required
                 style={{ paddingRight: 38 }}
