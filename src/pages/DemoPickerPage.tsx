@@ -1,6 +1,7 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { usePostHog } from '@posthog/react'
 import { DOC_TYPES } from '../lib/docTypes'
 import { LangSwitcher } from '../components/LangSwitcher'
 import '../pages/LandingPage.css'
@@ -24,6 +25,39 @@ const BLURBS: Record<string, string> = {
 
 export function DemoPickerPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    const width = typeof window === 'undefined' ? undefined : window.innerWidth
+    posthog?.capture('demo_viewed', {
+      demo_step: 'picker',
+      path: location.pathname,
+      source: searchParams.get('source') ?? 'direct',
+      intent: searchParams.get('intent') ?? undefined,
+      viewport_width: width,
+      is_mobile: width === undefined ? undefined : width < 768,
+      doc_count: DOC_TYPES.length,
+    })
+  }, [posthog, location.pathname, location.search])
+
+  function docDemoPath(docType: string) {
+    const params = new URLSearchParams(location.search)
+    if (!params.get('source')) params.set('source', 'demo_picker')
+    params.set('doc_type', docType)
+    const search = params.toString()
+    return { pathname: `/demo/${docType}`, search: search ? `?${search}` : '' }
+  }
+
+  function trackDocSelected(docType: string) {
+    posthog?.capture('demo_doc_selected', {
+      doc_type: docType,
+      source: searchParams.get('source') ?? 'demo_picker',
+      intent: searchParams.get('intent') ?? undefined,
+      path: location.pathname,
+    })
+  }
 
   return (
     <div className="lp" style={{ minHeight: '100vh', background: '#f7f7f8' }}>
@@ -58,7 +92,8 @@ export function DemoPickerPage() {
           {DOC_TYPES.map(type => (
             <Link
               key={type.type}
-              to={`/demo/${type.type}`}
+              to={docDemoPath(type.type)}
+              onClick={() => trackDocSelected(type.type)}
               style={{
                 display: 'block', background: '#fff', border: '1px solid #e6e6e6', borderRadius: 10,
                 padding: '16px 18px', textDecoration: 'none', transition: 'border-color .15s, transform .15s',
