@@ -16,7 +16,7 @@ export interface PlanInfo {
 }
 
 const LIMITS: Record<Plan, number | null> = {
-  free:       10,
+  free:       3,
   starter:    null,
   pro:        null,
   enterprise: null,
