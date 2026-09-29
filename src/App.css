@@ -452,6 +452,8 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
 .doc-hub-btn.primary:hover { background: #6b0000; }
 .doc-hub-btn.danger { color: #c00; border-color: #f5b6b6; }
 .doc-hub-btn.sm { padding: 2px 8px; font-size: 11px; line-height: 1.2; }
+.doc-hub-open-btn { color: var(--red); border-color: #e8c4c4; background: #fffafa; }
+.doc-hub-open-btn:hover { background: #fff0f0; }
 .doc-hub-panel {
   background: #fff; border: 1px solid #e2e5ea; border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden;
@@ -563,6 +565,8 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
 .doc-hub-table th.sticky-right { z-index: 2; }
 .doc-hub-table td.sticky-right { background: #fff; }
 .doc-hub-table tr.alt td.sticky-right { background: #fafafa; }
+.doc-hub-actions-col { width: 88px; text-align: center !important; cursor: default !important; }
+.doc-hub-actions-cell { text-align: center; }
 .doc-hub-status {
   display: inline-block; padding: 0 6px; border-radius: 8px;
   font-size: 10px; font-weight: 700; text-transform: uppercase;
