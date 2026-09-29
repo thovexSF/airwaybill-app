@@ -15,7 +15,6 @@ import { AWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
 import { LangSwitcher } from '../components/LangSwitcher'
 import '../App.css'
-import { usePostHog } from '@posthog/react'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -33,7 +32,6 @@ function initialZoom(): number {
 
 export function DemoEditorPage() {
   const { t } = useTranslation()
-  const posthog = usePostHog()
   // Reached as /demo/awb or /demo/hawb from the demo picker; both use this
   // editor because only the AWB has the form-over-PDF overlay.
   const { docType } = useParams<{ docType?: string }>()
@@ -71,10 +69,6 @@ export function DemoEditorPage() {
     pageWrapRef.current = node
     if (node) requestAnimationFrame(updatePageWidth)
   }, [updatePageWidth])
-
-  useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
 
   useEffect(() => {
     const onResize = () => {
