@@ -69,6 +69,23 @@
   text-align: center;
 }
 
+.auth-context-note {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid #f0d2a8;
+  border-radius: 10px;
+  background: #fff8ed;
+  color: #6b3a00;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.auth-optional {
+  color: #888;
+  font-weight: 500;
+}
+
 /* Text inputs with a leading icon, as in the B2B login */
 .auth-input-wrap {
   position: relative;
