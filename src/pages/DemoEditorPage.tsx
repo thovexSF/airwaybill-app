@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
@@ -37,7 +37,19 @@ export function DemoEditorPage() {
   // Reached as /demo/awb or /demo/hawb from the demo picker; both use this
   // editor because only the AWB has the form-over-PDF overlay.
   const { docType } = useParams<{ docType?: string }>()
+  const location = useLocation()
   const demoDocType: 'awb' | 'hawb' = docType === 'hawb' ? 'hawb' : 'awb'
+  const signupBaseParams = {
+    source: 'demo',
+    intent: 'download_pdf',
+    doc_type: demoDocType,
+  }
+  const signupFrom = `${location.pathname}${location.search}`
+  const signupHref = (placement: string) =>
+    `/signup?${new URLSearchParams({ ...signupBaseParams, placement }).toString()}`
+  const captureSignupClick = (placement: string) => {
+    posthog?.capture('demo_signup_cta_clicked', { ...signupBaseParams, placement })
+  }
   const initialData: AWBData = { ...exampleAWB, docType: demoDocType, isDraft: true }
   const [data, setDataRaw] = useState<AWBData>(initialData)
   const setData = (next: AWBData | ((prev: AWBData) => AWBData)) => {
@@ -73,8 +85,11 @@ export function DemoEditorPage() {
   }, [updatePageWidth])
 
   useEffect(() => {
-    posthog?.capture('demo_viewed')
-  }, [])
+    posthog?.capture('demo_viewed', {
+      doc_type: demoDocType,
+      source: new URLSearchParams(location.search).get('source') ?? 'direct',
+    })
+  }, [demoDocType, location.search, posthog])
 
   useEffect(() => {
     const onResize = () => {
@@ -139,7 +154,12 @@ export function DemoEditorPage() {
         flexWrap: 'wrap',
       }}>
         <span>{t('demo.banner')}</span>
-        <Link to="/signup" style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        <Link
+          to={signupHref('top_banner')}
+          state={{ from: signupFrom }}
+          onClick={() => captureSignupClick('top_banner')}
+          style={{ fontWeight: 700, color: '#8b0000', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
           {t('demo.signupCta')} →
         </Link>
       </div>
@@ -170,7 +190,12 @@ export function DemoEditorPage() {
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
-          <Link to="/signup" state={{ from: `/demo/${demoDocType}` }} className="btn-download">
+          <Link
+            to={signupHref('download_button')}
+            state={{ from: signupFrom }}
+            className="btn-download"
+            onClick={() => captureSignupClick('download_button')}
+          >
             {t('demo.downloadCta')}
           </Link>
         </div>

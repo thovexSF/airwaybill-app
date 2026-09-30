@@ -84,6 +84,8 @@ const en = {
       companyPlaceholder: 'e.g. Cargo Andes LLC',
       email: 'Email',
       password: 'Password',
+      optional: 'optional',
+      demoHandoff: 'Create your free account to remove the DRAFT watermark, save this document, and download the edited PDF.',
       submit: 'Create account',
       submitting: 'Creating account...',
       hasAccount: 'Already have an account?',
@@ -239,6 +241,8 @@ const en = {
     pickTitle: 'Pick a document to try',
     pickSub: 'Every document type, free and without an account. Sign up when you want to download.',
     modeLabel: 'Demo',
+    startAwbCta: 'Create an AWB demo',
+    signupAfterDemoCta: 'Download edited PDF',
   },
 
   feedback: {

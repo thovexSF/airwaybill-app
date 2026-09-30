@@ -84,6 +84,8 @@ const es = {
       companyPlaceholder: 'Ej: Cargo Andes SpA',
       email: 'Email',
       password: 'Contraseña',
+      optional: 'opcional',
+      demoHandoff: 'Crea tu cuenta gratis para quitar el watermark DRAFT, guardar este documento y descargar el PDF editado.',
       submit: 'Crear cuenta',
       submitting: 'Creando cuenta...',
       hasAccount: '¿Ya tienes cuenta?',
@@ -239,6 +241,8 @@ const es = {
     pickTitle: 'Elige un documento para probar',
     pickSub: 'Todos los tipos de documento, gratis y sin cuenta. Regístrate cuando quieras descargar.',
     modeLabel: 'Demo',
+    startAwbCta: 'Crear un AWB demo',
+    signupAfterDemoCta: 'Descargar PDF editado',
   },
 
   feedback: {

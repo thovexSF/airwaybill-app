@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
+import { usePostHog } from '@posthog/react'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
 import { DownloadAuthorization } from '../lib/pdfQuota'
@@ -51,6 +52,8 @@ export function DocEditorShell<T>({
 }) {
   const demo = useDemoMode()
   const { t } = useTranslation()
+  const location = useLocation()
+  const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
   const { plan, docsUsedThisMonth, docLimit } = usePlan()
   const [downloading, setDownloading] = useState(false)
@@ -64,6 +67,19 @@ export function DocEditorShell<T>({
   const [formWidth, setFormWidth] = useState(460)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
+  const demoDocType = location.pathname.startsWith('/demo/')
+    ? (location.pathname.split('/')[2] || 'unknown')
+    : 'unknown'
+  const demoSignupParams = {
+    source: 'demo',
+    intent: 'download_pdf',
+    doc_type: demoDocType,
+  }
+  const demoSignupHref = (placement: string) =>
+    `/signup?${new URLSearchParams({ ...demoSignupParams, placement }).toString()}`
+  const captureDemoSignupClick = (placement: string) => {
+    posthog?.capture('demo_signup_cta_clicked', { ...demoSignupParams, placement })
+  }
 
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
@@ -148,7 +164,15 @@ export function DocEditorShell<T>({
                 Demo
               </span>
               <LangSwitcher />
-              <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>Crear cuenta gratis</Link>
+              <Link
+                to={demoSignupHref('topbar')}
+                state={{ from: `${location.pathname}${location.search}` }}
+                onClick={() => captureDemoSignupClick('topbar')}
+                className="btn-download"
+                style={{ textDecoration: 'none' }}
+              >
+                Crear cuenta gratis
+              </Link>
             </>
           ) : (
             <>
@@ -188,7 +212,13 @@ export function DocEditorShell<T>({
           </button>
         )}
         {demo ? (
-          <Link to="/signup" className="btn-download" style={{ textDecoration: 'none' }}>
+          <Link
+            to={demoSignupHref('download_button')}
+            state={{ from: `${location.pathname}${location.search}` }}
+            className="btn-download"
+            style={{ textDecoration: 'none' }}
+            onClick={() => captureDemoSignupClick('download_button')}
+          >
             Sign up to download PDF
           </Link>
         ) : pdfUrl && (
@@ -204,7 +234,11 @@ export function DocEditorShell<T>({
           <div className="form-panel">{children}</div>
           <div className="mobile-pdf-strip">
             {demo
-              ? <Link to="/signup" className="btn-download"
+              ? <Link
+                   to={demoSignupHref('mobile_download_strip')}
+                   state={{ from: `${location.pathname}${location.search}` }}
+                   className="btn-download"
+                   onClick={() => captureDemoSignupClick('mobile_download_strip')}
                    style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px', textDecoration: 'none' }}>
                   Sign up to download PDF
                 </Link>

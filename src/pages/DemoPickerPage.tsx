@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { usePostHog } from '@posthog/react'
 import { DOC_TYPES } from '../lib/docTypes'
 import { LangSwitcher } from '../components/LangSwitcher'
 import '../pages/LandingPage.css'
@@ -24,6 +25,23 @@ const BLURBS: Record<string, string> = {
 
 export function DemoPickerPage() {
   const { t } = useTranslation()
+  const posthog = usePostHog()
+
+  const demoHref = (docType: string, placement: string) =>
+    `/demo/${docType}?${new URLSearchParams({
+      source: 'demo_picker',
+      intent: docType === 'awb' ? 'create_first_awb' : 'try_document',
+      doc_type: docType,
+      placement,
+    }).toString()}`
+
+  const signupHref = (placement: string) =>
+    `/signup?${new URLSearchParams({
+      source: 'demo_picker',
+      intent: 'download_pdf',
+      doc_type: 'awb',
+      placement,
+    }).toString()}`
 
   return (
     <div className="lp" style={{ minHeight: '100vh', background: '#f7f7f8' }}>
@@ -35,7 +53,13 @@ export function DemoPickerPage() {
           </Link>
           <div className="lp-nav-actions">
             <Link to="/login" className="lp-btn-login">{t('landing.nav.signIn')}</Link>
-            <Link to="/signup" className="lp-btn-primary">{t('landing.nav.getStarted')}</Link>
+            <Link
+              to={signupHref('nav')}
+              className="lp-btn-primary"
+              onClick={() => posthog?.capture('demo_signup_cta_clicked', { placement: 'nav', source: 'demo_picker', intent: 'download_pdf', doc_type: 'awb' })}
+            >
+              {t('landing.nav.getStarted')}
+            </Link>
             <LangSwitcher variant="light" />
           </div>
         </div>
@@ -52,13 +76,30 @@ export function DemoPickerPage() {
           <p style={{ fontSize: 15, color: '#666', margin: 0 }}>
             {t('demo.pickSub')}
           </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginTop: 18 }}>
+            <Link
+              to={demoHref('awb', 'hero_primary')}
+              className="lp-btn-primary"
+              onClick={() => posthog?.capture('demo_doc_selected', { placement: 'hero_primary', source: 'demo_picker', intent: 'create_first_awb', doc_type: 'awb' })}
+            >
+              {t('demo.startAwbCta')}
+            </Link>
+            <Link
+              to={signupHref('hero_secondary')}
+              className="lp-btn-ghost"
+              onClick={() => posthog?.capture('demo_signup_cta_clicked', { placement: 'hero_secondary', source: 'demo_picker', intent: 'download_pdf', doc_type: 'awb' })}
+            >
+              {t('demo.signupAfterDemoCta')}
+            </Link>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
           {DOC_TYPES.map(type => (
             <Link
               key={type.type}
-              to={`/demo/${type.type}`}
+              to={demoHref(type.type, 'document_card')}
+              onClick={() => posthog?.capture('demo_doc_selected', { placement: 'document_card', source: 'demo_picker', intent: type.type === 'awb' ? 'create_first_awb' : 'try_document', doc_type: type.type })}
               style={{
                 display: 'block', background: '#fff', border: '1px solid #e6e6e6', borderRadius: 10,
                 padding: '16px 18px', textDecoration: 'none', transition: 'border-color .15s, transform .15s',
