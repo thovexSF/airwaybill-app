@@ -15,7 +15,7 @@ import { track } from '../lib/analytics'
 const COLS = '110px 1fr 1.3fr 80px 80px 24px'
 
 export function BLManifestPage() {
-  const { data, setData, set, saving, saveMsg, save, authorizeDownload } =
+  const { data, setData, set, saving, saveMsg, save, authorizeDownload, atLimit } =
     useDocEditor<BLManifestData>('bl_manifest', defaultBLManifestData, '/bl-manifest')
 
   const totals = blManifestTotals(data)
@@ -37,6 +37,7 @@ export function BLManifestPage() {
       saving={saving}
       saveMsg={saveMsg}
       authorizeDownload={authorizeDownload}
+      forceWatermark={atLimit}
       onDownload={() => track('bl_manifest_downloaded')}
     >
       <Section title="Manifest Header">

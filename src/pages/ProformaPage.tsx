@@ -16,7 +16,7 @@ import { track } from '../lib/analytics'
 const COLS = '1fr 60px 60px 80px 70px 80px 24px'
 
 export function ProformaPage() {
-  const { data, setData, set, saving, saveMsg, save, authorizeDownload } =
+  const { data, setData, set, saving, saveMsg, save, authorizeDownload, atLimit } =
     useDocEditor<ProformaData>('proforma', defaultProformaData, '/proforma')
 
   const { subtotal, tax, total } = proformaTotals(data)
@@ -44,6 +44,7 @@ export function ProformaPage() {
       saving={saving}
       saveMsg={saveMsg}
       authorizeDownload={authorizeDownload}
+      forceWatermark={atLimit}
       onDownload={() => track('proforma_downloaded')}
     >
       <Section title="Invoice Header">

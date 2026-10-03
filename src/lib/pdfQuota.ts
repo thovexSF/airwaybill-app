@@ -6,8 +6,9 @@ import { usePlan } from './usePlan'
 /**
  * Free-plan usage accounting for PDF downloads.
  *
- * The quota is 10 *documents* per organisation per calendar month — any
- * document type in the suite, not just AWBs. The `record_awb_pdf_download`
+ * The quota is 3 *documents* per organisation in total (not per month) — any
+ * document type in the suite, not just AWBs. Past it, PDFs are still delivered but
+ * always carry the DRAFT watermark; only a paid plan removes it. The `record_awb_pdf_download`
  * RPC (name kept for backwards compatibility with the deployed function) is
  * already document-agnostic: it works on any row of `awb_documents` and marks
  * `download_counted_at`, so a given document only ever consumes one unit no
@@ -30,7 +31,7 @@ export async function recordPdfDownload(
   if (alreadyCountedAt) return 'already_counted'
 
   // Without a saved document we cannot mark it as counted, so fall back to the
-  // plain monthly counter — it still enforces the limit, it just cannot
+  // plain counter — it still enforces the limit, it just cannot
   // de-duplicate repeat downloads of the same unsaved draft.
   if (!documentId) {
     const { data, error } = await supabase.rpc('increment_awb_usage', { p_org_id: orgId })
@@ -47,7 +48,7 @@ export async function recordPdfDownload(
 }
 
 /**
- * Charges one unit of the monthly document quota before a PDF download.
+ * Charges one unit of the free document quota before a PDF download.
  * Used by every document editor so the free-plan allowance is shared across
  * the whole suite rather than counted per document type.
  */
@@ -60,10 +61,14 @@ export function usePdfDownloadGuard() {
   const limitMessage = t('editor.limitReached')
 
   async function authorize(documentId: string | null): Promise<DownloadAuthorization> {
-    if (atLimit) return { ok: false, message: limitMessage }
+    // Over the allowance the RPC still runs (the backoffice logs every PDF) but charges
+    // nothing, and the watermarked PDF is delivered either way.
     try {
       const result = await recordPdfDownload(orgId, documentId, countedAt)
-      if (result === 'limit_reached') return { ok: false, message: limitMessage }
+      if (result === 'limit_reached') {
+        await refreshUsage()
+        return { ok: true }
+      }
       if (result === 'ok' || result === 'already_counted') {
         setCountedAt(new Date().toISOString())
         await refreshUsage()

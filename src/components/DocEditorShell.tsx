@@ -32,6 +32,7 @@ export function DocEditorShell<T>({
   saveMsg,
   onDownload,
   authorizeDownload,
+  forceWatermark,
   extraActions,
   children,
 }: {
@@ -44,8 +45,10 @@ export function DocEditorShell<T>({
   saving: boolean
   saveMsg: string | null
   onDownload?: () => void
-  /** Charges the monthly document quota; the download is refused when it returns not-ok. */
+  /** Charges the free document quota; the download is refused when it returns not-ok. */
   authorizeDownload?: () => Promise<DownloadAuthorization>
+  /** Free plan with the allowance spent: render every PDF with the DRAFT watermark. */
+  forceWatermark?: boolean
   extraActions?: React.ReactNode
   children: React.ReactNode
 }) {
@@ -86,7 +89,7 @@ export function DocEditorShell<T>({
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => { void regenerate(data) }, 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data])
+  }, [data, forceWatermark])
 
   // Release the last preview URL when the editor unmounts.
   useEffect(() => () => { setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null }) }, [])
@@ -119,7 +122,7 @@ export function DocEditorShell<T>({
   async function regenerate(d: T) {
     setGenerating(true)
     try {
-      const blob = await pdf(renderDocument(d)).toBlob()
+      const blob = await pdf(renderDocument(forceWatermark ? { ...d, isDraft: true } : d)).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {

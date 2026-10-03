@@ -9,7 +9,7 @@ import { track } from '../lib/analytics'
 const COLS = '1fr 90px 1.4fr 80px 80px 24px'
 
 export function BLPage() {
-  const { data, setData, set, saving, saveMsg, save, authorizeDownload } = useDocEditor<BLData>('bl', defaultBLData, '/bl')
+  const { data, setData, set, saving, saveMsg, save, authorizeDownload, atLimit } = useDocEditor<BLData>('bl', defaultBLData, '/bl')
   const totals = blTotals(data)
 
   const updateItem = (id: string, key: keyof BLGoodsItem, value: string) =>
@@ -29,6 +29,7 @@ export function BLPage() {
       saving={saving}
       saveMsg={saveMsg}
       authorizeDownload={authorizeDownload}
+      forceWatermark={atLimit}
       onDownload={() => track('bl_downloaded')}
     >
       <Section title="Document">

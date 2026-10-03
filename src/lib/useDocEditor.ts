@@ -65,8 +65,6 @@ export function useDocEditor<T extends SuiteDocumentData>(
    * re-downloaded later does not consume a second unit.
    */
   async function authorizeDownload(): Promise<DownloadAuthorization> {
-    if (guard.atLimit) return { ok: false, message: guard.limitMessage }
-
     let id = currentId
     if (!id) {
       try {

@@ -58,7 +58,7 @@ function DownloadMessageButton({ data, filename }: { data: FwbData | FhlData | F
 /* ───────────────────────── FWB ───────────────────────── */
 
 export function FWBPage() {
-  const { data, setData, set, saving, saveMsg, save, authorizeDownload } = useDocEditor<FwbData>('fwb', defaultFwbData, '/edi/fwb')
+  const { data, setData, set, saving, saveMsg, save, authorizeDownload, atLimit } = useDocEditor<FwbData>('fwb', defaultFwbData, '/edi/fwb')
   const awb = [data.awbPrefix, data.awbSerial].filter(Boolean).join('-')
 
   const addAccounting = () =>
@@ -79,6 +79,7 @@ export function FWBPage() {
       saving={saving}
       saveMsg={saveMsg}
       authorizeDownload={authorizeDownload}
+      forceWatermark={atLimit}
       onDownload={() => track('fwb_downloaded')}
       extraActions={<DownloadMessageButton data={data} filename={`FWB_${awb || 'draft'}.txt`} />}
     >
@@ -176,7 +177,7 @@ export function FWBPage() {
 /* ───────────────────────── FHL ───────────────────────── */
 
 export function FHLPage() {
-  const { data, setData, set, saving, saveMsg, save, authorizeDownload } = useDocEditor<FhlData>('fhl', defaultFhlData, '/edi/fhl')
+  const { data, setData, set, saving, saveMsg, save, authorizeDownload, atLimit } = useDocEditor<FhlData>('fhl', defaultFhlData, '/edi/fhl')
 
   const addCustoms = () =>
     setData(d => ({ ...d, customs: [...d.customs, { id: newRowId(), country: '', infoId: '', cusId: '', information: '' }] }))
@@ -196,6 +197,7 @@ export function FHLPage() {
       saving={saving}
       saveMsg={saveMsg}
       authorizeDownload={authorizeDownload}
+      forceWatermark={atLimit}
       onDownload={() => track('fhl_downloaded')}
       extraActions={<DownloadMessageButton data={data} filename={`FHL_${data.hwbNumber || 'draft'}.txt`} />}
     >
@@ -299,7 +301,7 @@ export function FHLPage() {
 /* ───────────────────────── FFR ───────────────────────── */
 
 export function FFRPage() {
-  const { data, setData, set, saving, saveMsg, save, authorizeDownload } = useDocEditor<FfrData>('ffr', defaultFfrData, '/edi/ffr')
+  const { data, setData, set, saving, saveMsg, save, authorizeDownload, atLimit } = useDocEditor<FfrData>('ffr', defaultFfrData, '/edi/ffr')
   const awb = [data.awbPrefix, data.awbSerial].filter(Boolean).join('-')
 
   const patchList = <K extends 'dimensions' | 'ulds' | 'flights'>(key: K) => ({
@@ -329,6 +331,7 @@ export function FFRPage() {
       saving={saving}
       saveMsg={saveMsg}
       authorizeDownload={authorizeDownload}
+      forceWatermark={atLimit}
       onDownload={() => track('ffr_downloaded')}
       extraActions={<DownloadMessageButton data={data} filename={`FFR_${awb || 'draft'}.txt`} />}
     >

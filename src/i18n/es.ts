@@ -22,7 +22,7 @@ const es = {
       subtitle: 'Documentos AWB profesionales en formato IATA — directamente en tu navegador. Sin instalación.',
       cta: 'Pruébalo gratis — sin registrarte →',
       demo: 'Ver demo',
-      note: 'Sin registro para probar · 10 documentos gratis/mes al crear cuenta',
+      note: 'Sin registro para probar · 3 documentos gratis al crear cuenta',
     },
     features: {
       label: 'Funciones',
@@ -38,7 +38,7 @@ const es = {
       label: 'Precios',
       title: 'Precios simples y transparentes',
       sub: 'Empieza gratis. Mejora cuando estés listo.',
-      trial: '7 días de prueba · Cancela cuando quieras · Pagos procesados por Paddle',
+      trial: 'Cancela cuando quieras · Pagos procesados por Paddle',
     },
     finalCta: {
       title: '¿Listo para modernizar tu documentación de carga aérea?',
@@ -76,7 +76,7 @@ const es = {
       tryFree: 'O pruébalo gratis, sin crear cuenta →',
     },
     signup: {
-      sub: 'Crea tu cuenta gratis: 10 documentos/mes de cualquier tipo, sin tarjeta de credito.',
+      sub: 'Crea tu cuenta gratis: 3 documentos de cualquier tipo sin marca de agua, sin tarjeta de credito.',
       google: 'Registrarse con Google',
       github: 'Registrarse con GitHub',
       orEmail: 'o con email',
@@ -123,14 +123,14 @@ const es = {
     downloading: 'Preparando descarga...',
     downloadError: 'No se pudo descargar el PDF',
     downloadPdf: '⬇ Descargar PDF',
-    limitBanner: 'Alcanzaste los 10 documentos gratis del plan Free este mes (cualquier tipo: AWB, HAWB, DGD…).',
+    limitBanner: 'Usaste los 3 documentos gratis del plan Free. Los nuevos PDF llevan marca de agua DRAFT: suscríbete a Pro para quitarla.',
     upgradeNow: 'Actualizar a Starter →',
     editFields: 'Editar campos',
     copies: 'Copias',
     applyChanges: 'Aplicar',
     pdfDownloads: 'documentos',
     freeDocs: 'documentos gratis',
-    limitReached: 'Límite del plan Free: 10 documentos/mes (cualquier tipo)',
+    limitReached: 'Plan Free: 3 documentos sin marca de agua (cualquier tipo)',
     previewLoading: 'Generando vista previa…',
     updating: 'Actualizando…',
     zoomReset: 'Reset',
@@ -183,7 +183,7 @@ const es = {
     current: 'ACTUAL',
     included: 'Incluido en tu plan',
     upgrade: 'Actualizar a',
-    trial: '7 días de prueba · Cancela cuando quieras · Pagos procesados por',
+    trial: 'Cancela cuando quieras · Pagos procesados por',
     opening: 'Abriendo checkout...',
   },
 
@@ -232,7 +232,7 @@ const es = {
   },
 
   demo: {
-    banner: 'Demo — previsualiza y edita con watermark DRAFT. Regístrate gratis para 10 documentos/mes (cualquier tipo).',
+    banner: 'Demo — previsualiza y edita con watermark DRAFT. Regístrate gratis para 3 documentos sin marca de agua.',
     signupCta: 'Crear cuenta gratis',
     downloadCta: 'Registrate para descargar PDF',
     sub: 'Demo en vivo — sin registrarte',

@@ -22,7 +22,7 @@ const en = {
       subtitle: 'Professional AWB documents in IATA format — directly in your browser. No software to install.',
       cta: 'Try it free — no signup required →',
       demo: 'Try Demo',
-      note: 'No signup required to try · 10 free documents/month when you register',
+      note: 'No signup required to try · 3 free documents when you register',
     },
     features: {
       label: 'Features',
@@ -38,7 +38,7 @@ const en = {
       label: 'Pricing',
       title: 'Simple, transparent pricing',
       sub: 'Start free. Upgrade when you\'re ready.',
-      trial: '7-day free trial · Cancel anytime · Payments processed by Paddle',
+      trial: 'Cancel anytime · Payments processed by Paddle',
     },
     finalCta: {
       title: 'Ready to modernize your air freight documentation?',
@@ -76,7 +76,7 @@ const en = {
       tryFree: 'Or try it free, no account needed →',
     },
     signup: {
-      sub: 'Create your free account: 10 documents/month of any type, no credit card required.',
+      sub: 'Create your free account: 3 documents of any type without watermark, no credit card required.',
       google: 'Sign up with Google',
       github: 'Sign up with GitHub',
       orEmail: 'or with email',
@@ -123,14 +123,14 @@ const en = {
     downloading: 'Preparing download...',
     downloadError: 'Could not download PDF',
     downloadPdf: '⬇ Download PDF',
-    limitBanner: 'You\'ve used the 10 free documents included in Free this month (any type: AWB, HAWB, DGD…).',
+    limitBanner: 'You\'ve used the 3 free documents included in Free. New PDFs now carry a DRAFT watermark — subscribe to Pro to remove it.',
     upgradeNow: 'Upgrade to Starter →',
     editFields: 'Edit fields',
     copies: 'Copies',
     applyChanges: 'Apply',
     pdfDownloads: 'documents',
     freeDocs: 'free documents',
-    limitReached: 'Free plan limit: 10 documents/month (any type)',
+    limitReached: 'Free plan: 3 documents without watermark (any type)',
     previewLoading: 'Generating preview…',
     updating: 'Updating…',
     zoomReset: 'Reset',
@@ -183,7 +183,7 @@ const en = {
     current: 'CURRENT',
     included: 'Included in your plan',
     upgrade: 'Upgrade to',
-    trial: '7-day free trial · Cancel anytime · Payments processed by',
+    trial: 'Cancel anytime · Payments processed by',
     opening: 'Opening checkout...',
   },
 
@@ -232,7 +232,7 @@ const en = {
   },
 
   demo: {
-    banner: 'Demo — preview and edit with DRAFT watermark. Sign up free for 10 documents/month (any type).',
+    banner: 'Demo — preview and edit with DRAFT watermark. Sign up free for 3 documents without watermark.',
     signupCta: 'Create free account',
     downloadCta: 'Sign up to download PDF',
     sub: 'Live demo — no signup required',

@@ -91,12 +91,12 @@ export function ManifestPage() {
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => regenerate(data), 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data])
+  }, [data, quota.atLimit])
 
   async function regenerate(d: ManifestData) {
     setGenerating(true)
     try {
-      const blob = await pdf(<ManifestDocument data={d} />).toBlob()
+      const blob = await pdf(<ManifestDocument data={quota.atLimit ? { ...d, isDraft: true } : d} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {

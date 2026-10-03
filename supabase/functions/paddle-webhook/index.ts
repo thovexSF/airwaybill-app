@@ -30,22 +30,28 @@ Deno.serve(async (req) => {
 
     const priceId = sub.items?.[0]?.price?.id ?? ''
     const plan = PLAN_BY_PRICE[priceId] ?? 'free'
-    const active = sub.status === 'active' || sub.status === 'trialing'
+    // Only paid/active unlocks the plan. Trials (status=trialing, $0) stay on free.
+    const paid = sub.status === 'active'
 
     await supabase.from('organizations').update({
-      plan: active ? plan : 'free',
-      plan_expires_at: active ? sub.current_billing_period?.ends_at : null,
+      plan: paid ? plan : 'free',
+      plan_expires_at: paid ? sub.current_billing_period?.ends_at : null,
       paddle_subscription_id: sub.id,
       paddle_customer_id: sub.customer_id ?? null,
       paddle_cancel_url: sub.management_urls?.cancel ?? null,
     }).eq('id', orgId)
 
-    console.log(`Plan updated: org=${orgId} plan=${active ? plan : 'free'} status=${sub.status}`)
+    console.log(`Plan updated: org=${orgId} plan=${paid ? plan : 'free'} status=${sub.status}`)
   }
 
   if (type === 'subscription.canceled') {
     const orgId = event.data?.custom_data?.org_id
-    if (orgId) {
+    // An org can have an older, superseded subscription cancelled (e.g. the Starter
+    // that was replaced by Pro); only the one the org currently points at may reset it.
+    const { data: org } = orgId
+      ? await supabase.from('organizations').select('paddle_subscription_id').eq('id', orgId).single()
+      : { data: null }
+    if (orgId && (!org?.paddle_subscription_id || org.paddle_subscription_id === event.data.id)) {
       await supabase.from('organizations').update({
         plan: 'free',
         paddle_subscription_id: null,
