@@ -67,16 +67,16 @@ function docTypeOf(doc: { data: unknown }): string {
  * logs every authorize() call, not just the ones that charge a quota unit.
  */
 app.get('/v1/admin/overview', async (req, res) => {
-  const auth = await requireAdmin(req.header('authorization') ?? undefined)
-  if ('error' in auth) {
-    const body = auth.error === 503 ? { error: 'admin_not_configured', message: 'ADMIN_EMAILS is not set on the server' }
-      : auth.error === 401 ? { error: 'unauthorized' }
-      : { error: 'forbidden' }
-    return res.status(auth.error).json(body)
-  }
-  const { supabase } = auth
-
   try {
+    const auth = await requireAdmin(req.header('authorization') ?? undefined)
+    if ('error' in auth) {
+      const body = auth.error === 503 ? { error: 'admin_not_configured', message: 'ADMIN_EMAILS is not set on the server' }
+        : auth.error === 401 ? { error: 'unauthorized' }
+        : { error: 'forbidden' }
+      return res.status(auth.error).json(body)
+    }
+    const { supabase } = auth
+
     const month = new Date().toISOString().slice(0, 7)
 
     const [orgsRes, membersRes, loginsRes, usageRes, docsRes, eventsRes] = await Promise.all([

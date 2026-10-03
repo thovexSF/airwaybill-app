@@ -7,7 +7,9 @@ function adminEmails(): Set<string> {
   return new Set(
     raw
       .split(',')
-      .map((e) => e.trim().toLowerCase())
+      // Railway's raw env editor doesn't strip quotes around a value, so
+      // `ADMIN_EMAILS="a@b.com"` arrives here with the quotes still on it.
+      .map((e) => e.trim().replace(/^["']|["']$/g, '').trim().toLowerCase())
       .filter(Boolean),
   )
 }
