@@ -60,13 +60,13 @@ create policy "Members can read own org pdf events"
     )
   );
 
--- Log every call, chargeable or not, before returning the same result as before.
+-- Log every call, chargeable or not. Run after migration_free_lifetime_limit.sql:
+-- this replaces its record_awb_pdf_download and uses free_doc_limit()/org_docs_used().
 create or replace function record_awb_pdf_download(p_org_id uuid, p_awb_document_id uuid)
 returns text language plpgsql security definer set search_path = public as $$
 declare
   v_plan       text;
   v_month      text := to_char(now(), 'YYYY-MM');
-  v_count      int;
   v_counted_at timestamptz;
   v_result     text;
 begin
@@ -95,35 +95,23 @@ begin
 
   if v_counted_at is not null then
     v_result := 'already_counted';
+  elsif v_plan = 'free' and org_docs_used(p_org_id) >= free_doc_limit() then
+    -- Past the free allowance nothing is charged; the client watermarks the PDF.
+    v_result := 'limit_reached';
   else
     insert into awb_usage (organization_id, month, count)
-    values (p_org_id, v_month, 0)
-    on conflict (organization_id, month) do nothing;
+    values (p_org_id, v_month, 1)
+    on conflict (organization_id, month) do update set count = awb_usage.count + 1;
 
-    select count into v_count
-    from awb_usage
-    where organization_id = p_org_id
-      and month = v_month
-    for update;
+    update awb_documents
+    set
+      organization_id = coalesce(organization_id, p_org_id),
+      download_counted_at = now(),
+      status = 'final'
+    where id = p_awb_document_id
+      and user_id = auth.uid();
 
-    if v_plan = 'free' and v_count >= 10 then
-      v_result := 'limit_reached';
-    else
-      update awb_usage
-      set count = count + 1
-      where organization_id = p_org_id
-        and month = v_month;
-
-      update awb_documents
-      set
-        organization_id = coalesce(organization_id, p_org_id),
-        download_counted_at = now(),
-        status = 'final'
-      where id = p_awb_document_id
-        and user_id = auth.uid();
-
-      v_result := 'ok';
-    end if;
+    v_result := 'ok';
   end if;
 
   insert into pdf_events (organization_id, user_id, awb_document_id, result)

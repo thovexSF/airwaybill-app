@@ -7,7 +7,7 @@ export type Plan = 'free' | 'starter' | 'pro' | 'enterprise'
 export interface PlanInfo {
   plan: Plan
   orgId: string | null
-  /** Documents of any type downloaded as PDF this month (the free-plan unit). */
+  /** Documents of any type downloaded as PDF over the account's lifetime (the free-plan unit). */
   docsUsedThisMonth: number
   docLimit: number | null  // null = unlimited
   canDownloadDocument: boolean
@@ -15,8 +15,11 @@ export interface PlanInfo {
   refreshUsage: () => Promise<void>
 }
 
+// Keep in step with free_doc_limit() in supabase/migration_free_lifetime_limit.sql.
+export const FREE_DOC_LIMIT = 3
+
 const LIMITS: Record<Plan, number | null> = {
-  free:       10,
+  free:       FREE_DOC_LIMIT,
   starter:    null,
   pro:        null,
   enterprise: null,
@@ -30,15 +33,12 @@ export function usePlan(): PlanInfo {
   const [loading, setLoading] = useState(true)
 
   async function loadUsage(id: string) {
-    const month = new Date().toISOString().slice(0, 7) // 'YYYY-MM'
     const { data: usage } = await supabase
       .from('awb_usage')
       .select('count')
       .eq('organization_id', id)
-      .eq('month', month)
-      .maybeSingle()
 
-    setUsed(usage?.count ?? 0)
+    setUsed((usage ?? []).reduce((n, r) => n + (r.count ?? 0), 0))
   }
 
   useEffect(() => {

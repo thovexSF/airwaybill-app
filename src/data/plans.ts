@@ -19,7 +19,7 @@ export const PLANS: PlanConfig[] = [
     priceDisplay: '$0',
     period: 'forever',
     description: 'Try real document PDF generation at no cost',
-    features: ['10 free documents/month (any type)', 'AWB, HAWB, DGD, Manifest, Label, B/L, Proforma, EDI…', 'Save and edit documents', 'DRAFT watermark', '1 user'],
+    features: ['3 free documents without watermark (any type)', 'AWB, HAWB, DGD, Manifest, Label, B/L, Proforma, EDI…', 'Save and edit documents', 'DRAFT watermark after the 3 free documents', '1 user'],
     highlight: false,
     cta: 'Get Started Free',
     ctaLink: '/signup',
@@ -32,7 +32,7 @@ export const PLANS: PlanConfig[] = [
     description: 'For small freight forwarders',
     features: ['Unlimited AWB PDF downloads', 'No watermark', 'Custom carrier logo', 'AWB check digit validation', '2 users', 'Email support'],
     highlight: false,
-    cta: 'Start 7-day Trial',
+    cta: 'Subscribe',
   },
   {
     id: 'pro',
@@ -42,7 +42,7 @@ export const PLANS: PlanConfig[] = [
     description: 'For active freight forwarders',
     features: ['Everything in Starter', 'HAWB + DGD + Manifest', 'Flight manifest export', '5 users', 'Priority support'],
     highlight: true,
-    cta: 'Start 7-day Trial',
+    cta: 'Subscribe',
   },
   {
     id: 'enterprise',

@@ -9,7 +9,7 @@ import { track } from '../lib/analytics'
 const COLS = '70px 1.6fr 60px 46px 60px 44px 60px 1fr 80px 80px 24px'
 
 export function IMODGDPage() {
-  const { data, setData, set, saving, saveMsg, save, authorizeDownload } =
+  const { data, setData, set, saving, saveMsg, save, authorizeDownload, atLimit } =
     useDocEditor<IMODGDData>('imo_dgd', defaultIMODGDData, '/imo-dgd')
 
   const updateItem = (id: string, key: keyof IMODGDItem, value: string | boolean) =>
@@ -29,6 +29,7 @@ export function IMODGDPage() {
       saving={saving}
       saveMsg={saveMsg}
       authorizeDownload={authorizeDownload}
+      forceWatermark={atLimit}
       onDownload={() => track('imo_dgd_downloaded')}
     >
       <Section title="References">

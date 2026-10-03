@@ -71,6 +71,9 @@ export function EditorPage() {
   const [downloading, setDownloading] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [downloadCountedAt, setDownloadCountedAt] = useState<string | null>(null)
+  // Free plan, allowance spent: documents still download, but always with the DRAFT watermark.
+  const atLimit = plan === 'free' && !canDownloadDocument && !downloadCountedAt
+  const renderData = atLimit ? { ...data, isDraft: true } : data
   const [formWidth, setFormWidth] = useState(initialFormWidth)
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
@@ -186,9 +189,9 @@ export function EditorPage() {
   // Debounced PDF regeneration
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => regenerate(data, pdfScale), 400)
+    timerRef.current = setTimeout(() => regenerate(renderData, pdfScale), 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, pdfScale, overlayMode])
+  }, [data, pdfScale, overlayMode, atLimit])
 
   async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
     setGenerating(true)
@@ -236,7 +239,7 @@ export function EditorPage() {
    * every value drawn by the HTML inputs instead.
    */
   async function downloadPdfFile() {
-    const blob = await pdf(<AWBDocument data={data} userScale={pdfScale} withConditions />).toBlob()
+    const blob = await pdf(<AWBDocument data={renderData} userScale={pdfScale} withConditions />).toBlob()
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -247,18 +250,13 @@ export function EditorPage() {
     setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
 
-  /**
-   * The free-tier gate. Returns false once the month's allowance is spent, so
-   * callers can stop before handing the user a file. Every route out of the
-   * app — the Download button and the copies dialog alike — goes through here.
-   */
+  /** Once the free allowance is spent the file is still delivered, watermarked; we only track the event. */
   function withinQuota(): boolean {
-    if (!atLimit) return true
-    setSaveMsg(t('editor.limitReached'))
-    setTimeout(() => setSaveMsg(null), 5000)
-    ;(window as any).clarity?.('event', 'free_pdf_limit_reached')
-    posthog?.capture('free_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
-    return false
+    if (atLimit) {
+      ;(window as any).clarity?.('event', 'free_pdf_limit_reached')
+      posthog?.capture('free_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
+    }
+    return true
   }
 
   /** Saves the document if it is still unsaved, then counts one PDF against the plan. */
@@ -283,14 +281,10 @@ export function EditorPage() {
 
     try {
       const result = await recordPdfDownload(orgId, docIdForDownload, countedAt)
+      // Over the allowance the RPC charges nothing; the file already went out watermarked.
       if (result === 'limit_reached') {
-        setSaveMsg(t('editor.limitReached'))
-        setTimeout(() => setSaveMsg(null), 5000)
-        ;(window as any).clarity?.('event', 'free_pdf_limit_reached')
-        posthog?.capture('free_pdf_limit_reached', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan })
-        return false
-      }
-      if (result === 'ok' || result === 'already_counted') {
+        await refreshUsage()
+      } else if (result === 'ok' || result === 'already_counted') {
         setDownloadCountedAt(new Date().toISOString())
         await refreshUsage()
       }
@@ -353,7 +347,6 @@ export function EditorPage() {
   const awbFull = isHawb
     ? (data.hawbNumber || 'HAWB')
     : (data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : 'AWB')
-  const atLimit = plan === 'free' && !canDownloadDocument && !downloadCountedAt
   const hawbBlocked = false
 
   return (
@@ -469,7 +462,7 @@ export function EditorPage() {
         </button>
         <CopiesDialog
           open={copiesOpen}
-          data={data}
+          data={renderData}
           onClose={() => setCopiesOpen(false)}
           authorize={authorizeCopies}
           fileName={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}`}
