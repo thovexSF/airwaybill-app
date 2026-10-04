@@ -9,6 +9,7 @@ import { usePlan } from '../lib/usePlan'
 import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
 import { useDemoMode } from './DemoMode'
+import { WatermarkUpgradePrompt } from './WatermarkUpgradePrompt'
 import { useTranslation } from 'react-i18next'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -200,6 +201,8 @@ export function DocEditorShell<T>({
           </button>
         )}
       </div>
+
+      {!demo && forceWatermark && <WatermarkUpgradePrompt source="doc_editor" />}
 
       <div className="main">
         {/* ── Form panel ── */}
