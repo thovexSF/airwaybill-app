@@ -20,7 +20,9 @@ export interface DocTypeMeta {
   pro: boolean
 }
 
-const awbNumber = (d: any) => (d.awbPrefix && d.awbSerial ? `${d.awbPrefix}-${d.awbSerial}` : '')
+// Old imports stored the prefix as "6" or "45"; it is always three digits.
+const prefix3 = (p: unknown) => (/^\d{1,3}$/.test(String(p ?? '')) ? String(p).padStart(3, '0') : String(p ?? ''))
+const awbNumber = (d: any) => (d.awbPrefix && d.awbSerial ? `${prefix3(d.awbPrefix)}-${d.awbSerial}` : '')
 
 export const DOC_TYPES: DocTypeMeta[] = [
   {
@@ -42,7 +44,7 @@ export const DOC_TYPES: DocTypeMeta[] = [
   {
     type: 'label', badge: 'LABEL', name: 'Air Cargo Label (Zebra)', color: '#3a1a5c', route: '/label', pro: true,
     title: d => {
-      const awb = [d.awbPrefix, d.awbSerial].filter(Boolean).join('-')
+      const awb = [d.awbPrefix && prefix3(d.awbPrefix), d.awbSerial].filter(Boolean).join('-')
       return awb ? `${awb} · ${d.pieceNumber || 1}/${d.totalPieces || 1}` : 'Label'
     },
   },
