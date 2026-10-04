@@ -7,7 +7,7 @@ export interface FieldPosition {
   height: number;
 }
 
-export const AWB_FIELD_LAYOUT_REV = 16;
+export const AWB_FIELD_LAYOUT_REV = 17;
 
 export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   awbNumberLeft: { top: 2.10, left: 10.0, width: 28, height: 1.8 },
@@ -15,13 +15,13 @@ export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   awbNumberPrefix: { top: 2.10, left: 9.4, width: 4.7, height: 1.8 },
   awbNumberAirport: { top: 2.10, left: 14.1, width: 4.7, height: 1.8 },
   awbNumberSerial: { top: 2.10, left: 19.3, width: 11.5, height: 1.8 },
-  awbNumber: { top: 2.10, left: 80.0, width: 16, height: 1.8 },
+  awbNumber: { top: 2.10, left: 78.5, width: 15.6, height: 1.8 },
   issuedBy: { top: 7.71, left: 57.76, width: 36, height: 4.3 },
   shipperName: { top: 6.91, left: 10.0, width: 28, height: 6.6 },
   shipperAccount: { top: 6.7, left: 35.2, width: 16, height: 1.4 },
   consigneeName: { top: 16.00, left: 10.0, width: 37.5, height: 6.6 },
   consigneeAccount: { top: 15.8, left: 35.2, width: 16, height: 1.4 },
-  agentName: { top: 23.45, left: 10.0, width: 41, height: 4.2 },
+  agentName: { top: 22.97, left: 10.0, width: 41, height: 4.2 },
   agentIata: { top: 29.55, left: 10.0, width: 20.5, height: 1.5 },
   agentAccount: { top: 29.55, left: 31.4, width: 19, height: 1.5 },
   airportDeparture: { top: 32.58, left: 10.0, width: 41, height: 1.6 },
@@ -37,7 +37,7 @@ export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   flightDate2: { top: 38.64, left: 41.24, width: 10.3, height: 1.5 },
   handling: { top: 41.00, left: 10.0, width: 72, height: 4.2 },
   sci: { top: 42.5, left: 83.5, width: 11.5, height: 2.2 },
-  accounting: { top: 23.45, left: 52.35, width: 41.5, height: 6.9 },
+  accounting: { top: 22.97, left: 52.35, width: 41.5, height: 6.9 },
   reference: { top: 32.58, left: 52.2, width: 15.5, height: 1.5 },
   optionalShipping: { top: 32.58, left: 68.5, width: 25, height: 1.5 },
   currency: { top: 35.61, left: 52.65, width: 4.2, height: 1.5 },
@@ -71,13 +71,13 @@ export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   totalPrepaidBox: { top: 90.15, left: 12.2, width: 13.06, height: 1.8 },
   totalCollectBox: { top: 90.15, left: 26.8, width: 12.2, height: 1.8 },
   otherCharges: { top: 72.06, left: 42.94, width: 51, height: 8.2 },
-  otherChargeDescL: { top: 72.06, left: 42.94, width: 19.5, height: 8.2 },
+  otherChargeDescL: { top: 72.06, left: 42.94, width: 20.3, height: 8.2 },
   otherChargeAmtL: { top: 72.06, left: 56.5, width: 11.12, height: 8.2 },
-  otherChargeDescR: { top: 72.06, left: 70.0, width: 19.5, height: 8.2 },
+  otherChargeDescR: { top: 72.06, left: 70.0, width: 20.3, height: 8.2 },
   otherChargeAmtR: { top: 72.06, left: 84.0, width: 10.64, height: 8.2 },
-  signatureShipper: { top: 85.85, left: 61.37, width: 32, height: 2.0 },
-  signatureCarrier: { top: 91.91, left: 76.85, width: 20, height: 2.0 },
+  signatureShipper: { top: 85.85, left: 52.2, width: 32, height: 2.0 },
+  signatureCarrier: { top: 91.91, left: 75.35, width: 20, height: 2.0 },
   executedDate: { top: 91.91, left: 42.94, width: 14.5, height: 2.0 },
   executedPlace: { top: 91.91, left: 58.61, width: 16.5, height: 2.0 },
-  awbNumberBottom: { top: 95.13, left: 80.0, width: 16, height: 1.8 },
+  awbNumberBottom: { top: 95.13, left: 78.5, width: 15.6, height: 1.8 },
 };

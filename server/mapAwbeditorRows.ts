@@ -8,6 +8,31 @@ function s(v: unknown): string {
   return String(v).trim()
 }
 
+/** Money as the form prints it: "8.30", "155.00". Zero and blanks stay empty. */
+function money(v: unknown): string {
+  const n = Number(String(v ?? '').replace(',', '.'))
+  return Number.isFinite(n) && n !== 0 ? n.toFixed(2) : ''
+}
+
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+
+/** "2026-08-15" → "15-AUG-2026", the way the form prints the execution date. */
+function printedDate(v: unknown): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s(v))
+  return m ? `${m[3]}-${MONTHS[Number(m[2]) - 1]}-${m[1]}` : s(v)
+}
+
+/** Dimension lines the sheet appends to the goods description: "60X40X20CM/20 211K". */
+function dimensionLines(dims: unknown): string[] {
+  if (!Array.isArray(dims)) return []
+  return dims.flatMap((d: Record<string, unknown>) => {
+    if (!d.length || !d.width || !d.height) return []
+    const unit = s(d.unit).toUpperCase().startsWith('IN') ? 'IN' : 'CM'
+    const weight = d.weight ? ` ${+Number(d.weight)}${s(d.weightUnit) || 'K'}` : ''
+    return [`${+Number(d.length)}X${+Number(d.width)}X${+Number(d.height)}${unit}/${+Number(d.pieces) || 0}${weight}`]
+  })
+}
+
 function rateItemsFromLines(lines: unknown): RateItem[] {
   if (!Array.isArray(lines) || lines.length === 0) return defaultAWBData.rateItems
   return lines.map((r: Record<string, unknown>, i) => ({
@@ -18,9 +43,9 @@ function rateItemsFromLines(lines: unknown): RateItem[] {
     rateClass: s(r.rateClass),
     commodityItemNo: s(r.itemNo),
     chargeableWeight: s(r.chargeableWeight),
-    rateCharge: s(r.rate ?? r.rateCharge),
-    total: s(r.total),
-    natureAndQuantity: s(r.natureAndQuantity ?? r.nature),
+    rateCharge: money(r.rate ?? r.rateCharge),
+    total: money(r.total),
+    natureAndQuantity: [s(r.natureAndQuantity ?? r.nature), ...dimensionLines(r.dimensions)].filter(Boolean).join('\n'),
   }))
 }
 
@@ -29,7 +54,7 @@ function otherChargesFrom(lines: unknown): OtherCharge[] {
   return lines.map((oc: Record<string, unknown>, i) => ({
     id: String(i + 1),
     description: s(oc.description ?? oc.code),
-    amount: s(oc.amount ?? oc.charges),
+    amount: money(oc.amount ?? oc.charges),
     entitlement: String(oc.entitlement || '').includes('AGENT') ? 'DUE AGENT' : 'DUE CARRIER',
   }))
 }
@@ -40,12 +65,34 @@ function partyBlock(name?: unknown, address?: unknown, fallback?: unknown): stri
   return s(fallback)
 }
 
-/** "DL146/15-08 / DL295/17-08" → two legs, each a flight number and a day. */
+/** "DL146/15-08 / DL295/17-08": the sheet's two cells hold one leg each, flight and day together. */
 function flightFields(row: Record<string, unknown>) {
-  const [first = '', second = ''] = s(row.requestedFlightsDates).split(' / ')
-  const [flightNumber = '', flightDate = ''] = first.split('/').map((x) => x.trim())
-  const [flightNumber2 = '', flightDate2 = ''] = second.split('/').map((x) => x.trim())
-  return { flightNumber: flightNumber || s(row.flightNumber), flightDate, flightNumber2, flightDate2 }
+  const [first = '', second = ''] = s(row.requestedFlightsDates).split(' / ').map((x) => x.trim())
+  return { flightNumber: first || s(row.flightNumber), flightDate: second }
+}
+
+/** The editor leaves these blank in the file ("calculations: AUTOMATIC"), so they are summed here. */
+function chargeTotals(row: Record<string, unknown>, wtVal: string, otherPay: string) {
+  const lines = Array.isArray(row.rateLines) ? (row.rateLines as Record<string, unknown>[]) : []
+  const charges = Array.isArray(row.otherCharges) ? (row.otherCharges as Record<string, unknown>[]) : []
+  const sum = (xs: number[]) => xs.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0)
+  const weight = sum(lines.map((r) => Number(r.total)))
+  const due = (who: string) =>
+    sum(charges.filter((c) => String(c.entitlement || '').includes(who)).map((c) => Number(c.amount)))
+  const agent = due('AGENT')
+  const carrier = due('CARRIER')
+  const weightPpd = !wtVal.includes('COLL')
+  const otherPpd = !otherPay.includes('COLL')
+  const prepaid = (weightPpd ? weight : 0) + (otherPpd ? agent + carrier : 0)
+  const collect = (weightPpd ? 0 : weight) + (otherPpd ? 0 : agent + carrier)
+  return {
+    weightChargePPD: weightPpd ? money(weight) : '',
+    weightChargeCOLL: weightPpd ? '' : money(weight),
+    totalOtherChargesDueAgent: otherPpd ? money(agent) : '',
+    totalOtherChargesDueCarrier: otherPpd ? money(carrier) : '',
+    totalPrepaid: money(Number(row.totalPrepaid) || prepaid),
+    totalCollect: money(Number(row.totalCollect) || collect),
+  }
 }
 
 function baseAwbFields(row: Record<string, unknown>): AWBData {
@@ -79,6 +126,7 @@ function baseAwbFields(row: Record<string, unknown>): AWBData {
     routeTo3: s(row.routeTo3),
     routeBy3: s(row.routeBy3),
     ...flightFields(row),
+    ...chargeTotals(row, wtVal, otherPay),
     currency: s(row.currency) || 'USD',
     wtValPPD: wtVal.includes('PPD') || wtVal.includes('PREPAID'),
     wtValCOLL: wtVal.includes('COLL') || wtVal.includes('COLLECT'),
@@ -91,9 +139,7 @@ function baseAwbFields(row: Record<string, unknown>): AWBData {
     sci: s(row.sci),
     rateItems: rateItemsFromLines(row.rateLines),
     otherCharges: otherChargesFrom(row.otherCharges),
-    totalPrepaid: s(row.totalPrepaid),
-    totalCollect: s(row.totalCollect),
-    executedOnDate: s(row.executedOnDate || row.issueDate),
+    executedOnDate: printedDate(row.executedOnDate || row.issueDate),
     executedAtPlace: s(row.executedAtPlace),
     signatureShipper: s(row.signatureOfShipperOrAgent),
     signatureCarrier: s(row.signatureOfIssuingCarrierOrAgent),

@@ -52,9 +52,15 @@ function num(v: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback
 }
 
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+
 function parseDate(s: string): string | null {
   const t = clean(s)
   if (!t) return null
+  const mon = t.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/)
+  const mi = mon ? MONTHS.indexOf(mon[2].toUpperCase()) : -1
+  if (mon && mi >= 0) return `${mon[3]}-${String(mi + 1).padStart(2, '0')}-${mon[1].padStart(2, '0')}`
+  if (/^\d{9,10}$/.test(t)) return new Date(Number(t) * 1000).toISOString().slice(0, 10)
   const dmy = t.match(/^(\d{2})-(\d{2})-(\d{4})$/)
   if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`
   const iso = t.match(/^(\d{4}-\d{2}-\d{2})/)
@@ -139,7 +145,7 @@ function parseAwbXml(root: Record<string, unknown>, dtype: number, meta: Record<
 
   const wtPay = (txt(root, 'weight-payment-type') || 'PREPAID').toUpperCase()
   const otherPay = (txt(root, 'other-charges-payment-type') || 'PREPAID').toUpperCase()
-  const issue = parseDate(txt(root, 'carrier-date')) || (meta.document_date as string | null)
+  const issue = parseDate(txt(root, 'carrier-date')) || parseDate(String(meta.document_date ?? ''))
 
   const payload: Record<string, unknown> = {
     externalId: meta.id,

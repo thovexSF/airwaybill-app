@@ -148,7 +148,7 @@ function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: AwbL
     case 'rateGrossTotal': {
       const total = data.rateItems.reduce((s, r) => s + num(r.grossWeight), 0)
       const unit = (data.rateItems[0]?.weightUnit || 'K').charAt(0)
-      return total ? `${total.toFixed(1)} ${unit}` : ''
+      return total ? `${+total.toFixed(1)} ${unit}` : ''
     }
     case 'rateGrandTotal': {
       const total = data.rateItems.reduce((s, r) => s + num(r.total), 0)

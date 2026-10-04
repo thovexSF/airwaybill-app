@@ -21,11 +21,20 @@ export const PAGE_PADDING = 0
 /** awbeditor sets the form in Courier at 9.94pt on a 9pt baseline. */
 export const DATA_SIZE = 9.94
 export const AWB_SIZE = 12
+/** The requested flight/date cells are set a size down, so "DL146/15-08" fits its box. */
+const FLIGHT_SIZE = 8.6
 export const LEADING = 9
+
+/**
+ * Every value sits half a point lower than the schema's top edge puts it: the
+ * awbeditor reference prints its baselines 0.5pt below where react-pdf lays
+ * the same box out, measured across the whole sheet.
+ */
+const BASELINE_DY = 0.5
 
 const px = (p: FieldPosition) => ({
   x: (p.left / 100) * PAGE_WIDTH,
-  y: (p.top / 100) * PAGE_HEIGHT,
+  y: (p.top / 100) * PAGE_HEIGHT + BASELINE_DY,
   width: (p.width / 100) * PAGE_WIDTH,
   height: (p.height / 100) * PAGE_HEIGHT,
 })
@@ -51,6 +60,9 @@ const ONE_LINE_PCT = (LEADING / PAGE_HEIGHT) * 100
 
 const P = AWB_FIELD_POSITIONS
 
+/** A smaller face hangs from the same top edge, so drop it to keep the baseline of its neighbours. */
+const FLIGHT_CELL = (pos: FieldPosition): FieldPosition => ({ ...pos, top: pos.top + (1.1 / PAGE_HEIGHT) * 100 })
+
 function field(pos: FieldPosition, key: FieldKey, extra: Partial<FieldDef> = {}): FieldDef {
   return { key, ...px(pos), fontSize: DATA_SIZE, ...extra }
 }
@@ -75,8 +87,10 @@ function rows(pos: FieldPosition, index: number): FieldPosition {
 }
 
 export const MAX_RATE_ROWS = Math.floor(((P.ratePieces.height / 100) * PAGE_HEIGHT) / LEADING)
+/** The other-charges block is set on a 12pt pitch, looser than the rest of the sheet. */
+const CHARGE_LEADING = 12
 /** Other charges print in two columns; each holds this many lines. */
-export const CHARGES_PER_COLUMN = Math.floor(((P.otherChargeDescL.height / 100) * PAGE_HEIGHT) / LEADING)
+export const CHARGES_PER_COLUMN = Math.floor(((P.otherChargeDescL.height / 100) * PAGE_HEIGHT) / CHARGE_LEADING)
 
 const STATIC: FieldDef[] = [
   // HAWB prints its own number here, left-aligned; MAWB fills the three cells instead.
@@ -115,8 +129,8 @@ const STATIC: FieldDef[] = [
   field(P.to3, 'routeTo3', { label: 'to' }),
   field(P.by3, 'routeBy3', { label: 'by' }),
   field(P.destination, 'airportOfDestination', { label: 'Airport of destination' }),
-  field(P.flightDate, 'flightNumber', { label: 'Requested flight/date' }),
-  field(P.flightDate2, 'flightDate', { label: 'Requested flight/date' }),
+  field(FLIGHT_CELL(P.flightDate), 'flightNumber', { fontSize: FLIGHT_SIZE, label: 'Requested flight/date' }),
+  field(FLIGHT_CELL(P.flightDate2), 'flightDate', { fontSize: FLIGHT_SIZE, label: 'Requested flight/date' }),
 
   field(P.currency, 'currency', { label: 'Currency' }),
   field(P.wtValPpd, 'wtValPPD', { align: 'center', label: 'WT/VAL PPD' }),
@@ -167,12 +181,17 @@ const NATURE = field(P.natureQuantity, 'rateItems.0.natureAndQuantity', {
   multiline: true, label: 'Nature and quantity of goods',
 })
 
+function chargeLine(pos: FieldPosition, line: number): FieldPosition {
+  const pitch = (CHARGE_LEADING / PAGE_HEIGHT) * 100
+  return { ...pos, top: pos.top + line * pitch, height: (LEADING / PAGE_HEIGHT) * 100 }
+}
+
 function chargeRow(index: number): FieldDef[] {
   const left = index < CHARGES_PER_COLUMN
   const line = left ? index : index - CHARGES_PER_COLUMN
   return [
-    field(rows(left ? P.otherChargeDescL : P.otherChargeDescR, line), `otherCharges.${index}.description`, { label: 'Other charges' }),
-    field(rows(left ? P.otherChargeAmtL : P.otherChargeAmtR, line), `otherCharges.${index}.amount`, { align: 'right', label: 'Amount' }),
+    field(chargeLine(left ? P.otherChargeDescL : P.otherChargeDescR, line), `otherCharges.${index}.description`, { label: 'Other charges' }),
+    field(chargeLine(left ? P.otherChargeAmtL : P.otherChargeAmtR, line), `otherCharges.${index}.amount`, { align: 'right', label: 'Amount' }),
   ]
 }
 
