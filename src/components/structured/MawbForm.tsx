@@ -296,7 +296,7 @@ const MawbForm: React.FC<Props> = ({ data, onChange }) => {
           <Fieldset title="AWB Consignment Details">
             <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 0.25 }}>AWB number</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-              <Mini value={form.awbPrefix} onChange={(v) => set('awbPrefix', v)} width={56} />
+              <Mini value={form.awbPrefix} onChange={(v) => set('awbPrefix', v.replace(/\D/g, '').slice(0, 3))} width={56} />
               <Mini value={form.awbSerial} onChange={(v) => set('awbSerial', v)} width={120} />
               <FormControlLabel
                 control={<Checkbox size="small" checked={form.assignOnSave} onChange={(e) => set('assignOnSave', e.target.checked)} />}

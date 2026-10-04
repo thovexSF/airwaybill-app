@@ -8,7 +8,7 @@ export function awbDataToFwbInput(data: AWBData): FwbInput {
   return {
     awbPrefix: data.awbPrefix,
     awbSerial: data.awbSerial,
-    airportOfDeparture: data.airportOfDeparture || data.awbAirportCode,
+    airportOfDeparture: data.awbAirportCode || data.airportOfDeparture,
     airportOfDestination: data.airportOfDestination,
     departureDisplay: data.airportOfDeparture || data.awbAirportCode,
     destinationDisplay: data.airportOfDestination,

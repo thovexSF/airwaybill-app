@@ -60,6 +60,14 @@ export function airlineLogoSrc(prefix?: string | null): string | undefined {
   return p && AIRLINE_BY_PREFIX[p] ? `/awb-airlines/${p}.png` : undefined
 }
 
+/** Drops a first address row that just repeats the carrier name, which has its own row above. */
+export function dedupeCarrierAddress<T extends { carrierName?: string; carrierAddress?: string }>(data: T): T {
+  const [first, ...rest] = (data.carrierAddress ?? '').split('\n')
+  const name = (data.carrierName ?? '').trim().toUpperCase()
+  if (!name || first.trim().toUpperCase() !== name) return data
+  return { ...data, carrierAddress: rest.join('\n') }
+}
+
 /**
  * Fills the carrier block from the AWB prefix, leaving anything already typed
  * alone. Auto-fill that overwrites what somebody entered by hand is worse than
@@ -70,6 +78,7 @@ export function applyAirlineForPrefix<T extends { awbPrefix?: string; carrierNam
   data: T,
   previousPrefix?: string,
 ): T {
+  data = dedupeCarrierAddress(data)
   const airline = airlineForPrefix(data.awbPrefix)
   if (!airline) return data
 

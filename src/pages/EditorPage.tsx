@@ -13,7 +13,7 @@ import { AWBOverlay } from '../components/AWBOverlay'
 import { AWBDocument } from '../pdf/AWBDocument'
 import { AWBData, defaultAWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
-import { applyAirlineForPrefix } from '../lib/airlines'
+import { applyAirlineForPrefix, dedupeCarrierAddress } from '../lib/airlines'
 import { useAuth } from '../auth/AuthContext'
 import { saveAWB, getAWB } from '../lib/awbService'
 import { usePlan } from '../lib/usePlan'
@@ -40,8 +40,7 @@ function initialZoom(): number {
   if (typeof window === 'undefined') return 0.8
   const PAGE_PT = 612
   const RENDER_SCALE = 1.35
-  const hub = document.documentElement.getAttribute('data-hub-modal') === '1'
-  if (window.innerWidth >= 900) return hub ? 0.68 : 0.78
+  if (window.innerWidth >= 900) return 1
   return Math.max(0.4, Math.min(0.9, (window.innerWidth - 16) / (PAGE_PT * RENDER_SCALE)))
 }
 
@@ -146,7 +145,7 @@ export function EditorPage() {
   useEffect(() => {
     if (docId) {
       getAWB(docId).then(doc => {
-        setData(doc.data)
+        setData(dedupeCarrierAddress(doc.data))
         setCurrentId(doc.id)
         setDownloadCountedAt(doc.download_counted_at ?? null)
       }).catch(() => {})

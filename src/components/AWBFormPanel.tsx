@@ -120,7 +120,7 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
           </>
         ) : (
           <Row>
-            <Field label="Prefix (airline code)" value={data.awbPrefix} onChange={set('awbPrefix')} placeholder="999" required />
+            <Field label="Prefix (airline code)" value={data.awbPrefix} onChange={(v) => set('awbPrefix')(v.replace(/\D/g, '').slice(0, 3))} placeholder="999" required />
             <Field label="Airport Code" value={data.awbAirportCode} onChange={set('awbAirportCode')} placeholder="SCL" />
             <div className="field">
               <label>Serial Number<span style={{ color: '#c00', marginLeft: 2 }}>*</span></label>

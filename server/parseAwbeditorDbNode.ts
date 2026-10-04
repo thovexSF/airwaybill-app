@@ -86,8 +86,11 @@ function parseAwbXml(root: Record<string, unknown>, dtype: number, meta: Record<
   const flights = asArray(findChild(root, 'requested-flight')?.string ?? root['requested-flight'])
     .map((x) => clean(x))
     .filter(Boolean)
-  const routesTo = asArray(root['route-to']).map((x) => clean(x)).filter(Boolean)
-  const routesBy = asArray(root['route-by']).map((x) => clean(x)).filter(Boolean)
+  // XStream writes these as <route-to><string>…</string>…</route-to>, so the parser hands back an object.
+  const stringsOf = (tag: string) =>
+    asArray(findChild(root, tag)?.string ?? root[tag]).map((x) => clean(x)).filter(Boolean)
+  const routesTo = stringsOf('route-to')
+  const routesBy = stringsOf('route-by')
 
   const itemsNode = findChild(root, 'items')
   const rateLines = asArray(itemsNode?.['awb-item']).map((it) => {
@@ -151,12 +154,22 @@ function parseAwbXml(root: Record<string, unknown>, dtype: number, meta: Record<
     consigneeAddress: restLines(consignee),
     agentNameAndCity: txt(root, 'agent-details'),
     agentIataCode: txt(root, 'agent-iata-cargo-numeric-code'),
-    airportOfDeparture: txt(root, 'airport-city-code-departure') || txt(root, 'airport-departure') || meta.origin || '',
+    airportCityCode: txt(root, 'airport-city-code-departure'),
+    airportOfDeparture: txt(root, 'airport-departure') || txt(root, 'airport-city-code-departure') || meta.origin || '',
     airportOfDestination: txt(root, 'airport-destination') || meta.destination || '',
     flightNumber: flights[0] || '',
     requestedFlightsDates: flights.join(' / '),
     routeTo1: routesTo[0] || '',
     routeBy1: routesBy[0] || '',
+    routeTo2: routesTo[1] || '',
+    routeBy2: routesBy[1] || '',
+    routeTo3: routesTo[2] || '',
+    routeBy3: routesBy[2] || '',
+    shipperAccountNumber: txt(root, 'shipper-account-number'),
+    consigneeAccountNumber: txt(root, 'consignee-account-number'),
+    agentAccountNumber: txt(root, 'agent-account-number'),
+    accountingInformation: txt(root, 'accounting-information'),
+    optionalShippingInformation: txt(root, 'optional-shipping-info'),
     currency: txt(root, 'currency') || 'USD',
     weightValuationCharges: wtPay.includes('COLLECT') ? 'COLL' : 'PPD',
     otherChargesCode: otherPay.includes('COLLECT') ? 'COLL' : 'PPD',

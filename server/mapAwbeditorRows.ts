@@ -40,16 +40,25 @@ function partyBlock(name?: unknown, address?: unknown, fallback?: unknown): stri
   return s(fallback)
 }
 
+/** "DL146/15-08 / DL295/17-08" → two legs, each a flight number and a day. */
+function flightFields(row: Record<string, unknown>) {
+  const [first = '', second = ''] = s(row.requestedFlightsDates).split(' / ')
+  const [flightNumber = '', flightDate = ''] = first.split('/').map((x) => x.trim())
+  const [flightNumber2 = '', flightDate2 = ''] = second.split('/').map((x) => x.trim())
+  return { flightNumber: flightNumber || s(row.flightNumber), flightDate, flightNumber2, flightDate2 }
+}
+
 function baseAwbFields(row: Record<string, unknown>): AWBData {
   const wtVal = s(row.weightValuationCharges).toUpperCase()
   const otherPay = s(row.otherChargesCode).toUpperCase()
   return {
     ...defaultAWBData,
     isDraft: false,
-    awbPrefix: s(row.awbPrefix),
+    awbPrefix: /^\d{1,3}$/.test(s(row.awbPrefix)) ? s(row.awbPrefix).padStart(3, '0') : s(row.awbPrefix),
     awbSerial: s(row.awbSerial),
     carrierName: s(row.issuer) || partyBlock(row.issuedBy, '', '').split('\n')[0],
-    carrierAddress: s(row.issuedBy),
+    // The first row of the issued-by block is the carrier name, which has its own field.
+    carrierAddress: s(row.issuedBy).split('\n').slice(1).join('\n').trim(),
     shipperAccountNumber: s(row.shipperAccountNumber),
     shipperNameAndAddress: partyBlock(row.shipperName, row.shipperAddress, row.shipper),
     consigneeAccountNumber: s(row.consigneeAccountNumber),
@@ -60,6 +69,7 @@ function baseAwbFields(row: Record<string, unknown>): AWBData {
     accountingInformation: s(row.accountingInformation),
     referenceNumber: s(row.referenceNumber),
     optionalShippingInfo1: s(row.optionalShippingInformation),
+    awbAirportCode: s(row.airportCityCode) || s(row.airportOfDeparture).match(/\b([A-Z]{3})\b/)?.[1] || '',
     airportOfDeparture: s(row.airportOfDeparture),
     airportOfDestination: s(row.airportOfDestination),
     routeTo1: s(row.routeTo1),
@@ -68,8 +78,7 @@ function baseAwbFields(row: Record<string, unknown>): AWBData {
     routeBy2: s(row.routeBy2),
     routeTo3: s(row.routeTo3),
     routeBy3: s(row.routeBy3),
-    flightNumber: s(row.flightNumber),
-    flightDate: s(row.requestedFlightsDates).split('/')[1]?.trim() || '',
+    ...flightFields(row),
     currency: s(row.currency) || 'USD',
     wtValPPD: wtVal.includes('PPD') || wtVal.includes('PREPAID'),
     wtValCOLL: wtVal.includes('COLL') || wtVal.includes('COLLECT'),
