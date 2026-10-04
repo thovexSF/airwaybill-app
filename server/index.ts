@@ -283,6 +283,7 @@ app.get('/v1/admin/documents/:id', async (req, res) => {
   } catch (e: any) {
     res.status(500).json({ error: e.message || 'admin_document_failed' })
   }
+})
 
 const AGREEMENT_NEXT: Record<string, string> = {
   solicitado: 'enviado_iata',
