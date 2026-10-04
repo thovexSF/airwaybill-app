@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { pdf } from '@react-pdf/renderer'
 import { AWBDocument, AWBCopiesDocument } from '../src/pdf/AWBDocument'
@@ -10,6 +13,40 @@ import { BLManifestDocument } from '../src/pdf/BLManifestDocument'
 import { IMODGDDocument } from '../src/pdf/IMODGDDocument'
 import { NeppexDocument } from '../src/pdf/NeppexDocument'
 import { EDIDocument } from '../src/pdf/EDIDocument'
+
+/**
+ * `AWBDocument` (and friends) reference fonts/images as root-relative paths
+ * — `/awb-fonts/…`, `/awb-copies/…` — because in the browser that resolves
+ * against the site origin. Those same modules are imported here to render on
+ * the server, where react-pdf's font (fontkit) and image loaders treat a bare
+ * "/foo" as a literal filesystem path and read straight off disk — i.e. the
+ * real OS root, which has no `public/` on it. Rather than fork every
+ * asset-path reference per environment, redirect reads for our known public
+ * prefixes to the actual `public/` directory, once, here.
+ */
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const PUBLIC_DIR = path.resolve(__dirname, '..', 'public')
+const PUBLIC_ASSET_PREFIXES = ['/awb-fonts/', '/awb-copies/', '/awb-iata/', '/awb-airlines/']
+
+function resolvePublicAsset(filePath: string): string {
+  const pathOnly = filePath.split('?')[0]
+  for (const prefix of PUBLIC_ASSET_PREFIXES) {
+    if (pathOnly.startsWith(prefix)) return path.join(PUBLIC_DIR, pathOnly.slice(1))
+  }
+  return filePath
+}
+
+const originalReadFile = fs.readFile
+fs.readFile = ((p: fs.PathLike, ...rest: unknown[]) =>
+  (originalReadFile as (...args: unknown[]) => void)(typeof p === 'string' ? resolvePublicAsset(p) : p, ...rest)) as typeof fs.readFile
+
+const originalReadFileSync = fs.readFileSync
+fs.readFileSync = ((p: fs.PathLike, ...rest: unknown[]) =>
+  (originalReadFileSync as (...args: unknown[]) => Buffer | string)(typeof p === 'string' ? resolvePublicAsset(p) : p, ...rest)) as typeof fs.readFileSync
+
+const originalPromisesReadFile = fs.promises.readFile
+fs.promises.readFile = ((p: fs.PathLike, ...rest: unknown[]) =>
+  (originalPromisesReadFile as (...args: unknown[]) => Promise<Buffer | string>)(typeof p === 'string' ? resolvePublicAsset(p) : p, ...rest)) as typeof fs.promises.readFile
 
 function docTypeOf(data: Record<string, unknown>): string {
   const t = data.docType
