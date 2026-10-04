@@ -23,6 +23,7 @@ import cors from 'cors'
 import multer from 'multer'
 import { adminClient, authenticateApiKey, effectivePlan } from './partnerAuth'
 import { requireAdmin } from './adminAuth'
+import { lookupIataRegistry } from './iataRegistry'
 import { renderDocumentPdf } from './renderPdf'
 import { applyEAwbResult, buildFwbFromAwb } from '../src/lib/awbToFwb'
 import type { AWBData } from '../src/types/awb'
@@ -282,6 +283,19 @@ app.get('/v1/admin/documents/:id', async (req, res) => {
     res.json(row)
   } catch (e: any) {
     res.status(500).json({ error: e.message || 'admin_document_failed' })
+  }
+})
+
+/** Busca la empresa de una solicitud en la lista pública de IATA (ver server/iataRegistry.ts). */
+app.get('/v1/admin/eawb-agreements/:id/iata-registry', async (req, res) => {
+  try {
+    const auth = await requireAdmin(req.header('authorization') ?? undefined)
+    if ('error' in auth) return res.status(auth.error).json({ error: 'admin_denied' })
+    const { data: row } = await auth.supabase.from('eawb_agreements').select('form').eq('id', req.params.id).single()
+    if (!row) return res.status(404).json({ error: 'not_found' })
+    res.json(await lookupIataRegistry(row.form.country, row.form.companyName))
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || 'iata_registry_failed' })
   }
 })
 
