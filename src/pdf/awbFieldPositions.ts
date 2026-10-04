@@ -7,10 +7,14 @@ export interface FieldPosition {
   height: number;
 }
 
-export const AWB_FIELD_LAYOUT_REV = 15;
+export const AWB_FIELD_LAYOUT_REV = 16;
 
 export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   awbNumberLeft: { top: 2.10, left: 10.0, width: 28, height: 1.8 },
+  // Casillas "006 | SCL | 44972362": la hoja marca las divisiones en x = 14.1% y 18.8%.
+  awbNumberPrefix: { top: 2.10, left: 9.4, width: 4.7, height: 1.8 },
+  awbNumberAirport: { top: 2.10, left: 14.1, width: 4.7, height: 1.8 },
+  awbNumberSerial: { top: 2.10, left: 19.3, width: 11.5, height: 1.8 },
   awbNumber: { top: 2.10, left: 80.0, width: 16, height: 1.8 },
   issuedBy: { top: 7.71, left: 57.76, width: 36, height: 4.3 },
   shipperName: { top: 6.91, left: 10.0, width: 28, height: 6.6 },

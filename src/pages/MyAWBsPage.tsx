@@ -250,7 +250,8 @@ export function MyAWBsPage() {
   const SortIcon = ({ col }: { col: typeof sortCol }) =>
     sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'
 
-  const ediTypes = DOC_TYPES.filter((d) => ['fwb', 'fhl', 'ffr'].includes(d.type))
+  const ediByTab: Record<string, string[]> = { awb: ['fwb', 'ffr'], hawb: ['fhl'] }
+  const ediTypes = DOC_TYPES.filter((d) => ediByTab[activeMeta.type]?.includes(d.type))
 
   const emptyHints: Record<string, string> = {
     awb: 'No hay MAWB registrados.',
@@ -367,7 +368,7 @@ export function MyAWBsPage() {
                 ↑ {t('myAwbs.import')}
               </button>
             )}
-            <div style={{ position: 'relative' }}>
+            {ediTypes.length > 0 && <div style={{ position: 'relative' }}>
               <button type="button" className="doc-hub-btn" onClick={() => setEdiOpen((o) => !o)}>
                 EDI ▾
               </button>
@@ -392,7 +393,7 @@ export function MyAWBsPage() {
                   </div>
                 </>
               )}
-            </div>
+            </div>}
             <button
               type="button"
               className="doc-hub-btn primary"

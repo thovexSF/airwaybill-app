@@ -44,6 +44,7 @@ export interface FieldDef {
   /** Derived values the form prints but nobody types. */
   readOnly?: boolean
   label?: string
+  bold?: boolean
 }
 
 const ONE_LINE_PCT = (LEADING / PAGE_HEIGHT) * 100
@@ -78,9 +79,13 @@ export const MAX_RATE_ROWS = Math.floor(((P.ratePieces.height / 100) * PAGE_HEIG
 export const CHARGES_PER_COLUMN = Math.floor(((P.otherChargeDescL.height / 100) * PAGE_HEIGHT) / LEADING)
 
 const STATIC: FieldDef[] = [
-  field(P.awbNumberLeft, 'awbNumberLeft', { fontSize: AWB_SIZE, readOnly: true }),
-  field(P.awbNumber, 'awbNumberTop', { fontSize: AWB_SIZE, align: 'right', readOnly: true }),
-  field(P.awbNumberBottom, 'awbNumberBottom', { fontSize: AWB_SIZE, align: 'right', readOnly: true }),
+  // HAWB prints its own number here, left-aligned; MAWB fills the three cells instead.
+  field(P.awbNumberLeft, 'awbNumberLeft', { fontSize: AWB_SIZE, readOnly: true, bold: true }),
+  field(P.awbNumberPrefix, 'awbNumberPrefix', { fontSize: AWB_SIZE, align: 'center', readOnly: true, bold: true }),
+  field(P.awbNumberAirport, 'awbNumberAirport', { fontSize: AWB_SIZE, align: 'center', readOnly: true, bold: true }),
+  field(P.awbNumberSerial, 'awbNumberSerial', { fontSize: AWB_SIZE, readOnly: true, bold: true }),
+  field(P.awbNumber, 'awbNumberTop', { fontSize: AWB_SIZE, align: 'right', readOnly: true, bold: true }),
+  field(P.awbNumberBottom, 'awbNumberBottom', { fontSize: AWB_SIZE, align: 'right', readOnly: true, bold: true }),
 
   field({ ...P.issuedBy, height: ONE_LINE_PCT }, 'carrierName', { label: 'Issued by (carrier)' }),
   field(

@@ -96,7 +96,7 @@ function Field({ def, value }: { def: FieldDef; value: string }) {
       {fittedLines(value, def).map((line, i) => (
         <Text
           key={i}
-          style={{ position: 'absolute', top: i * LEADING, width: def.width, fontSize: def.fontSize, textAlign: def.align ?? 'left', color: DATA_INK }}
+          style={{ position: 'absolute', top: i * LEADING, width: def.width, fontSize: def.fontSize, textAlign: def.align ?? 'left', color: DATA_INK, ...(def.bold ? { fontWeight: 700 } : {}) }}
         >
           {line}
         </Text>
@@ -107,7 +107,7 @@ function Field({ def, value }: { def: FieldDef; value: string }) {
 
 const num = (v: unknown) => Number(String(v ?? '').replace(',', '.')) || 0
 
-function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: string): string {
+function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: AwbLeft): string {
   const key = def.key
 
   const rate = /^rateItems\.(\d+)\.(.+)$/.exec(key)
@@ -126,7 +126,15 @@ function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: stri
   }
 
   switch (key) {
-    case 'awbNumberLeft': return awbLeft
+    case 'awbNumberLeft': return awbLeft.single
+    case 'awbNumberPrefix': return awbLeft.prefix
+    case 'awbNumberAirport': return awbLeft.airport
+    case 'awbNumberSerial': return awbLeft.serial
+    case 'carrierAddress': {
+      // The issued-by block already prints the carrier name on its first row.
+      const [first, ...rest] = String(data.carrierAddress ?? '').split('\n')
+      return first.trim().toUpperCase() === (data.carrierName ?? '').trim().toUpperCase() ? rest.join('\n') : String(data.carrierAddress ?? '')
+    }
     case 'awbNumberTop':
     case 'awbNumberBottom': return awbFull
     case 'wtValPPD': return data.wtValPPD ? 'X' : ''
@@ -161,13 +169,21 @@ function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: stri
   }
 }
 
-/** The number as it reads at the top left: prefix, origin airport, serial. */
-function awbLeftDisplay(data: AWBData): string {
-  const prefix = data.awbPrefix?.trim() ?? ''
+interface AwbLeft { single: string; prefix: string; airport: string; serial: string }
+
+/** The number's three printed cells at the top left (prefix | origin | serial), or the HAWB number whole. */
+function awbLeftParts(data: AWBData, isHawb: boolean): AwbLeft {
+  if (isHawb) return { single: data.hawbNumber || '', prefix: '', airport: '', serial: '' }
+  const prefix = awbPrefix3(data)
   const serial = data.awbSerial?.trim() ?? ''
-  if (!prefix && !serial) return ''
-  const origin = (data.awbAirportCode || data.airportOfDeparture || '').toUpperCase().match(/\b([A-Z]{3})\b/)?.[1]
-  return prefix && origin && serial ? `${prefix} ${origin} ${serial}` : [prefix, serial].filter(Boolean).join('-')
+  const origin = (data.awbAirportCode || data.airportOfDeparture || '').toUpperCase().match(/\b([A-Z]{3})\b/)?.[1] ?? ''
+  return { single: '', prefix, airport: origin, serial }
+}
+
+/** IATA prefixes are three digits ("006"); an old document may hold "6". */
+function awbPrefix3(data: AWBData): string {
+  const p = data.awbPrefix?.trim() ?? ''
+  return /^\d{1,3}$/.test(p) ? p.padStart(3, '0') : p
 }
 
 /**
@@ -184,8 +200,8 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
   const isHawb = data.docType === 'hawb'
   const awbFull = isHawb
     ? (data.hawbNumber || '')
-    : (data.awbPrefix && data.awbSerial ? `${data.awbPrefix}-${data.awbSerial}` : '')
-  const awbLeft = isHawb ? (data.hawbNumber || '') : awbLeftDisplay(data)
+    : (data.awbPrefix && data.awbSerial ? `${awbPrefix3(data)}-${data.awbSerial}` : '')
+  const awbLeft = awbLeftParts(data, isHawb)
 
   const theme = awbCopyTheme(copyKey ?? data.copyNumber)
   const logo = airlineLogoSrc(data.awbPrefix)

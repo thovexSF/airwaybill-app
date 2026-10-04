@@ -270,7 +270,9 @@ function mockFieldValue(data: AWBData, key: string): string {
     const item = data.otherCharges[Number(charge[1])]
     return item ? String(item[charge[2] as keyof typeof item] ?? '') : ''
   }
-  if (key === 'awbNumberLeft') return `${data.awbPrefix} ${data.awbAirportCode} ${data.awbSerial}`
+  if (key === 'awbNumberPrefix') return data.awbPrefix
+  if (key === 'awbNumberAirport') return data.awbAirportCode
+  if (key === 'awbNumberSerial') return data.awbSerial
   if (key === 'awbNumberTop' || key === 'awbNumberBottom') return `${data.awbPrefix}-${data.awbSerial}`
   if (key === 'wtValPPD' || key === 'wtValCOLL' || key === 'otherPPD' || key === 'otherCOLL') {
     return data[key] ? 'X' : ''
