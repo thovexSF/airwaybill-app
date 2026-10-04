@@ -30,6 +30,7 @@ const DemoEditorPage = lazy(() => import('./pages/DemoEditorPage').then(m => ({ 
 const DemoPickerPage = lazy(() => import('./pages/DemoPickerPage').then(m => ({ default: m.DemoPickerPage })))
 const DemoDocPage = lazy(() => import('./pages/DemoDocPage').then(m => ({ default: m.DemoDocPage })))
 import { PartnerEntryPage } from './pages/PartnerEntryPage'
+const EawbAgreementPage = lazy(() => import('./pages/EawbAgreementPage').then(m => ({ default: m.EawbAgreementPage })))
 const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })))
 import { FeedbackWidget } from './components/FeedbackWidget'
 import { isPartnerEmbed } from './lib/partnerTheme'
@@ -102,6 +103,7 @@ export default function App() {
           )}
         />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/eawb-agreement" element={<ProtectedRoute><EawbAgreementPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />

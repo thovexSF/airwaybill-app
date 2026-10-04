@@ -283,6 +283,83 @@ app.get('/v1/admin/documents/:id', async (req, res) => {
   } catch (e: any) {
     res.status(500).json({ error: e.message || 'admin_document_failed' })
   }
+
+const AGREEMENT_NEXT: Record<string, string> = {
+  solicitado: 'enviado_iata',
+  enviado_iata: 'pendiente_firma',
+  firmado: 'aprobado',
+}
+
+async function sendEmail(to: string, subject: string, html: string) {
+  const key = process.env.RESEND_API_KEY
+  if (!key) return false
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: 'Airwaybill App <support@airwaybill.app>', to, subject, html }),
+  })
+  return r.ok
+}
+
+/** Backoffice: solicitudes del Multilateral e-AWB Agreement, con URL firmada del PDF firmado. */
+app.get('/v1/admin/eawb-agreements', async (req, res) => {
+  const auth = await requireAdmin(req.header('authorization') ?? undefined)
+  if ('error' in auth) return res.status(auth.error).json({ error: 'admin_denied' })
+  const { supabase } = auth
+  const { data, error } = await supabase
+    .from('eawb_agreements')
+    .select('*, organizations(name)')
+    .order('created_at', { ascending: false })
+  if (error) return res.status(500).json({ error: error.message })
+  const rows = await Promise.all((data ?? []).map(async (r: any) => {
+    let signedUrl: string | null = null
+    if (r.signed_pdf_path) {
+      const s = await supabase.storage.from('eawb-agreements').createSignedUrl(r.signed_pdf_path, 3600)
+      signedUrl = s.data?.signedUrl ?? null
+    }
+    return { ...r, orgName: r.organizations?.name ?? null, organizations: undefined, signedUrl }
+  }))
+  res.json({ agreements: rows })
+})
+
+/**
+ * Avanza el estado (solicitado → enviado_iata → pendiente_firma; firmado → aprobado)
+ * o lo pasa a rechazado. Al aprobar o rechazar avisa al cliente por correo (si hay RESEND_API_KEY).
+ */
+app.post('/v1/admin/eawb-agreements/:id/status', async (req, res) => {
+  const auth = await requireAdmin(req.header('authorization') ?? undefined)
+  if ('error' in auth) return res.status(auth.error).json({ error: 'admin_denied' })
+  const { supabase } = auth
+  const reject = req.body?.reject === true
+  const note = typeof req.body?.note === 'string' ? req.body.note : null
+
+  const { data: row, error } = await supabase.from('eawb_agreements').select('*').eq('id', req.params.id).single()
+  if (error || !row) return res.status(404).json({ error: 'not_found' })
+
+  const next = reject ? 'rechazado' : AGREEMENT_NEXT[row.status]
+  if (!next) return res.status(409).json({ error: 'no_next_status' })
+
+  const patch: Record<string, unknown> = { status: next }
+  if (next === 'enviado_iata') patch.sent_to_iata_at = new Date().toISOString()
+  if (next === 'aprobado') patch.approved_at = new Date().toISOString()
+  if (note !== null) patch.admin_note = note
+  const upd = await supabase.from('eawb_agreements').update(patch).eq('id', row.id)
+  if (upd.error) return res.status(500).json({ error: upd.error.message })
+
+  let emailed = false
+  if (next === 'aprobado' || next === 'rechazado') {
+    const f = row.form
+    const base = process.env.PUBLIC_APP_URL || 'https://airwaybill.app'
+    const body = next === 'aprobado'
+      ? `<p>Tu empresa <b>${f.companyName}</b> fue aprobada en el IATA Multilateral e-AWB Agreement.</p><p>El siguiente paso es activar el eAWB con tus aerolíneas; escríbenos a support@airwaybill.app indicando con cuáles quieres operar (partimos con LATAM).</p>`
+      : `<p>Tu solicitud del e-AWB Agreement fue rechazada${note ? `: ${note}` : ''}.</p><p>Revisa los datos y vuelve a enviarla en <a href="${base}/eawb-agreement">${base}/eawb-agreement</a>.</p>`
+    emailed = await sendEmail(
+      f.submitterEmail,
+      next === 'aprobado' ? 'Tu e-AWB Agreement fue aprobado' : 'Tu solicitud de e-AWB Agreement fue rechazada',
+      body,
+    )
+  }
+  res.json({ status: next, emailed })
 })
 
 /**
