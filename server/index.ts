@@ -38,6 +38,10 @@ const PORT = Number(process.env.PORT || 4173)
 const app = express()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } })
 app.disable('x-powered-by')
+// Railway terminates TLS at its proxy; without this req.protocol reads "http"
+// and the embed-session URL comes out http://, which an https host page
+// (B2B) blocks as mixed content — the iframe then never loads.
+app.set('trust proxy', true)
 app.use(cors({ origin: true }))
 app.use(express.json({ limit: '4mb' }))
 
