@@ -213,17 +213,16 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
 
 /**
  * The reverse of the sheet: IATA Resolution 600b, set in two columns the way it
- * is printed on real stationery, in the same ink as the face.
+ * is printed on real stationery. The face keeps the copy's colour; this side,
+ * logo included, is black on every copy.
  */
-function AwbConditionsPage({ copyKey }: { copyKey?: string }) {
-  const theme = awbCopyTheme(copyKey)
-
+function AwbConditionsPage() {
   const column = (clauses: typeof CONDITIONS) => (
     <View style={conditions.column}>
       {clauses.map((c, i) => (
         <View key={i} style={conditions.clause}>
-          <Text style={[conditions.number, { color: theme.ink }]}>{c.n}</Text>
-          <Text style={[conditions.text, { color: theme.ink }]}>{c.text}</Text>
+          <Text style={conditions.number}>{c.n}</Text>
+          <Text style={conditions.text}>{c.text}</Text>
         </View>
       ))}
     </View>
@@ -241,15 +240,14 @@ function AwbConditionsPage({ copyKey }: { copyKey?: string }) {
 
   return (
     <Page size={[PAGE_WIDTH, PAGE_HEIGHT]} wrap={false} style={[styles.page, { paddingHorizontal: 26, paddingVertical: 18 }]}>
-      <Image src={theme.mark} style={conditions.mark} />
-      <Text style={[conditions.noticeTitle, { color: theme.ink }]}>{CONDITIONS_NOTICE_TITLE}</Text>
-      <Text style={[conditions.notice, { color: theme.ink }]}>{CONDITIONS_NOTICE}</Text>
-      <Text style={[conditions.title, { color: theme.ink }]}>{CONDITIONS_TITLE}</Text>
+      <Image src="/awb-iata/5.png" style={conditions.mark} />
+      <Text style={conditions.noticeTitle}>{CONDITIONS_NOTICE_TITLE}</Text>
+      <Text style={conditions.notice}>{CONDITIONS_NOTICE}</Text>
+      <Text style={conditions.title}>{CONDITIONS_TITLE}</Text>
       <View style={conditions.columns}>
         {column(CONDITIONS.slice(0, split))}
         {column(CONDITIONS.slice(split))}
       </View>
-      <Text style={[conditions.foot, { color: theme.ink }]}>{theme.label}</Text>
     </Page>
   )
 }
@@ -257,18 +255,16 @@ function AwbConditionsPage({ copyKey }: { copyKey?: string }) {
 // Helvetica here on purpose: the contract is set text, not typed data, and
 // Courier at this size would not fit the page.
 const conditions = StyleSheet.create({
-  // El globo alado de la IATA, centrado arriba, como en el reverso impreso. Va
-  // en la tinta de la copia porque la hoja entera se imprime en ese color.
+  // El globo alado de la IATA, en negro, como en el reverso del set de referencia.
   mark: { height: 26, width: 38, objectFit: 'contain', alignSelf: 'center', marginBottom: 5 },
-  noticeTitle: { fontFamily: 'Helvetica-Bold', fontSize: 8.5, textAlign: 'center', marginBottom: 3 },
-  notice: { fontFamily: 'Helvetica', fontSize: 6.8, lineHeight: 1.3, textAlign: 'justify', marginBottom: 7 },
-  title: { fontFamily: 'Helvetica-Bold', fontSize: 9, textAlign: 'center', marginBottom: 6 },
+  noticeTitle: { fontFamily: 'Helvetica-Bold', fontSize: 8.5, textAlign: 'center', marginBottom: 3, color: DATA_INK },
+  notice: { fontFamily: 'Helvetica', fontSize: 6.8, lineHeight: 1.3, textAlign: 'justify', marginBottom: 7, color: DATA_INK },
+  title: { fontFamily: 'Helvetica-Bold', fontSize: 9, textAlign: 'center', marginBottom: 6, color: DATA_INK },
   columns: { flexDirection: 'row', gap: 16, flex: 1 },
   column: { flex: 1 },
   clause: { flexDirection: 'row', marginBottom: 2.6 },
-  number: { fontFamily: 'Helvetica-Bold', fontSize: 6.5, width: 29 },
-  text: { fontFamily: 'Helvetica', fontSize: 6.5, lineHeight: 1.3, textAlign: 'justify', flex: 1 },
-  foot: { fontFamily: 'Helvetica-Bold', fontSize: 7, textAlign: 'center', marginTop: 6 },
+  number: { fontFamily: 'Helvetica-Bold', fontSize: 6.5, width: 29, color: DATA_INK },
+  text: { fontFamily: 'Helvetica', fontSize: 6.5, lineHeight: 1.3, textAlign: 'justify', flex: 1, color: DATA_INK },
 })
 
 /**
@@ -285,7 +281,7 @@ export function AWBDocument({ data, hideValues, withConditions }: {
   return (
     <Document>
       <AWBFacePage data={data} hideValues={hideValues} />
-      {withConditions && <AwbConditionsPage copyKey={String(data.copyNumber)} />}
+      {withConditions && <AwbConditionsPage />}
     </Document>
   )
 }
@@ -301,7 +297,7 @@ export function AWBCopiesDocument({ data, copies }: { data: AWBData; copies: str
       {copies.map((key) => (
         <React.Fragment key={key}>
           <AWBFacePage data={data} copyKey={key} />
-          <AwbConditionsPage copyKey={key} />
+          <AwbConditionsPage />
         </React.Fragment>
       ))}
     </Document>
