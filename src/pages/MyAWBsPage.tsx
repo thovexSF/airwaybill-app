@@ -331,10 +331,7 @@ export function MyAWBsPage() {
       <div className="doc-hub-body">
         <div className="doc-hub-header">
           <div>
-            <h1>Documentos AWB</h1>
-            <p className="doc-hub-sub">
-              Suite documental · pestaña <strong>{activeMeta.badge}</strong>
-            </p>
+            <h1>{activeMeta.name}</h1>
           </div>
           <div className="doc-hub-actions">
             <div className="doc-hub-view-toggle">
@@ -352,7 +349,7 @@ export function MyAWBsPage() {
             )}
             {activeMeta.type === 'awb' && (
               <button type="button" className="doc-hub-btn" onClick={() => setShowImport(true)}>
-                ↑ Importar
+                ↑ {t('myAwbs.import')}
               </button>
             )}
             <div style={{ position: 'relative' }}>
@@ -384,15 +381,14 @@ export function MyAWBsPage() {
             <button
               type="button"
               className="doc-hub-btn primary"
-              onClick={() => openEditor(newDocPath(activeMeta), `Nuevo ${activeMeta.badge}`)}
+              onClick={() => openEditor(newDocPath(activeMeta), `${t('myAwbs.newPrefix')} ${activeMeta.badge}`)}
             >
-              + Nuevo {activeMeta.badge}
+              + {t('myAwbs.newPrefix')} {activeMeta.badge}
             </button>
           </div>
         </div>
 
-        <div className="doc-hub-panel">
-          <div className="doc-hub-tabs" role="tablist" aria-label="Tipos de documento">
+        <div className="doc-hub-tabs" role="tablist" aria-label={t('myAwbs.docTypes')}>
             {HUB_DOC_TYPES.map((dt) => {
               const active = dt.type === activeMeta.type
               const n = counts[dt.type] || 0
@@ -404,10 +400,10 @@ export function MyAWBsPage() {
                   aria-selected={active}
                   className={`doc-hub-tab${active ? ' active' : ''}`}
                   style={{
-                    background: active ? dt.color : `${dt.color}22`,
+                    background: active ? dt.color : '#fff',
                     color: active ? '#fff' : dt.color,
-                    borderBottomColor: active ? dt.color : 'transparent',
-                    boxShadow: active ? `inset 0 -3px 0 ${dt.color}` : undefined,
+                    borderColor: active ? dt.color : `${dt.color}55`,
+                    boxShadow: active ? `0 2px 6px ${dt.color}55` : undefined,
                   }}
                   onClick={() => setTab(dt.type)}
                 >
@@ -426,8 +422,9 @@ export function MyAWBsPage() {
                 </button>
               )
             })}
-          </div>
+        </div>
 
+        <div className="doc-hub-panel">
           <div className="doc-hub-filters">
             <input
               value={search}
@@ -454,7 +451,7 @@ export function MyAWBsPage() {
                   setStatusFilter('all')
                 }}
               >
-                Clear
+                {t('myAwbs.clear')}
               </button>
             )}
           </div>

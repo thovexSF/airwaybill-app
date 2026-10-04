@@ -457,19 +457,17 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
   box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden;
 }
 .doc-hub-tabs {
-  display: flex; gap: 0; overflow-x: auto; padding: 0;
-  border-bottom: 1px solid #e0e3e8; background: #eceef2;
+  display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px;
+  margin-bottom: 14px;
   scrollbar-width: thin;
 }
 .doc-hub-tab {
-  flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center;
+  flex: 1 1 0; min-width: max-content; display: inline-flex; align-items: center;
   justify-content: center; gap: 6px;
-  padding: 6px 4px; min-height: 28px; height: 28px; border: none;
-  border-right: 1px solid rgba(0,0,0,0.06);
-  border-bottom: 2px solid transparent;
-  cursor: pointer; font-size: 10px; font-weight: 800;
-  letter-spacing: 0.2px; white-space: nowrap;
-  transition: filter 0.12s, background 0.12s;
+  padding: 8px 12px; height: 38px; border: 1.5px solid transparent; border-radius: 8px;
+  cursor: pointer; font-size: 12px; font-weight: 800;
+  letter-spacing: 0.3px; white-space: nowrap;
+  transition: filter 0.12s, background 0.12s, box-shadow 0.12s;
 }
 .doc-hub-tab:hover { filter: brightness(0.96); }
 .doc-hub-tab.active {
