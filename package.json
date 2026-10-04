@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "start": "tsx server/index.ts",
     "partner:create-key": "tsx scripts/create-partner-key.ts",
-    "check:fwb": "tsx scripts/check-fwb.ts"
+    "check:fwb": "tsx scripts/check-fwb.ts",
+    "migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -31,6 +32,7 @@
     "i18next": "^26.1.0",
     "jsbarcode": "^3.12.3",
     "multer": "^2.2.0",
+    "pg": "^8.23.1",
     "posthog-js": "^1.393.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -45,6 +47,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsbarcode": "^3.11.4",
+    "@types/pg": "^8.23.1",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.2.0",

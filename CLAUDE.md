@@ -26,6 +26,9 @@ alternative static-hosting path.
 (see `docs/PARTNER_API.md` and `supabase/migration_partner_api.sql`). B2B should
 not fork AWB PDF/UI — it calls this API / opens the hosted app.
 
+Migrations run on every Railway deploy via `preDeployCommand: npm run migrate` (`scripts/migrate.ts`, needs
+`DATABASE_URL`; tracked in `schema_migrations`). A new migration goes at the end of `MIGRATIONS` in that script.
+
 The Railway deploy is pinned in the repo, not only in the Railway UI:
 `nixpacks.toml` holds the language provider and the install phase,
 `railway.json` the build and start commands. Four things there are load-bearing
