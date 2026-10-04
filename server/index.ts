@@ -317,7 +317,10 @@ app.get('/v1/admin/eawb-agreements', async (req, res) => {
       const s = await supabase.storage.from('eawb-agreements').createSignedUrl(r.signed_pdf_path, 3600)
       signedUrl = s.data?.signedUrl ?? null
     }
-    return { ...r, orgName: r.organizations?.name ?? null, organizations: undefined, signedUrl }
+    const norm = (n: string) => String(n || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+    const possibleDuplicate = (data ?? []).some((o: any) =>
+      o.id !== r.id && o.status !== 'rechazado' && norm(o.form?.companyName) === norm(r.form?.companyName))
+    return { ...r, orgName: r.organizations?.name ?? null, organizations: undefined, signedUrl, possibleDuplicate }
   }))
   res.json({ agreements: rows })
 })
@@ -331,11 +334,20 @@ app.post('/v1/admin/eawb-agreements/:id/status', async (req, res) => {
   if ('error' in auth) return res.status(auth.error).json({ error: 'admin_denied' })
   const { supabase } = auth
   const reject = req.body?.reject === true
+  const checkOnly = req.body?.action === 'iata_check'
   const note = typeof req.body?.note === 'string' ? req.body.note : null
 
   const { data: row, error } = await supabase.from('eawb_agreements').select('*').eq('id', req.params.id).single()
   if (error || !row) return res.status(404).json({ error: 'not_found' })
 
+  if (checkOnly) {
+    const c = await supabase.from('eawb_agreements').update({ iata_checked_at: new Date().toISOString() }).eq('id', row.id)
+    if (c.error) return res.status(500).json({ error: c.error.message })
+    return res.json({ status: row.status, checked: true })
+  }
+  if (!reject && row.status === 'solicitado' && !row.iata_checked_at) {
+    return res.status(409).json({ error: 'iata_check_required' })
+  }
   const next = reject ? 'rechazado' : AGREEMENT_NEXT[row.status]
   if (!next) return res.status(409).json({ error: 'no_next_status' })
 
@@ -350,14 +362,18 @@ app.post('/v1/admin/eawb-agreements/:id/status', async (req, res) => {
   if (next === 'aprobado' || next === 'rechazado') {
     const f = row.form
     const base = process.env.PUBLIC_APP_URL || 'https://airwaybill.app'
+    const es = f.locale === 'es'
     const body = next === 'aprobado'
-      ? `<p>Tu empresa <b>${f.companyName}</b> fue aprobada en el IATA Multilateral e-AWB Agreement.</p><p>El siguiente paso es activar el eAWB con tus aerolíneas; escríbenos a support@airwaybill.app indicando con cuáles quieres operar (partimos con LATAM).</p>`
-      : `<p>Tu solicitud del e-AWB Agreement fue rechazada${note ? `: ${note}` : ''}.</p><p>Revisa los datos y vuelve a enviarla en <a href="${base}/eawb-agreement">${base}/eawb-agreement</a>.</p>`
-    emailed = await sendEmail(
-      f.submitterEmail,
-      next === 'aprobado' ? 'Tu e-AWB Agreement fue aprobado' : 'Tu solicitud de e-AWB Agreement fue rechazada',
-      body,
-    )
+      ? (es
+        ? `<p>Tu empresa <b>${f.companyName}</b> fue aprobada en el IATA Multilateral e-AWB Agreement.</p><p>El siguiente paso es activar el eAWB con tus aerolíneas; escríbenos a support@airwaybill.app indicando con cuáles quieres operar (partimos con LATAM).</p>`
+        : `<p>Your company <b>${f.companyName}</b> has been approved in the IATA Multilateral e-AWB Agreement.</p><p>The next step is activating eAWB with your airlines; write to support@airwaybill.app telling us which ones you want to operate with (we start with LATAM).</p>`)
+      : (es
+        ? `<p>Tu solicitud del e-AWB Agreement fue rechazada${note ? `: ${note}` : ''}.</p><p>Revisa los datos y vuelve a enviarla en <a href="${base}/eawb-agreement">${base}/eawb-agreement</a>.</p>`
+        : `<p>Your e-AWB Agreement request was rejected${note ? `: ${note}` : ''}.</p><p>Review the details and submit it again at <a href="${base}/eawb-agreement">${base}/eawb-agreement</a>.</p>`)
+    const subject = next === 'aprobado'
+      ? (es ? 'Tu e-AWB Agreement fue aprobado' : 'Your e-AWB Agreement was approved')
+      : (es ? 'Tu solicitud de e-AWB Agreement fue rechazada' : 'Your e-AWB Agreement request was rejected')
+    emailed = await sendEmail(f.submitterEmail, subject, body)
   }
   res.json({ status: next, emailed })
 })

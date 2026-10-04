@@ -1,12 +1,13 @@
 import { supabase } from './supabase'
 
+export const IATA_REGISTERED_REPORT_URL = 'https://matchmaker.iata.org/efReport/ffAndAffiliatesAgrReport'
 export const IATA_FORM_URL = 'https://iata.formstack.com/forms/multilateral_copy_2'
 
 export type AgreementStatus =
   | 'solicitado' | 'enviado_iata' | 'pendiente_firma' | 'firmado' | 'aprobado' | 'rechazado'
 
 export const STATUS_LABEL: Record<AgreementStatus, string> = {
-  solicitado: 'Solicitado',
+  solicitado: 'Solicitado / en revisión',
   enviado_iata: 'Enviado a IATA',
   pendiente_firma: 'Pendiente de tu firma',
   firmado: 'Firmado',
@@ -34,13 +35,15 @@ export interface AgreementForm {
   signatory2Name: string
   signatory2Title: string
   signatory2Email: string
+  /** Idioma de la UI al solicitar; define el idioma de los correos. */
+  locale: 'en' | 'es'
 }
 
 export const EMPTY_FORM: AgreementForm = {
   submitterName: '', submitterEmail: '', companyName: '', address: '', city: '', country: 'Chile',
   iataAgentCode: '', cassCode: '', contactName: '', contactTitle: '', contactEmail: '', contactPhone: '',
   signatoryName: '', signatoryEmail: '', signatoryTitle: '',
-  secondSignatory: false, signatory2Name: '', signatory2Title: '', signatory2Email: '',
+  secondSignatory: false, signatory2Name: '', signatory2Title: '', signatory2Email: '', locale: 'en',
 }
 
 export interface AgreementRow {
@@ -49,6 +52,7 @@ export interface AgreementRow {
   form: AgreementForm
   status: AgreementStatus
   authorized_at: string
+  iata_checked_at: string | null
   sent_to_iata_at: string | null
   signed_pdf_path: string | null
   signed_at: string | null

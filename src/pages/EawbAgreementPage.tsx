@@ -1,20 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
+import { FormErrors, isFreeMail, normalizeForm, validateForm } from '../lib/eawbValidation'
 import {
-  AgreementForm, AgreementRow, COUNTRIES, EMPTY_FORM, STATUS_LABEL,
+  AgreementForm, AgreementRow, COUNTRIES, EMPTY_FORM,
   listAgreements, requestAgreement, uploadSignedAgreement,
 } from '../lib/eawbAgreement'
 
 const ACCENT = '#8B0000'
-const upper = (s: string) => s.toUpperCase()
 
 export function EawbAgreementPage() {
+  const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const { orgId } = usePlan()
+  const locale: 'en' | 'es' = i18n.language === 'es' ? 'es' : 'en'
   const [rows, setRows] = useState<AgreementRow[]>([])
   const [form, setForm] = useState<AgreementForm>({ ...EMPTY_FORM, submitterEmail: user?.email ?? '' })
+  const [errors, setErrors] = useState<FormErrors>({})
   const [authorized, setAuthorized] = useState(false)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -25,16 +29,20 @@ export function EawbAgreementPage() {
   useEffect(() => { load().catch(e => setMsg(e.message)) }, [load])
 
   const set = <K extends keyof AgreementForm>(k: K, v: AgreementForm[K]) => setForm(f => ({ ...f, [k]: v }))
+  const err = (k: keyof AgreementForm) => (errors[k] ? t(`eawb.err.${errors[k]}`) : undefined)
   const active = rows.find(r => r.status !== 'rechazado')
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!orgId || !user) return
+    const errs = validateForm(form)
+    setErrors(errs)
+    if (Object.keys(errs).length) { setMsg(t('eawb.fixErrors')); return }
     setBusy(true); setMsg(null)
     try {
-      await requestAgreement(orgId, user.id, form)
+      await requestAgreement(orgId, user.id, { ...normalizeForm(form), locale })
       await load()
-    } catch (err: any) { setMsg(err.message) } finally { setBusy(false) }
+    } catch (e2: any) { setMsg(e2.message) } finally { setBusy(false) }
   }
 
   async function onSigned(r: AgreementRow, file: File) {
@@ -43,72 +51,73 @@ export function EawbAgreementPage() {
     try {
       await uploadSignedAgreement(orgId, r.id, file)
       await load()
-    } catch (err: any) { setMsg(err.message) } finally { setBusy(false) }
+    } catch (e2: any) { setMsg(e2.message) } finally { setBusy(false) }
   }
 
   return (
     <div style={{ fontFamily: 'system-ui', maxWidth: 760, margin: '0 auto', padding: '24px 20px 60px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Servicio Multilateral e-AWB Agreement</h1>
-        <Link to="/settings" style={{ fontSize: 13, color: ACCENT }}>← Volver</Link>
+        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{t('eawb.title')}</h1>
+        <Link to="/settings" style={{ fontSize: 13, color: ACCENT }}>{t('eawb.back')}</Link>
       </div>
-      <p style={{ color: '#666', fontSize: 13 }}>
-        Acuerdo multilateral de IATA (Res. 672) que habilita el AWB electrónico (eAWB) con las aerolíneas.
-        Nosotros tramitamos el formulario ante IATA por ti; IATA enviará el contrato a firmar al correo del firmante.
-      </p>
+      <p style={{ color: '#666', fontSize: 13 }}>{t('eawb.intro')}</p>
       {msg && <p style={{ color: ACCENT, fontSize: 13 }}>{msg}</p>}
 
       {active ? (
         <Status r={active} busy={busy} onSigned={f => onSigned(active, f)} />
       ) : (
-        <form onSubmit={submit}>
+        <form onSubmit={submit} noValidate>
+          <p style={{ fontSize: 13, background: '#fff8e6', border: '1px solid #f0dca0', borderRadius: 8, padding: '8px 12px' }}>{t('eawb.needEnglish')}</p>
           {rows[0]?.status === 'rechazado' && (
             <p style={{ color: ACCENT, fontSize: 13 }}>
-              Tu solicitud anterior fue rechazada{rows[0].admin_note ? `: ${rows[0].admin_note}` : ''}. Corrige los datos y vuelve a enviarla.
+              {t('eawb.rejected')}{rows[0].admin_note ? `: ${rows[0].admin_note}` : ''}. {t('eawb.rejectedHint')}
             </p>
           )}
-          <Group title="Quién envía la solicitud">
-            <T label="Tu nombre" v={form.submitterName} on={v => set('submitterName', v)} />
-            <T label="Tu email" type="email" v={form.submitterEmail} on={v => set('submitterEmail', v)} />
+          <Group title={t('eawb.submitter')}>
+            <T label={t('eawb.yourName')} v={form.submitterName} on={v => set('submitterName', v)} err={err('submitterName')} />
+            <T label={t('eawb.yourEmail')} type="email" v={form.submitterEmail} on={v => set('submitterEmail', v)} err={err('submitterEmail')} />
           </Group>
-          <Group title="Datos de la empresa (tal como aparecerán en el contrato)">
-            <T label="Razón social (MAYÚSCULAS)" v={form.companyName} on={v => set('companyName', upper(v))} />
-            <T label="Dirección de la oficina principal" v={form.address} on={v => set('address', v)} />
-            <T label="Ciudad" v={form.city} on={v => set('city', v)} />
+          <Group title={t('eawb.company')}>
+            <T label={t('eawb.legalName')} v={form.companyName} on={v => set('companyName', v.toUpperCase())} err={err('companyName')} />
+            <T label={t('eawb.address')} v={form.address} on={v => set('address', v)} err={err('address')} />
+            <T label={t('eawb.city')} v={form.city} on={v => set('city', v)} err={err('city')} />
             <div style={fieldStyle}>
-              <label style={labelStyle}>País</label>
+              <label style={labelStyle}>{t('eawb.country')}</label>
               <select value={form.country} onChange={e => set('country', e.target.value)} style={inputStyle} required>
                 {COUNTRIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
-            <T label="Código IATA Cargo Agent (7 dígitos, o N/A)" v={form.iataAgentCode} on={v => set('iataAgentCode', v)} ph="N/A" />
-            <T label="Código CASS/Branch (opcional, 4 dígitos)" v={form.cassCode} on={v => set('cassCode', v)} req={false} />
+            <T label={t('eawb.agentCode')} v={form.iataAgentCode} on={v => set('iataAgentCode', v)} ph="7519012 / N/A"
+              help={t('eawb.agentCodeHelp')} err={err('iataAgentCode')} />
+            <T label={t('eawb.cassCode')} v={form.cassCode} on={v => set('cassCode', v)} ph="0014" req={false}
+              help={t('eawb.cassHelp')} err={err('cassCode')} />
           </Group>
-          <Group title="Contacto designado (recibe avisos de aerolíneas e IATA)">
-            <T label="Nombre completo (MAYÚSCULAS)" v={form.contactName} on={v => set('contactName', upper(v))} />
-            <T label="Cargo (en inglés)" v={form.contactTitle} on={v => set('contactTitle', v)} />
-            <T label="Email" type="email" v={form.contactEmail} on={v => set('contactEmail', v)} />
-            <T label="Teléfono (00 + país + área + número)" v={form.contactPhone} on={v => set('contactPhone', v)} ph="0056222345678" />
+          <Group title={t('eawb.contact')}>
+            <T label={t('eawb.fullName')} v={form.contactName} on={v => set('contactName', v.toUpperCase())} err={err('contactName')} />
+            <T label={t('eawb.jobTitle')} v={form.contactTitle} on={v => set('contactTitle', v)} err={err('contactTitle')} />
+            <T label={t('eawb.email')} type="email" v={form.contactEmail} on={v => set('contactEmail', v)} err={err('contactEmail')} />
+            <T label={t('eawb.phone')} v={form.contactPhone} on={v => set('contactPhone', v)} ph="0041227702669"
+              help={t('eawb.phoneHelp')} err={err('contactPhone')} />
           </Group>
-          <Group title="Firmante (con poder para obligar a la empresa)">
-            <T label="Nombre completo (MAYÚSCULAS)" v={form.signatoryName} on={v => set('signatoryName', upper(v))} />
-            <T label="Email (aquí llega el contrato a firmar)" type="email" v={form.signatoryEmail} on={v => set('signatoryEmail', v)} />
-            <T label="Cargo (CEO, CFO, Director, General Manager…)" v={form.signatoryTitle} on={v => set('signatoryTitle', v)} />
+          <Group title={t('eawb.signatory')}>
+            <T label={t('eawb.fullName')} v={form.signatoryName} on={v => set('signatoryName', v.toUpperCase())} err={err('signatoryName')} />
+            <T label={t('eawb.signatoryEmail')} type="email" v={form.signatoryEmail} on={v => set('signatoryEmail', v)}
+              err={err('signatoryEmail')} warn={isFreeMail(form.signatoryEmail) ? t('eawb.freeMailWarn') : undefined} />
+            <T label={t('eawb.signatoryTitle')} v={form.signatoryTitle} on={v => set('signatoryTitle', v)} err={err('signatoryTitle')} />
             <label style={{ fontSize: 13 }}>
-              <input type="checkbox" checked={form.secondSignatory} onChange={e => set('secondSignatory', e.target.checked)} /> Agregar un 2º firmante
+              <input type="checkbox" checked={form.secondSignatory} onChange={e => set('secondSignatory', e.target.checked)} /> {t('eawb.second')}
             </label>
             {form.secondSignatory && <>
-              <T label="2º firmante: nombre (MAYÚSCULAS)" v={form.signatory2Name} on={v => set('signatory2Name', upper(v))} />
-              <T label="2º firmante: cargo" v={form.signatory2Title} on={v => set('signatory2Title', v)} />
-              <T label="2º firmante: email" type="email" v={form.signatory2Email} on={v => set('signatory2Email', v)} />
+              <T label={t('eawb.second2Name')} v={form.signatory2Name} on={v => set('signatory2Name', v.toUpperCase())} err={err('signatory2Name')} />
+              <T label={t('eawb.second2Title')} v={form.signatory2Title} on={v => set('signatory2Title', v)} err={err('signatory2Title')} />
+              <T label={t('eawb.second2Email')} type="email" v={form.signatory2Email} on={v => set('signatory2Email', v)} err={err('signatory2Email')} />
             </>}
           </Group>
           <label style={{ fontSize: 13, display: 'block', margin: '16px 0' }}>
-            <input type="checkbox" checked={authorized} onChange={e => setAuthorized(e.target.checked)} required />{' '}
-            Autorizo a airwaybill.app a enviar estos datos a IATA en nombre de mi empresa para tramitar el Multilateral e-AWB Agreement.
+            <input type="checkbox" checked={authorized} onChange={e => setAuthorized(e.target.checked)} /> {t('eawb.authorize')}
           </label>
           <button type="submit" disabled={busy || !authorized || !orgId} style={btnStyle}>
-            {busy ? 'Enviando…' : 'Solicitar'}
+            {busy ? t('eawb.sending') : t('eawb.submit')}
           </button>
         </form>
       )}
@@ -116,11 +125,12 @@ export function EawbAgreementPage() {
   )
 }
 
-const STEPS: AgreementRowStatus[] = ['solicitado', 'enviado_iata', 'pendiente_firma', 'firmado', 'aprobado']
-type AgreementRowStatus = AgreementRow['status']
+const STEPS: AgreementRow['status'][] = ['solicitado', 'enviado_iata', 'pendiente_firma', 'firmado', 'aprobado']
 
 function Status({ r, busy, onSigned }: { r: AgreementRow; busy: boolean; onSigned: (f: File) => void }) {
+  const { t } = useTranslation()
   const idx = STEPS.indexOf(r.status)
+  const p = { email: r.form.signatoryEmail, date: r.estimated_ready_at ?? '' }
   return (
     <div style={{ border: '1px solid #eee', borderRadius: 10, padding: 20 }}>
       <p style={{ margin: '0 0 4px', fontSize: 13, color: '#666' }}>{r.form.companyName}</p>
@@ -129,24 +139,17 @@ function Status({ r, busy, onSigned }: { r: AgreementRow; busy: boolean; onSigne
           <li key={s} style={{
             fontSize: 12, padding: '4px 10px', borderRadius: 12,
             background: i <= idx ? ACCENT : '#f2f2f2', color: i <= idx ? '#fff' : '#888', fontWeight: i === idx ? 700 : 400,
-          }}>{STATUS_LABEL[s]}</li>
+          }}>{t(`eawb.s.${s}`)}</li>
         ))}
       </ol>
-      {r.status === 'solicitado' && <p style={pStyle}>Recibimos tu solicitud. La estamos enviando a IATA.</p>}
-      {r.status === 'enviado_iata' && <p style={pStyle}>Enviada a IATA. En breve recibirás un correo de IATA con el contrato para firmar en {r.form.signatoryEmail}.</p>}
+      <p style={pStyle}>{t(`eawb.st.${r.status}`, p)}</p>
       {(r.status === 'pendiente_firma' || r.status === 'firmado') && (
         <>
-          <p style={pStyle}>
-            {r.status === 'pendiente_firma'
-              ? `IATA envió el contrato a ${r.form.signatoryEmail}. Fírmalo y sube aquí el PDF firmado que te llega por correo.`
-              : `Recibimos tu contrato firmado. Fecha estimada de aprobación: ${r.estimated_ready_at} (10 días hábiles).`}
-          </p>
           <input type="file" accept="application/pdf" disabled={busy}
             onChange={e => { const f = e.target.files?.[0]; if (f) onSigned(f) }} />
-          {r.status === 'firmado' && <p style={{ ...pStyle, fontSize: 12, color: '#888' }}>Puedes subir otra versión si te equivocaste de archivo.</p>}
+          {r.status === 'firmado' && <p style={{ ...pStyle, fontSize: 12, color: '#888' }}>{t('eawb.st.firmadoReupload')}</p>}
         </>
       )}
-      {r.status === 'aprobado' && <p style={pStyle}>Tu empresa ya es parte del acuerdo multilateral. Escríbenos para activar el eAWB con tus aerolíneas.</p>}
     </div>
   )
 }
@@ -160,11 +163,17 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   )
 }
 
-function T({ label, v, on, type, ph, req = true }: { label: string; v: string; on: (v: string) => void; type?: string; ph?: string; req?: boolean }) {
+function T({ label, v, on, type, ph, req = true, help, err, warn }: {
+  label: string; v: string; on: (v: string) => void; type?: string; ph?: string; req?: boolean; help?: string; err?: string; warn?: string
+}) {
   return (
     <div style={fieldStyle}>
       <label style={labelStyle}>{label}</label>
-      <input type={type ?? 'text'} value={v} onChange={e => on(e.target.value)} placeholder={ph} required={req} style={inputStyle} />
+      <input type={type ?? 'text'} value={v} onChange={e => on(e.target.value)} placeholder={ph} required={req}
+        style={{ ...inputStyle, borderColor: err ? ACCENT : '#ddd' }} />
+      {help && <div style={{ fontSize: 11, color: '#777', marginTop: 3 }}>{help}</div>}
+      {warn && !err && <div style={{ fontSize: 11, color: '#a60', marginTop: 3 }}>{warn}</div>}
+      {err && <div style={{ fontSize: 12, color: ACCENT, marginTop: 3 }}>{err}</div>}
     </div>
   )
 }

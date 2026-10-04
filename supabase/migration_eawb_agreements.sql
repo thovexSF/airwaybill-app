@@ -14,6 +14,7 @@ create table if not exists eawb_agreements (
   status           text not null default 'solicitado'
                      check (status in ('solicitado','enviado_iata','pendiente_firma','firmado','aprobado','rechazado')),
   authorized_at    timestamptz not null default now(),
+  iata_checked_at  timestamptz,  -- el admin confirmó en el reporte público de IATA que la empresa no está registrada
   sent_to_iata_at  timestamptz,
   signed_pdf_path  text,
   signed_at        timestamptz,
@@ -102,3 +103,5 @@ create policy "Org members read signed agreements"
       where m.user_id = auth.uid() and m.organization_id::text = (storage.foldername(name))[1]
     )
   );
+
+alter table eawb_agreements add column if not exists iata_checked_at timestamptz;
