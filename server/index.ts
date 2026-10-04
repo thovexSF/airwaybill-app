@@ -23,7 +23,7 @@ import cors from 'cors'
 import multer from 'multer'
 import { adminClient, authenticateApiKey, effectivePlan } from './partnerAuth'
 import { requireAdmin } from './adminAuth'
-import { lookupIataRegistry } from './iataRegistry'
+import { lookupIataRegistry, registryMeta, replaceRegistry } from './iataRegistry'
 import { renderDocumentPdf } from './renderPdf'
 import { applyEAwbResult, buildFwbFromAwb } from '../src/lib/awbToFwb'
 import type { AWBData } from '../src/types/awb'
@@ -286,14 +286,38 @@ app.get('/v1/admin/documents/:id', async (req, res) => {
   }
 })
 
-/** Busca la empresa de una solicitud en la lista pública de IATA (ver server/iataRegistry.ts). */
-app.get('/v1/admin/eawb-agreements/:id/iata-registry', async (req, res) => {
+/** Estado de la lista IATA cargada (fecha de descarga, filas). */
+app.get('/v1/admin/iata-registry', async (req, res) => {
   try {
     const auth = await requireAdmin(req.header('authorization') ?? undefined)
     if ('error' in auth) return res.status(auth.error).json({ error: 'admin_denied' })
-    const { data: row } = await auth.supabase.from('eawb_agreements').select('form').eq('id', req.params.id).single()
-    if (!row) return res.status(404).json({ error: 'not_found' })
-    res.json(await lookupIataRegistry(row.form.country, row.form.companyName))
+    res.json({ meta: await registryMeta() })
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || 'iata_registry_failed' })
+  }
+})
+
+/** Reemplaza la lista IATA completa con el CSV exportado del reporte (`{ csv, asOf: 'YYYY-MM-DD' }`). */
+app.post('/v1/admin/iata-registry', async (req, res) => {
+  try {
+    const auth = await requireAdmin(req.header('authorization') ?? undefined)
+    if ('error' in auth) return res.status(auth.error).json({ error: 'admin_denied' })
+    const { csv, asOf } = req.body ?? {}
+    if (typeof csv !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(asOf ?? '')) {
+      return res.status(400).json({ error: 'csv_and_asOf_required' })
+    }
+    res.json(await replaceRegistry(csv, asOf))
+  } catch (e: any) {
+    res.status(400).json({ error: e.message || 'iata_registry_upload_failed' })
+  }
+})
+
+/** Para el formulario del cliente: ¿ya figura esta razón social en la lista de IATA? */
+app.get('/v1/eawb/registry-check', async (req, res) => {
+  try {
+    const ctx = await authenticateUser(req.header('authorization') ?? undefined)
+    if (!ctx) return res.status(401).json({ error: 'unauthorized' })
+    res.json(await lookupIataRegistry(String(req.query.name ?? '')))
   } catch (e: any) {
     res.status(500).json({ error: e.message || 'iata_registry_failed' })
   }
@@ -335,7 +359,8 @@ app.get('/v1/admin/eawb-agreements', async (req, res) => {
     const norm = (n: string) => String(n || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
     const possibleDuplicate = (data ?? []).some((o: any) =>
       o.id !== r.id && o.status !== 'rechazado' && norm(o.form?.companyName) === norm(r.form?.companyName))
-    return { ...r, orgName: r.organizations?.name ?? null, organizations: undefined, signedUrl, possibleDuplicate }
+    const registry = r.status === 'solicitado' ? await lookupIataRegistry(r.form?.companyName ?? '').catch(() => null) : null
+    return { ...r, orgName: r.organizations?.name ?? null, organizations: undefined, signedUrl, possibleDuplicate, registry }
   }))
   res.json({ agreements: rows })
 })

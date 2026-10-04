@@ -115,6 +115,7 @@ export interface AdminAgreementRow extends AgreementRow {
   orgName: string | null
   signedUrl: string | null
   possibleDuplicate: boolean
+  registry: { available: boolean; status: string; asOf: string | null; matches: { companyName: string; countryName: string; joiningDate: string | null }[] } | null
 }
 
 async function adminFetch(path: string, init?: RequestInit) {
@@ -136,4 +137,19 @@ export async function fetchAdminAgreements(): Promise<AdminAgreementRow[]> {
 
 export async function advanceAgreement(id: string, opts: { reject?: boolean; note?: string; action?: 'iata_check' } = {}) {
   return adminFetch(`/v1/admin/eawb-agreements/${id}/status`, { method: 'POST', body: JSON.stringify(opts) })
+}
+
+export interface RegistryMeta { as_of: string; uploaded_at: string; row_count: number }
+
+export async function fetchRegistryMeta(): Promise<RegistryMeta | null> {
+  return (await adminFetch('/v1/admin/iata-registry')).meta
+}
+
+/** El CSV de IATA viene en Windows-1252 (UTF-8 inválido); probamos UTF-8 estricto y caemos a 1252. */
+export async function uploadRegistryCsv(file: File, asOf: string): Promise<{ rows: number }> {
+  const buf = await file.arrayBuffer()
+  let csv: string
+  try { csv = new TextDecoder('utf-8', { fatal: true }).decode(buf) }
+  catch { csv = new TextDecoder('windows-1252').decode(buf) }
+  return adminFetch('/v1/admin/iata-registry', { method: 'POST', body: JSON.stringify({ csv, asOf }) })
 }

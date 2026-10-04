@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchAdminOverview, openAdminDocumentPdf, openAdminDocumentJson, AdminOverview, AdminAgreementRow, fetchAdminAgreements, advanceAgreement } from '../lib/adminApi'
+import { fetchAdminOverview, openAdminDocumentPdf, openAdminDocumentJson, AdminOverview, AdminAgreementRow, fetchAdminAgreements, advanceAgreement, RegistryMeta, fetchRegistryMeta, uploadRegistryCsv } from '../lib/adminApi'
 import { STATUS_LABEL, IATA_REGISTERED_REPORT_URL, iataPrefillUrl } from '../lib/eawbAgreement'
 
 const ACCENT = '#8B0000'
@@ -107,6 +107,7 @@ export function AdminPage() {
       </div>
 
       <AgreementsSection rows={agreements} reload={reloadAgreements} />
+      <RegistrySection />
 
       <Section title="Organizaciones" subtitle="Uso de PDF de por vida vs. límite del plan (free: 3 documentos, no por mes)">
         <TableScroll>
@@ -307,7 +308,14 @@ function AgreementsSection({ rows, reload }: { rows: AdminAgreementRow[]; reload
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
-                <Td>{r.form.companyName}<br /><span style={{ color: '#888', fontSize: 11 }}>{r.form.signatoryEmail}</span>{r.possibleDuplicate && <><br /><span style={{ color: ACCENT, fontSize: 11, fontWeight: 700 }}>⚠ Misma razón social que otra solicitud</span></>}</Td>
+                <Td>{r.form.companyName}<br /><span style={{ color: '#888', fontSize: 11 }}>{r.form.signatoryEmail}</span>{r.status === 'solicitado' && r.registry?.available && (
+                      <><br /><span style={{ fontSize: 11, fontWeight: 700, color: r.registry.status === 'not_found' ? '#2f7d32' : ACCENT }}>
+                        {r.registry.status === 'not_found'
+                          ? `Lista IATA (${r.registry.asOf}): no figura`
+                          : `${r.registry.status === 'registered' ? 'YA FIGURA en IATA' : 'Parecida en IATA'}: ${r.registry.matches.map(m => `${m.companyName} (${m.countryName})`).join('; ')}`}
+                      </span></>
+                    )}
+                    {r.possibleDuplicate && <><br /><span style={{ color: ACCENT, fontSize: 11, fontWeight: 700 }}>⚠ Misma razón social que otra solicitud</span></>}</Td>
                 <Td>{r.orgName || '—'}</Td>
                 <Td>{STATUS_LABEL[r.status]}</Td>
                 <Td>{fmtDate(r.created_at)}</Td>
@@ -331,6 +339,44 @@ function AgreementsSection({ rows, reload }: { rows: AdminAgreementRow[]; reload
           </tbody>
         </table>
       )}
+    </Section>
+  )
+}
+
+function RegistrySection() {
+  const [meta, setMeta] = useState<RegistryMeta | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+  useEffect(() => { fetchRegistryMeta().then(setMeta).catch(() => {}) }, [])
+
+  async function onFile(file: File) {
+    // La fecha de descarga del archivo es la fecha "al" que verá el cliente.
+    const asOf = new Date(file.lastModified).toISOString().slice(0, 10)
+    if (!confirm(`Reemplazar la lista IATA con ${file.name} (descargada el ${asOf})?`)) return
+    setBusy(true); setMsg(null)
+    try {
+      const r = await uploadRegistryCsv(file, asOf)
+      setMsg(`Cargadas ${r.rows} filas.`)
+      setMeta(await fetchRegistryMeta())
+    } catch (e: any) { setMsg(e.message) } finally { setBusy(false) }
+  }
+
+  return (
+    <Section title="Lista IATA de forwarders" subtitle="Se usa para avisar al cliente si su empresa ya figura en el Multilateral e-AWB Agreement">
+      <p style={{ fontSize: 13, margin: '0 0 8px' }}>
+        {meta
+          ? <>Cargada al <b>{meta.as_of}</b> · {meta.row_count.toLocaleString('es-CL')} empresas · subida {fmtDate(meta.uploaded_at)}</>
+          : 'Aún no hay lista cargada: los clientes no verán la verificación.'}
+      </p>
+      <p style={{ fontSize: 12, color: '#666', margin: '0 0 8px' }}>
+        1. <a href={IATA_REGISTERED_REPORT_URL} target="_blank" rel="noreferrer" style={{ color: ACCENT }}>Abre el reporte de IATA</a>{' '}
+        (te pedirá una verificación de seguridad), sin filtros de país, y exporta la tabla completa a CSV.
+        2. Sube el archivo aquí; reemplaza la lista anterior.
+      </p>
+      <input type="file" accept=".csv,text/csv" disabled={busy}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = '' }} />
+      {busy && <span style={{ fontSize: 12, marginLeft: 8 }}>Cargando…</span>}
+      {msg && <p style={{ fontSize: 12, margin: '6px 0 0' }}>{msg}</p>}
     </Section>
   )
 }

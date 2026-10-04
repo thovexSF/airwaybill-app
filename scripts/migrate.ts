@@ -16,6 +16,7 @@ const MIGRATIONS = [
   'migration_free_lifetime_limit.sql',
   'migration_admin_backoffice.sql',
   'migration_eawb_agreements.sql',
+  'migration_iata_registry.sql',
 ]
 
 const url = process.env.DATABASE_URL

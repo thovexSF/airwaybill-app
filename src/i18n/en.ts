@@ -269,6 +269,8 @@ const en = {
     popupBlocked: 'The browser blocked the print window. Download the PDF and print it from there.',
     print: 'Print',
     download: 'Download PDF',
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
   },
   eawbPromo: {
     title: 'Go paperless with eAWB.',
@@ -324,6 +326,12 @@ const en = {
       firmado: 'We received your signed contract. Estimated approval date: {{date}} (10 business days).',
       firmadoReupload: 'You can upload another version if you picked the wrong file.',
       aprobado: 'Your company is now part of the multilateral agreement. Write to us to activate eAWB with your airlines.',
+    },
+    reg: {
+      checking: 'Checking the IATA list…',
+      notFound: 'Checked against the public IATA list as of {{date}}: your company did not appear in it.',
+      possible: 'Similar names already on the IATA list: {{list}}. If one of them is your company, you may already be registered.',
+      registered: 'Your company already appears on the IATA list ({{list}}). You do not need to request the agreement again.',
     },
     err: {
       latin: 'Use Latin characters only (transliterate if needed).',

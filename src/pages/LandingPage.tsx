@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { PLANS } from '../data/plans'
+import { exampleAWB } from '../data/example'
+import { airlineLogoSrc } from '../lib/airlines'
+import { awbCopyTheme } from '../pdf/awbCopyTheme'
+import { getFieldDefs, LEADING, PAGE_HEIGHT, PAGE_WIDTH } from '../pdf/awbLayout'
+import type { AWBData } from '../types/awb'
 import './LandingPage.css'
 import { LangSwitcher } from '../components/LangSwitcher'
 
@@ -101,30 +106,13 @@ export function LandingPage() {
           <p className="lp-hero-note">{t('landing.hero.note')}</p>
         </div>
 
-        {/* Mockup — clickable, opens demo editor */}
+        {/* Mockup — the public demo editor, with the example shipment on the real sheet */}
         <Link to={tryPath} className="lp-hero-mockup" aria-label={t('landing.hero.cta')}>
           <div className="lp-mockup-bar">
             <span /><span /><span />
-            <div className="lp-mockup-url">airwaybill.app/demo</div>
+            <div className="lp-mockup-url">airwaybill.app/demo/awb</div>
           </div>
-          <div className="lp-mockup-body">
-            <div className="lp-mockup-sidebar">
-              {['AWB Number', 'Shipper', 'Consignee', 'Routing', 'Charges', 'Rate Items'].map(s => (
-                <div key={s} className="lp-mockup-section">{s}</div>
-              ))}
-            </div>
-            <div className="lp-mockup-preview">
-              <div className="lp-mockup-pdf">
-                <div className="lp-mockup-awb-header">
-                  <div className="lp-mockup-awb-num">999 <span>12345675</span></div>
-                  <div className="lp-mockup-awb-title">Air Waybill</div>
-                </div>
-                {[1,2,3,4,5,6].map(i => (
-                  <div key={i} className="lp-mockup-awb-row" style={{ width: `${100 - i * 5}%`, opacity: 1 - i * 0.08 }} />
-                ))}
-              </div>
-            </div>
-          </div>
+          <LandingEditorMock />
         </Link>
       </section>
 
@@ -263,6 +251,112 @@ export function LandingPage() {
           <span>Built for IATA Resolution 600a compliance</span>
         </div>
       </footer>
+    </div>
+  )
+}
+
+/** Same mapping the PDF uses, trimmed to what the example shipment prints. */
+function mockFieldValue(data: AWBData, key: string): string {
+  const rate = /^rateItems\.(\d+)\.(.+)$/.exec(key)
+  if (rate) {
+    const item = data.rateItems[Number(rate[1])]
+    if (!item) return ''
+    const value = String(item[rate[2] as keyof typeof item] ?? '')
+    if (rate[2] === 'grossWeight' && value) return `${value} ${(item.weightUnit || 'K').charAt(0)}`
+    return value
+  }
+  const charge = /^otherCharges\.(\d+)\.(.+)$/.exec(key)
+  if (charge) {
+    const item = data.otherCharges[Number(charge[1])]
+    return item ? String(item[charge[2] as keyof typeof item] ?? '') : ''
+  }
+  if (key === 'awbNumberLeft') return `${data.awbPrefix} ${data.awbAirportCode} ${data.awbSerial}`
+  if (key === 'awbNumberTop' || key === 'awbNumberBottom') return `${data.awbPrefix}-${data.awbSerial}`
+  if (key === 'wtValPPD' || key === 'wtValCOLL' || key === 'otherPPD' || key === 'otherCOLL') {
+    return data[key] ? 'X' : ''
+  }
+  if (key === 'ratePiecesTotal') {
+    const total = data.rateItems.reduce((s, r) => s + (Number(r.pieces) || 0), 0)
+    return total ? String(total) : ''
+  }
+  if (key === 'rateGrossTotal') {
+    const total = data.rateItems.reduce((s, r) => s + (Number(String(r.grossWeight).replace(',', '.')) || 0), 0)
+    return total ? `${total.toFixed(1)} K` : ''
+  }
+  if (key === 'rateGrandTotal') {
+    const total = data.rateItems.reduce((s, r) => s + (Number(String(r.total).replace(',', '.')) || 0), 0)
+    return total ? total.toFixed(2) : ''
+  }
+  const v = (data as unknown as Record<string, unknown>)[key]
+  if (v == null || typeof v === 'object') return ''
+  return String(v)
+}
+
+function LandingEditorMock() {
+  const { t } = useTranslation()
+  const data = exampleAWB
+  const theme = awbCopyTheme(data.copyNumber)
+  const logo = airlineLogoSrc(data.awbPrefix)
+  const fields = getFieldDefs(data.rateItems.length, data.otherCharges.length)
+
+  return (
+    <div className="lp-mock-app">
+      <div className="lp-mock-banner">
+        <span>{t('demo.banner')}</span>
+        <span className="lp-mock-banner-cta">{t('demo.signupCta')} →</span>
+      </div>
+      <div className="lp-mock-topbar">
+        <span className="lp-mock-back">← All documents</span>
+        <span className="lp-mock-brand">
+          <span className="lp-mock-logo">✈ AIRWAYBILL APP</span>
+          <span className="lp-mock-sub">{t('demo.sub')}</span>
+        </span>
+        <span className="lp-mock-grow" />
+        <span className="lp-mock-mode">{t('demo.modeLabel')}</span>
+        <span className="lp-mock-ghost">{t('landing.nav.signIn')}</span>
+      </div>
+      <div className="lp-mock-actions">
+        <span className="lp-mock-ghost">{t('editor.example')}</span>
+        <span className="lp-mock-grow" />
+        <span className="lp-mock-ghost">🖨 {t('editor.copies')}</span>
+        <span className="lp-mock-download">{t('demo.downloadCta')}</span>
+      </div>
+      <div className="lp-mock-preview">
+        <div className="lp-mock-zoom">
+          <span className="lp-mock-zoom-btn">−</span>
+          <span className="lp-mock-zoom-pct">100%</span>
+          <span className="lp-mock-zoom-btn">+</span>
+          <span className="lp-mock-editing">✎ Editing on PDF</span>
+        </div>
+        <div className="lp-mock-canvas">
+          <div className="lp-mock-sheet">
+            <img className="lp-mock-sheet-bg" src={theme.bg} alt="" />
+            {logo && <img className="lp-mock-airline" src={logo} alt="" />}
+            <div className="lp-mock-draft" style={{ color: theme.ink }}>DRAFT</div>
+            {fields.map((def) => {
+              const value = mockFieldValue(data, def.key)
+              if (!value) return null
+              return (
+                <div
+                  key={def.key}
+                  className="lp-mock-field"
+                  style={{
+                    left: `${(def.x / PAGE_WIDTH) * 100}%`,
+                    top: `${(def.y / PAGE_HEIGHT) * 100}%`,
+                    width: `${(def.width / PAGE_WIDTH) * 100}%`,
+                    height: `${(def.height / PAGE_HEIGHT) * 100}%`,
+                    fontSize: `${(def.fontSize / PAGE_WIDTH) * 100}cqi`,
+                    lineHeight: `${(LEADING / PAGE_WIDTH) * 100}cqi`,
+                    textAlign: def.align ?? 'left',
+                  }}
+                >
+                  {value}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

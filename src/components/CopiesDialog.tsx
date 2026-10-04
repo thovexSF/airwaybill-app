@@ -36,12 +36,30 @@ export function CopiesDialog({
   const [busy, setBusy] = useState(false)
   const [pageCount, setPageCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [zoom, setZoom] = useState(1)
+  const [paneWidth, setPaneWidth] = useState(520)
   const genRef = useRef(0)
+  const previewRef = useRef<HTMLDivElement>(null)
 
   const copies = useMemo(
     () => AWB_COPIES.filter((c) => selected.includes(c.key)).map((c) => c.key),
     [selected],
   )
+
+  useEffect(() => {
+    if (!open) return
+    setZoom(1)
+    const el = previewRef.current
+    if (!el) return
+    const measure = () => {
+      const width = el.clientWidth - 28
+      if (width > 0) setPaneWidth((prev) => (Math.abs(prev - width) < 2 ? prev : width))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -81,6 +99,8 @@ export function CopiesDialog({
   }, [open, data, copies, t])
 
   if (!open) return null
+
+  const pageWidth = Math.max(220, Math.round(paneWidth * zoom))
 
   function toggle(key: string) {
     setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key].sort()))
@@ -145,23 +165,33 @@ export function CopiesDialog({
           </div>
 
           <div className="copies-preview">
-            {busy && <p className="copies-hint">{t('editor.updating')}</p>}
-            {blob ? (
-              <Document file={blob} onLoadSuccess={({ numPages }) => setPageCount(numPages)} loading={null}>
-                {Array.from({ length: pageCount }, (_, i) => (
-                  <Page
-                    key={i}
-                    pageNumber={i + 1}
-                    width={280}
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                    loading={null}
-                  />
-                ))}
-              </Document>
-            ) : (
-              !busy && <p className="copies-hint">{t('copies.pickOne')}</p>
-            )}
+            <div className="copies-zoom">
+              <button type="button" onClick={() => setZoom((z) => Math.max(+(z - 0.25).toFixed(2), 0.5))} aria-label={t('copies.zoomOut')}>−</button>
+              <span>{Math.round(zoom * 100)}%</span>
+              <button type="button" onClick={() => setZoom((z) => Math.min(+(z + 0.25).toFixed(2), 2.5))} aria-label={t('copies.zoomIn')}>+</button>
+              <button type="button" onClick={() => setZoom(1)}>{t('editor.zoomReset')}</button>
+              {busy && <span className="copies-hint">{t('editor.updating')}</span>}
+            </div>
+            <div className="copies-preview-scroll" ref={previewRef}>
+              {blob ? (
+                <div className="copies-preview-pages">
+                  <Document file={blob} onLoadSuccess={({ numPages }) => setPageCount(numPages)} loading={null}>
+                    {Array.from({ length: pageCount }, (_, i) => (
+                      <Page
+                        key={i}
+                        pageNumber={i + 1}
+                        width={pageWidth}
+                        renderTextLayer={false}
+                        renderAnnotationLayer={false}
+                        loading={null}
+                      />
+                    ))}
+                  </Document>
+                </div>
+              ) : (
+                !busy && <p className="copies-hint">{t('copies.pickOne')}</p>
+              )}
+            </div>
           </div>
         </div>
 

@@ -378,7 +378,7 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
 
 .copies-dialog { max-width: 940px; }
 
-.copies-body { display: flex; gap: 0; align-items: stretch; }
+.copies-body { display: flex; gap: 0; align-items: stretch; overflow: hidden; }
 
 .copies-list {
   flex: 0 0 300px;
@@ -403,20 +403,44 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
 .copies-error { font-size: 12px; color: var(--red); margin: 10px 0 0; }
 
 .copies-preview {
-  flex: 1 1 auto; min-width: 0;
-  overflow-y: auto;
+  flex: 1 1 auto; min-width: 0; min-height: 0;
+  overflow: hidden;
   background: #3a3a3a;
-  padding: 14px;
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  display: flex; flex-direction: column;
 }
-.copies-preview .copies-hint { color: #bbb; }
+.copies-zoom {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  background: #2a2a2a;
+  border-bottom: 1px solid #444;
+  color: #ccc; font-size: 12px;
+}
+.copies-zoom button {
+  background: #444; border: none; color: #fff;
+  min-width: 26px; height: 26px; padding: 0 8px;
+  border-radius: 4px; cursor: pointer; font-size: 14px; line-height: 1;
+}
+.copies-zoom > span:first-of-type { min-width: 40px; text-align: center; }
+.copies-preview-scroll {
+  flex: 1 1 auto; min-height: 0;
+  overflow: auto;
+  padding: 14px;
+}
+.copies-preview-pages {
+  width: fit-content;
+  margin: 0 auto;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.copies-preview .copies-hint { color: #bbb; margin: 0; }
 .copies-preview canvas { box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45); }
 
 @media (max-width: 768px) {
   /* No room for two columns: the list goes on top, the preview below it. */
   .copies-body { flex-direction: column; }
+  .copies-body { overflow-y: auto; }
   .copies-list { flex: 0 0 auto; border-right: none; border-bottom: 1px solid var(--border); }
-  .copies-preview { padding: 10px; }
+  .copies-preview { min-height: 45vh; }
 }
 
 /* ── Document hub (B2B-style tabs) ── */

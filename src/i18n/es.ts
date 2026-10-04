@@ -269,6 +269,8 @@ const es = {
     popupBlocked: 'El navegador bloqueó la ventana de impresión. Descarga el PDF e imprímelo desde ahí.',
     print: 'Imprimir',
     download: 'Descargar PDF',
+    zoomIn: 'Acercar',
+    zoomOut: 'Alejar',
   },
   eawbPromo: {
     title: 'Emite eAWB, sin papel.',
@@ -324,6 +326,12 @@ const es = {
       firmado: 'Recibimos tu contrato firmado. Fecha estimada de aprobación: {{date}} (10 días hábiles).',
       firmadoReupload: 'Puedes subir otra versión si te equivocaste de archivo.',
       aprobado: 'Tu empresa ya es parte del acuerdo multilateral. Escríbenos para activar el eAWB con tus aerolíneas.',
+    },
+    reg: {
+      checking: 'Revisando la lista de IATA…',
+      notFound: 'Verificado en la lista pública de IATA al {{date}}: tu empresa no figuraba en ella.',
+      possible: 'Ya hay nombres parecidos en la lista de IATA: {{list}}. Si alguno es tu empresa, es posible que ya estés registrada.',
+      registered: 'Tu empresa ya figura en la lista de IATA ({{list}}). No necesitas solicitar el acuerdo de nuevo.',
     },
     err: {
       latin: 'Usa solo caracteres latinos (translitera si es necesario).',

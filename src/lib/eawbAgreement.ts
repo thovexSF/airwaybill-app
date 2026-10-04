@@ -35,6 +35,8 @@ export interface AgreementForm {
   signatory2Name: string
   signatory2Title: string
   signatory2Email: string
+  /** Resultado de la consulta a la lista de IATA al solicitar. */
+  registryCheck?: { asOf: string | null; status: 'registered' | 'possible' | 'not_found' | 'unavailable' }
   /** Idioma de la UI al solicitar; define el idioma de los correos. */
   locale: 'en' | 'es'
 }
@@ -119,3 +121,26 @@ export async function uploadSignedAgreement(orgId: string, agreementId: string, 
 }
 
 export const COUNTRIES = "Afghanistan|Albania|Algeria|American Samoa|Andorra|Angola|Anguilla|Antigua And Barbuda|Argentina|Armenia|Aruba|Australia|Austria|Azerbaijan|Bahamas|Bahrain|Bangladesh|Barbados|Belarus|Belgium|Belize|Benin|Bermuda|Bhutan|Bolivia|Bosnia and Herzegovina|Botswana|Brazil|British Indian Ocean Territory|Brunei Darussalam|Bulgaria|Burkina Faso|Burundi|Cambodia|Cameroon|Canada|Cape Verde|Cayman Islands|Central African Republic|Chad|Chile|China (People's Republic of)|Chinese Taipei|Colombia|Comoros|Congo|Congo, the Democratic Republic of the|Costa Rica|Côte d'Ivoire|Croatia|Cuba|Cyprus|Czech Republic|Denmark|Djibouti|Dominica|Dominican Republic|Timor-Leste|Ecuador|Egypt|El Salvador|Equatorial Guinea|Eritrea|Estonia|Ethiopia|Falkland Islands (Malvinas)|Faroe Islands|Fiji|Finland|France|French Guiana|French Polynesia|French Southern Territories|Gabon|Gambia|Georgia|Germany|Ghana|Gibraltar|Greece|Greenland|Grenada|Guadeloupe|Guam|Guatemala|Guinea|Guinea-Bissau|Guyana|Haiti|Honduras|Hong Kong SAR, China|Hungary|Iceland|India|Indonesia|Iran, Islamic Republic of|Iraq|Ireland|Israel|Italy|Jamaica|Japan|Jordan|Kazakhstan|Kenya|Kiribati|Korea, Democratic People's Republic of|Korea, Republic of|Kosovo|Kuwait|Kyrgyzstan|Lao People's Democratic Republic|Latvia|Lebanon|Lesotho|Liberia|Libya|Liechtenstein|Lithuania|Luxembourg|Macao SAR, China|Macedonia, the former Yugoslav Republic of|Madagascar|Malawi|Malaysia|Maldives|Mali|Malta|Marshall Islands|Martinique|Mauritania|Mauritius|Mayotte|Mexico|Micronesia, Federal States of|Moldova, Republic of|Monaco|Mongolia|Montenegro|Morocco|Mozambique|Myanmar|Namibia|Nepal|Netherlands|Netherlands Antilles|New Caledonia|New Zealand|Nicaragua|Niger|Nigeria|Niue|Northern Mariana Islands|Norway|Oman|Pakistan|Palau|Palestinian Territories|Panama|Papua New Guinea|Paraguay|Peru|Philippines|Pitcairn|Poland|Portugal|Puerto Rico|Qatar|Réunion|Romania|Russian Federation|Rwanda|Saint Helena|Saint Kitts and Nevis|Saint Lucia|Saint Pierre and Miquelon|Saint Vincent and the Grenadines|Samoa|San Marino|Sao Tome and Principe|Saudi Arabia|Senegal|Serbia|Seychelles|Sierra Leone|Singapore|Slovakia|Slovenia|Solomon Islands|Somalia|South Africa|Spain|Sri Lanka|Sudan|Suriname|Swaziland|Sweden|Switzerland|Syrian Arab Republic|Tajikistan|Tanzania, United Republic of|Thailand|Togo|Tonga|Trinidad and Tobago|Tunisia|Turkey|Turkmenistan|Turks and Caicos Islands|Tuvalu|Uganda|Ukraine|United Arab Emirates|United Kingdom|United States|Uruguay|Uzbekistan|Vanuatu|Venezuela|Vietnam|Virgin British Islands|Virgin Islands, US|Wallis and Futuna|Western Sahara|Yemen|Zambia|Zimbabwe|Montserrat|Bonaire, Saba, St. Eustatius|Curaçao|Saint Maarten|South Sudan|Cook Islands".split('|')
+
+export interface RegistryMatch { companyName: string; countryName: string; city: string; joiningDate: string | null; comments: string | null }
+export interface RegistryCheck {
+  available: boolean
+  status: 'registered' | 'possible' | 'not_found' | 'unavailable'
+  asOf: string | null
+  matches: RegistryMatch[]
+}
+
+export async function checkRegistry(companyName: string): Promise<RegistryCheck> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) throw new Error('no_session')
+  const res = await fetch(`/v1/eawb/registry-check?name=${encodeURIComponent(companyName)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error(`registry_${res.status}`)
+  return res.json()
+}
+
+export function fmtAsOf(iso: string, locale: string): string {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString(locale === 'es' ? 'es-CL' : 'en-GB', { dateStyle: 'long' })
+}

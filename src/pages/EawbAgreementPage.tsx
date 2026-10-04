@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
 import { FormErrors, isFreeMail, normalizeForm, validateForm } from '../lib/eawbValidation'
 import {
-  AgreementForm, AgreementRow, COUNTRIES, EMPTY_FORM,
+  AgreementForm, AgreementRow, COUNTRIES, EMPTY_FORM, RegistryCheck, checkRegistry, fmtAsOf,
   listAgreements, requestAgreement, uploadSignedAgreement,
 } from '../lib/eawbAgreement'
 
@@ -22,6 +22,21 @@ export function EawbAgreementPage() {
   const [authorized, setAuthorized] = useState(false)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [registry, setRegistry] = useState<RegistryCheck | null>(null)
+  const [checking, setChecking] = useState(false)
+
+  useEffect(() => {
+    setRegistry(null)
+    if (form.companyName.trim().length < 3) return
+    setChecking(true)
+    const h = setTimeout(() => {
+      checkRegistry(form.companyName)
+        .then(setRegistry)
+        .catch(() => setRegistry(null))
+        .finally(() => setChecking(false))
+    }, 600)
+    return () => { clearTimeout(h); setChecking(false) }
+  }, [form.companyName])
 
   const load = useCallback(async () => {
     if (orgId) setRows(await listAgreements(orgId))
@@ -34,13 +49,16 @@ export function EawbAgreementPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!orgId || !user) return
+    if (!orgId || !user || registry?.status === 'registered') return
     const errs = validateForm(form)
     setErrors(errs)
     if (Object.keys(errs).length) { setMsg(t('eawb.fixErrors')); return }
     setBusy(true); setMsg(null)
     try {
-      await requestAgreement(orgId, user.id, { ...normalizeForm(form), locale })
+      await requestAgreement(orgId, user.id, {
+        ...normalizeForm(form), locale,
+        registryCheck: registry?.available ? { asOf: registry.asOf, status: registry.status } : undefined,
+      })
       await load()
     } catch (e2: any) { setMsg(e2.message) } finally { setBusy(false) }
   }
@@ -79,6 +97,8 @@ export function EawbAgreementPage() {
           </Group>
           <Group title={t('eawb.company')}>
             <T label={t('eawb.legalName')} v={form.companyName} on={v => set('companyName', v.toUpperCase())} err={err('companyName')} />
+            {checking && <p style={{ fontSize: 12, color: '#777', margin: '-4px 0 10px' }}>{t('eawb.reg.checking')}</p>}
+            {registry?.available && !checking && <RegistryNote r={registry} locale={locale} />}
             <T label={t('eawb.address')} v={form.address} on={v => set('address', v)} err={err('address')} />
             <T label={t('eawb.city')} v={form.city} on={v => set('city', v)} err={err('city')} />
             <div style={fieldStyle}>
@@ -116,7 +136,7 @@ export function EawbAgreementPage() {
           <label style={{ fontSize: 13, display: 'block', margin: '16px 0' }}>
             <input type="checkbox" checked={authorized} onChange={e => setAuthorized(e.target.checked)} /> {t('eawb.authorize')}
           </label>
-          <button type="submit" disabled={busy || !authorized || !orgId} style={btnStyle}>
+          <button type="submit" disabled={busy || !authorized || !orgId || registry?.status === 'registered'} style={btnStyle}>
             {busy ? t('eawb.sending') : t('eawb.submit')}
           </button>
         </form>
@@ -128,7 +148,7 @@ export function EawbAgreementPage() {
 const STEPS: AgreementRow['status'][] = ['solicitado', 'enviado_iata', 'pendiente_firma', 'firmado', 'aprobado']
 
 function Status({ r, busy, onSigned }: { r: AgreementRow; busy: boolean; onSigned: (f: File) => void }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const idx = STEPS.indexOf(r.status)
   const p = { email: r.form.signatoryEmail, date: r.estimated_ready_at ?? '' }
   return (
@@ -143,6 +163,9 @@ function Status({ r, busy, onSigned }: { r: AgreementRow; busy: boolean; onSigne
         ))}
       </ol>
       <p style={pStyle}>{t(`eawb.st.${r.status}`, p)}</p>
+      {r.form.registryCheck?.status === 'not_found' && r.form.registryCheck.asOf && (
+        <p style={{ fontSize: 12, color: '#2f7d32', margin: '0 0 12px' }}>{t('eawb.reg.notFound', { date: fmtAsOf(r.form.registryCheck.asOf, i18n.language) })}</p>
+      )}
       {(r.status === 'pendiente_firma' || r.status === 'firmado') && (
         <>
           <input type="file" accept="application/pdf" disabled={busy}
@@ -152,6 +175,16 @@ function Status({ r, busy, onSigned }: { r: AgreementRow; busy: boolean; onSigne
       )}
     </div>
   )
+}
+
+function RegistryNote({ r, locale }: { r: RegistryCheck; locale: 'en' | 'es' }) {
+  const { t } = useTranslation()
+  const list = r.matches.map(m => `${m.companyName} (${m.countryName}${m.joiningDate ? `, ${m.joiningDate}` : ''})`).join('; ')
+  const color = r.status === 'registered' ? ACCENT : r.status === 'possible' ? '#a60' : '#2f7d32'
+  const text = r.status === 'not_found'
+    ? t('eawb.reg.notFound', { date: r.asOf ? fmtAsOf(r.asOf, locale) : '' })
+    : t(`eawb.reg.${r.status}`, { list })
+  return <p style={{ fontSize: 12, color, margin: '-4px 0 10px' }}>{text}</p>
 }
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
