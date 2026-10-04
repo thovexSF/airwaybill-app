@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { AgreementRow } from './eawbAgreement'
 
 export interface AdminUserRow {
   id: string
@@ -108,4 +109,31 @@ export async function openAdminDocumentJson(documentId: string): Promise<void> {
   const url = URL.createObjectURL(blob)
   window.open(url, '_blank')
   setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
+export interface AdminAgreementRow extends AgreementRow {
+  orgName: string | null
+  signedUrl: string | null
+  possibleDuplicate: boolean
+}
+
+async function adminFetch(path: string, init?: RequestInit) {
+  const { data: sessionData } = await supabase.auth.getSession()
+  const token = sessionData.session?.access_token
+  if (!token) throw new Error('Debes iniciar sesión')
+  const res = await fetch(path, {
+    ...init,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error || `Error ${res.status}`)
+  return body
+}
+
+export async function fetchAdminAgreements(): Promise<AdminAgreementRow[]> {
+  return (await adminFetch('/v1/admin/eawb-agreements')).agreements
+}
+
+export async function advanceAgreement(id: string, opts: { reject?: boolean; note?: string; action?: 'iata_check' } = {}) {
+  return adminFetch(`/v1/admin/eawb-agreements/${id}/status`, { method: 'POST', body: JSON.stringify(opts) })
 }

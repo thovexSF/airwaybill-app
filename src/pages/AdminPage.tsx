@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchAdminOverview, openAdminDocumentPdf, openAdminDocumentJson, AdminOverview } from '../lib/adminApi'
+import { fetchAdminOverview, openAdminDocumentPdf, openAdminDocumentJson, AdminOverview, AdminAgreementRow, fetchAdminAgreements, advanceAgreement } from '../lib/adminApi'
+import { STATUS_LABEL, IATA_REGISTERED_REPORT_URL, iataPrefillUrl } from '../lib/eawbAgreement'
 
 const ACCENT = '#8B0000'
 
@@ -16,12 +17,15 @@ export function AdminPage() {
   const [userSearch, setUserSearch] = useState('')
   const [docSearch, setDocSearch] = useState('')
   const [pdfError, setPdfError] = useState<string | null>(null)
+  const [agreements, setAgreements] = useState<AdminAgreementRow[]>([])
+  const reloadAgreements = () => fetchAdminAgreements().then(setAgreements).catch(() => {})
 
   useEffect(() => {
     fetchAdminOverview()
       .then(setData)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
+    reloadAgreements()
   }, [])
 
   async function viewPdf(documentId: string) {
@@ -101,6 +105,8 @@ export function AdminPage() {
         <Kpi label="En el límite free" value={kpis.nearLimitOrgs} sub="3 docs de por vida, alcanzados" />
         <Kpi label="Documentos re-impresos" value={kpis.repeatedDocs} sub="mismo doc, 2+ veces" />
       </div>
+
+      <AgreementsSection rows={agreements} reload={reloadAgreements} />
 
       <Section title="Organizaciones" subtitle="Uso de PDF de por vida vs. límite del plan (free: 3 documentos, no por mes)">
         <TableScroll>
@@ -280,6 +286,52 @@ export function AdminPage() {
         </TableScroll>
       </Section>
     </div>
+  )
+}
+
+const NEXT_LABEL: Record<string, string> = {
+  solicitado: 'Marcar enviado a IATA',
+  enviado_iata: 'Marcar pendiente de firma',
+  firmado: 'Aprobar y notificar',
+}
+
+function AgreementsSection({ rows, reload }: { rows: AdminAgreementRow[]; reload: () => void }) {
+  const act = async (id: string, opts: { reject?: boolean; note?: string; action?: 'iata_check' }) => {
+    try { await advanceAgreement(id, opts); reload() } catch (e: any) { alert(e.message) }
+  }
+  return (
+    <Section title="e-AWB Agreement" subtitle="Solicitudes del Multilateral e-AWB Agreement: abre el formulario de IATA prellenado, envíalo y avanza el estado">
+      {rows.length === 0 ? <p style={{ color: '#666', fontSize: 13 }}>Sin solicitudes.</p> : (
+        <table style={tableStyle}>
+          <thead><tr><Th>Empresa</Th><Th>Org</Th><Th>Estado</Th><Th>Solicitada</Th><Th>Estimada</Th><Th>Acciones</Th></tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <Td>{r.form.companyName}<br /><span style={{ color: '#888', fontSize: 11 }}>{r.form.signatoryEmail}</span>{r.possibleDuplicate && <><br /><span style={{ color: ACCENT, fontSize: 11, fontWeight: 700 }}>⚠ Misma razón social que otra solicitud</span></>}</Td>
+                <Td>{r.orgName || '—'}</Td>
+                <Td>{STATUS_LABEL[r.status]}</Td>
+                <Td>{fmtDate(r.created_at)}</Td>
+                <Td>{r.estimated_ready_at || '—'}</Td>
+                <Td>
+                  <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {r.status === 'solicitado' && !r.iata_checked_at && (<>
+                      <a href={IATA_REGISTERED_REPORT_URL} target="_blank" rel="noreferrer" style={{ color: ACCENT }}>Revisar si ya está en IATA</a>
+                      <button onClick={() => act(r.id, { action: 'iata_check' })}>Confirmar: no registrada</button>
+                    </>)}
+                    {r.status === 'solicitado' && r.iata_checked_at && <a href={iataPrefillUrl(r.form)} target="_blank" rel="noreferrer" style={{ color: ACCENT }}>Abrir en IATA</a>}
+                    {r.signedUrl && <a href={r.signedUrl} target="_blank" rel="noreferrer" style={{ color: ACCENT }}>PDF firmado</a>}
+                    {NEXT_LABEL[r.status] && !(r.status === 'solicitado' && !r.iata_checked_at) && <button onClick={() => act(r.id, {})}>{NEXT_LABEL[r.status]}</button>}
+                    {!['aprobado', 'rechazado'].includes(r.status) && (
+                      <button onClick={() => { const note = prompt('Motivo del rechazo (se envía al cliente):'); if (note !== null) act(r.id, { reject: true, note }) }}>Rechazar</button>
+                    )}
+                  </span>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Section>
   )
 }
 
