@@ -1,5 +1,5 @@
 import React from 'react'
-import { Document, Page, View, Text, Image, Font, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, View, Text, Image, Font, StyleSheet, Svg, Path, Rect } from '@react-pdf/renderer'
 import { AWBData } from '../types/awb'
 import {
   PAGE_WIDTH, PAGE_HEIGHT, DATA_SIZE, LEADING,
@@ -7,6 +7,7 @@ import {
 } from './awbLayout'
 import { awbCopyTheme } from './awbCopyTheme'
 import { airlineLogoSrc } from '../lib/airlines'
+import { SHEET_INK_PATH, SHEET_WASH } from './awbSheet'
 import {
   CONDITIONS, CONDITIONS_NOTICE, CONDITIONS_NOTICE_TITLE, CONDITIONS_TITLE,
 } from './awbConditions'
@@ -186,6 +187,45 @@ function awbPrefix3(data: AWBData): string {
   return /^\d{1,3}$/.test(p) ? p.padStart(3, '0') : p
 }
 
+/** The footer label's centre and the baselines of its two rows, in pt, measured on the printed sheet. */
+const LABEL_CENTRE_X = 416.5
+const LABEL_BASELINES = [762.4, 771.4]
+const LABEL_SIZE = 9
+/** Courier Prime's ascent: the distance from a line's top edge down to its baseline. */
+const ASCENT = 0.855
+
+/**
+ * The blank IATA sheet, drawn as vectors so every rule and caption stays sharp
+ * at any zoom. The geometry is traced from `public/awb-copies/1.png` by
+ * `scripts/trace-awb-sheet.py`; the ink and the shaded boxes take the copy's
+ * colours, and the copy label at the foot is typeset rather than traced.
+ */
+function AwbSheet({ ink, wash, label, footer }: { ink: string; wash: string; label: string; footer: string }) {
+  const [first, ...rest] = label.split(' (')
+  const rows = [first, rest.length ? `(${rest.join(' (')}` : '']
+  return (
+    <>
+      <Svg viewBox={`0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}`} preserveAspectRatio="none" style={styles.sheet}>
+        {SHEET_WASH.map(([x, y, w, h], i) => <Rect key={i} x={x} y={y} width={w} height={h} fill={wash} />)}
+      </Svg>
+      <Svg viewBox={`0 0 ${PAGE_WIDTH * 20} ${PAGE_HEIGHT * 20}`} preserveAspectRatio="none" style={styles.sheet}>
+        <Path d={SHEET_INK_PATH} fill={ink} fillRule="evenodd" />
+      </Svg>
+      {rows.map((row, i) => row ? (
+        <Text
+          key={i}
+          style={{
+            position: 'absolute', left: LABEL_CENTRE_X - 200, width: 400, textAlign: 'center',
+            top: LABEL_BASELINES[i] - LABEL_SIZE * ASCENT, fontSize: LABEL_SIZE, fontWeight: 700, color: footer,
+          }}
+        >
+          {row}
+        </Text>
+      ) : null)}
+    </>
+  )
+}
+
 /**
  * One printed sheet of the waybill, on the blank form for its copy.
  *
@@ -209,7 +249,7 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
 
   return (
     <Page size={[PAGE_WIDTH, PAGE_HEIGHT]} style={styles.page}>
-      <Image src={theme.bg} style={styles.sheet} />
+      <AwbSheet ink={theme.ink} wash={theme.wash} label={theme.label} footer={theme.footer} />
       {logo ? <Image src={logo} style={styles.logo} /> : null}
 
       {data.isDraft && <Text style={[styles.watermark, { color: theme.ink }]}>DRAFT</Text>}
