@@ -138,6 +138,17 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* ── eAWB ── */}
+      <section className="lp-eawb">
+        <div className="lp-eawb-inner">
+          <div>
+            <h2>{t('eawbPromo.title')}</h2>
+            <p>{t('eawbPromo.sub')}</p>
+          </div>
+          <Link to={user ? '/eawb-agreement' : '/signup'} className="lp-cta-primary">{t('eawbPromo.button')}</Link>
+        </div>
+      </section>
+
       {/* ── FEATURES ── */}
       <section className="lp-features" id="features">
         <div className="lp-section-inner">

@@ -270,6 +270,11 @@ const es = {
     print: 'Imprimir',
     download: 'Descargar PDF',
   },
+  eawbPromo: {
+    title: 'Emite eAWB, sin papel.',
+    sub: 'Dejamos listo tu e-AWB Agreement de IATA para que operes electrónicamente con las aerolíneas.',
+    button: 'Activar eAWB',
+  },
   eawb: {
     title: 'Multilateral e-AWB Agreement de IATA',
     back: '← Volver',

@@ -86,14 +86,17 @@ function fittedLines(value: string, def: FieldDef): string[] {
   return out.slice(0, maxLines)
 }
 
-function Field({ def, value, ink }: { def: FieldDef; value: string; ink: string }) {
+/** Typed values stay black on every copy. The sheet colour belongs to the form. */
+const DATA_INK = '#000'
+
+function Field({ def, value }: { def: FieldDef; value: string }) {
   if (!value) return null
   return (
     <View style={[styles.field, { left: def.x, top: def.y, width: def.width, height: def.height, overflow: 'hidden' }]}>
       {fittedLines(value, def).map((line, i) => (
         <Text
           key={i}
-          style={{ position: 'absolute', top: i * LEADING, width: def.width, fontSize: def.fontSize, textAlign: def.align ?? 'left', color: ink }}
+          style={{ position: 'absolute', top: i * LEADING, width: def.width, fontSize: def.fontSize, textAlign: def.align ?? 'left', color: DATA_INK }}
         >
           {line}
         </Text>
@@ -170,9 +173,8 @@ function awbLeftDisplay(data: AWBData): string {
 /**
  * One printed sheet of the waybill, on the blank form for its copy.
  *
- * Each copy is issued on its own colour of paper and printed in its own ink,
- * so the background is that copy's sheet and every typed value takes the same
- * ink — otherwise the data reads as an overprint on somebody else's form.
+ * Each copy is issued on its own colour of paper, so the background is that
+ * copy's sheet. The values typed onto it stay black on every copy.
  *
  * `hideValues` draws the blank form with nothing on it. The live editor uses it
  * while the HTML overlay is up: the overlay already shows every value, and
@@ -203,7 +205,7 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
         // the waybill number in its three places and the rate totals — stay the
         // PDF's job even while the overlay is showing everything else.
         if (hideValues && !def.readOnly) return null
-        return <Field key={i} def={def} value={fieldValue(data, def, awbFull, awbLeft)} ink={theme.ink} />
+        return <Field key={i} def={def} value={fieldValue(data, def, awbFull, awbLeft)} />
       })}
     </Page>
   )

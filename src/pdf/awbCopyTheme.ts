@@ -4,15 +4,15 @@ import { AWB_FIELD_LAYOUT_REV } from './awbFieldPositions'
  * The eight IATA copies. Each is issued on its own colour of paper and printed
  * in its own ink, so the blank form comes as one rasterisation per copy —
  * `public/awb-copies/N.png`, the awbeditor "SET COMPLETO" sheets shared with
- * the sister `b2b` repo. `ink` is the colour the typed values have to match so
- * the data does not read as an overprint on a coloured form.
+ * the sister `b2b` repo. `ink` is the colour of that sheet — the contract and
+ * the stamp follow it. Typed values stay black on every copy.
  *
  * Copies 6 to 8 are extra copies and share sheet 5, printed in black.
  */
 export interface AwbCopyTheme {
   key: string
   label: string
-  /** Colour of the printed form, and of the values typed onto it. */
+  /** Colour of the printed form. Typed values stay black. */
   ink: string
   /** Tint of the form's shaded boxes. */
   wash: string

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
+import { listAgreements } from '../lib/eawbAgreement'
 import { listAWBs, deleteAWB, AWBDocument } from '../lib/awbService'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
@@ -25,7 +26,11 @@ export function MyAWBsPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
   const { user, logout, orgName } = useAuth()
-  const { plan, docsUsedThisMonth, docLimit } = usePlan()
+  const { plan, docsUsedThisMonth, docLimit, orgId } = usePlan()
+  const [hasAgreement, setHasAgreement] = useState(true)
+  useEffect(() => {
+    if (orgId) listAgreements(orgId).then(r => setHasAgreement(r.some(a => a.status !== 'rechazado'))).catch(() => {})
+  }, [orgId])
   const [searchParams, setSearchParams] = useSearchParams()
 
   const tabFromUrl = searchParams.get('tab') || 'awb'
@@ -329,6 +334,16 @@ export function MyAWBsPage() {
       </div>
 
       <div className="doc-hub-body">
+        {!hasAgreement && (
+          <Link to="/eawb-agreement" style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+            background: '#faf8f8', border: '1px solid #e8dcdc', borderRadius: 10, padding: '12px 16px', marginBottom: 16,
+            textDecoration: 'none', color: '#222',
+          }}>
+            <span style={{ fontSize: 14 }}><b>{t('eawbPromo.title')}</b> {t('eawbPromo.sub')}</span>
+            <span style={{ color: '#8B0000', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('eawbPromo.button')} →</span>
+          </Link>
+        )}
         <div className="doc-hub-header">
           <div>
             <h1>{activeMeta.name}</h1>

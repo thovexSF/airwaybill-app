@@ -6,7 +6,7 @@
     "dev": "vite --mode development",
     "dev:prod-mode": "vite --mode production",
     "dev:api": "tsx server/index.ts",
-    "build": "tsc && vite build --mode production",
+    "build": "tsc && esbuild server/index.ts --log-level=error --outfile=/dev/null && vite build --mode production",
     "build:dev": "tsc && vite build --mode development",
     "preview": "vite preview",
     "start": "tsx server/index.ts",

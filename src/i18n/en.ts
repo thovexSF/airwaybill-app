@@ -270,6 +270,11 @@ const en = {
     print: 'Print',
     download: 'Download PDF',
   },
+  eawbPromo: {
+    title: 'Go paperless with eAWB.',
+    sub: 'We set up your IATA e-AWB Agreement so you can ship electronically with airlines.',
+    button: 'Activate eAWB',
+  },
   eawb: {
     title: 'IATA Multilateral e-AWB Agreement',
     back: '← Back',
