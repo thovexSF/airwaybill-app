@@ -30,6 +30,10 @@ function txt(node: Record<string, unknown> | undefined, tag: string): string {
   const v = node[tag]
   if (v == null) return ''
   if (typeof v === 'object' && v !== null && '#text' in (v as object)) return clean((v as { '#text': string })['#text'])
+  // XStream lists (<optional-shipping-info><string/><string/></…>) arrive as { string: [...] }.
+  if (typeof v === 'object' && v !== null && 'string' in (v as object)) {
+    return asArray((v as { string: unknown }).string).map((x) => clean(x)).filter(Boolean).join('\n')
+  }
   return clean(v)
 }
 
