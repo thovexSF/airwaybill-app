@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchAdminOverview, openAdminDocumentPdf, AdminOverview } from '../lib/adminApi'
+import { fetchAdminOverview, openAdminDocumentPdf, openAdminDocumentJson, AdminOverview } from '../lib/adminApi'
 
 const ACCENT = '#8B0000'
 
@@ -30,6 +30,15 @@ export function AdminPage() {
       await openAdminDocumentPdf(documentId)
     } catch (e: any) {
       setPdfError(e.message || 'No se pudo abrir el PDF')
+    }
+  }
+
+  async function viewJson(documentId: string) {
+    setPdfError(null)
+    try {
+      await openAdminDocumentJson(documentId)
+    } catch (e: any) {
+      setPdfError(e.message || 'No se pudieron abrir los datos')
     }
   }
 
@@ -175,13 +184,22 @@ export function AdminPage() {
                   <Td align="right">{d.eventCount}</Td>
                   <Td>{fmtDate(d.createdAt)}</Td>
                   <Td>
-                    <button
-                      type="button"
-                      onClick={() => viewPdf(d.id)}
-                      style={{ fontSize: 12, color: ACCENT, background: 'none', border: '1px solid currentColor', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}
-                    >
-                      Ver PDF
-                    </button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        type="button"
+                        onClick={() => viewPdf(d.id)}
+                        style={{ fontSize: 12, color: ACCENT, background: 'none', border: '1px solid currentColor', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}
+                      >
+                        Ver PDF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => viewJson(d.id)}
+                        style={{ fontSize: 12, color: '#555', background: 'none', border: '1px solid currentColor', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}
+                      >
+                        Ver datos
+                      </button>
+                    </div>
                   </Td>
                 </tr>
               ))}

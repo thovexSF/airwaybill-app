@@ -254,6 +254,33 @@ app.get('/v1/admin/documents/:id/pdf', async (req, res) => {
   }
 })
 
+/** Raw stored JSON for a document — lets us tell "empty PDF" from "empty saved data" without a DB client. */
+app.get('/v1/admin/documents/:id', async (req, res) => {
+  try {
+    const auth = await requireAdmin(req.header('authorization') ?? undefined)
+    if ('error' in auth) {
+      const body = auth.error === 503 ? { error: 'admin_not_configured' }
+        : auth.error === 401 ? { error: 'unauthorized' }
+        : { error: 'forbidden' }
+      return res.status(auth.error).json(body)
+    }
+    const { supabase } = auth
+
+    const { data: row, error } = await supabase
+      .from('awb_documents')
+      .select('id, data, status, created_at, updated_at, download_counted_at')
+      .eq('id', req.params.id)
+      .maybeSingle()
+
+    if (error) return res.status(500).json({ error: error.message })
+    if (!row) return res.status(404).json({ error: 'not_found' })
+
+    res.json(row)
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || 'admin_document_failed' })
+  }
+})
+
 /**
  * One-time SSO for embedding in B2B (no second login).
  * Returns an SPA path that exchanges a magic-link hash for a Supabase session.

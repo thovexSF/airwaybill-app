@@ -91,3 +91,21 @@ export async function openAdminDocumentPdf(documentId: string): Promise<void> {
   window.open(url, '_blank')
   setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
+
+/** Opens the document's raw stored JSON in a new tab — for telling "empty PDF" apart from "empty saved data". */
+export async function openAdminDocumentJson(documentId: string): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession()
+  const token = sessionData.session?.access_token
+  if (!token) throw new Error('Debes iniciar sesión')
+
+  const res = await fetch(`/v1/admin/documents/${documentId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.message || body.error || `Error ${res.status}`)
+
+  const blob = new Blob([JSON.stringify(body, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank')
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
