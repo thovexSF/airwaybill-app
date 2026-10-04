@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchAdminOverview, AdminOverview } from '../lib/adminApi'
+import { fetchAdminOverview, openAdminDocumentPdf, AdminOverview } from '../lib/adminApi'
 
 const ACCENT = '#8B0000'
 
@@ -14,6 +14,8 @@ export function AdminPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [userSearch, setUserSearch] = useState('')
+  const [docSearch, setDocSearch] = useState('')
+  const [pdfError, setPdfError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchAdminOverview()
@@ -22,6 +24,15 @@ export function AdminPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  async function viewPdf(documentId: string) {
+    setPdfError(null)
+    try {
+      await openAdminDocumentPdf(documentId)
+    } catch (e: any) {
+      setPdfError(e.message || 'No se pudo abrir el PDF')
+    }
+  }
+
   const filteredUsers = useMemo(() => {
     if (!data) return []
     const q = userSearch.trim().toLowerCase()
@@ -29,10 +40,22 @@ export function AdminPage() {
     return data.users.filter((u) => u.email.toLowerCase().includes(q) || (u.orgName || '').toLowerCase().includes(q))
   }, [data, userSearch])
 
+  const filteredDocuments = useMemo(() => {
+    if (!data) return []
+    const q = docSearch.trim().toLowerCase()
+    if (!q) return data.documents
+    return data.documents.filter(
+      (d) =>
+        (d.userEmail || '').toLowerCase().includes(q) ||
+        (d.orgName || '').toLowerCase().includes(q) ||
+        d.docType.toLowerCase().includes(q),
+    )
+  }, [data, docSearch])
+
   const kpis = useMemo(() => {
     if (!data) return null
     const nearLimitOrgs = data.organizations.filter(
-      (o) => o.docLimit != null && o.docsThisMonth >= o.docLimit * 0.8,
+      (o) => o.docLimit != null && o.docsUsedLifetime >= o.docLimit,
     ).length
     const totalLogins = data.users.reduce((sum, u) => sum + u.loginCount, 0)
     const activeUsers = data.users.filter((u) => u.loginCount > 0).length
@@ -66,51 +89,105 @@ export function AdminPage() {
         <Kpi label="Usuarios" value={kpis.totalUsers} />
         <Kpi label="Con login registrado" value={kpis.activeUsers} />
         <Kpi label="Organizaciones" value={kpis.totalOrgs} />
-        <Kpi label="Cerca del límite free" value={kpis.nearLimitOrgs} sub="≥80% de 10/mes" />
+        <Kpi label="En el límite free" value={kpis.nearLimitOrgs} sub="3 docs de por vida, alcanzados" />
         <Kpi label="Documentos re-impresos" value={kpis.repeatedDocs} sub="mismo doc, 2+ veces" />
       </div>
 
-      <Section title="Organizaciones" subtitle="Uso de PDF del mes actual vs. límite del plan">
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              <Th>Organización</Th>
-              <Th>Plan</Th>
-              <Th>Miembros</Th>
-              <Th align="right">PDFs este mes</Th>
-              <Th align="right">Límite</Th>
-              <Th align="right">Docs totales</Th>
-              <Th align="right">Docs descargados</Th>
-              <Th>Desglose (descargados)</Th>
-              <Th>Creada</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.organizations.map((o) => {
-              const atRisk = o.docLimit != null && o.docsThisMonth >= o.docLimit
-              return (
-                <tr key={o.id}>
-                  <Td>{o.name}</Td>
-                  <Td><PlanBadge plan={o.plan} /></Td>
-                  <Td>{o.membersCount}</Td>
-                  <Td align="right" style={atRisk ? { color: ACCENT, fontWeight: 700 } : undefined}>
-                    {o.docsThisMonth}
-                  </Td>
-                  <Td align="right">{o.docLimit ?? '∞'}</Td>
-                  <Td align="right">{o.totalDocuments}</Td>
-                  <Td align="right">{o.totalDownloadedDocuments}</Td>
+      <Section title="Organizaciones" subtitle="Uso de PDF de por vida vs. límite del plan (free: 3 documentos, no por mes)">
+        <TableScroll>
+          <table style={tableStyle}>
+            <thead>
+              <tr>
+                <Th>Organización</Th>
+                <Th>Plan</Th>
+                <Th>Miembros</Th>
+                <Th align="right">PDFs usados (de por vida)</Th>
+                <Th align="right">Límite</Th>
+                <Th align="right">Docs totales</Th>
+                <Th align="right">Docs descargados</Th>
+                <Th>Desglose (descargados)</Th>
+                <Th>Creada</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.organizations.map((o) => {
+                const atRisk = o.docLimit != null && o.docsUsedLifetime >= o.docLimit
+                return (
+                  <tr key={o.id}>
+                    <Td>{o.name}</Td>
+                    <Td><PlanBadge plan={o.plan} /></Td>
+                    <Td>{o.membersCount}</Td>
+                    <Td align="right" style={atRisk ? { color: ACCENT, fontWeight: 700 } : undefined}>
+                      {o.docsUsedLifetime}
+                    </Td>
+                    <Td align="right">{o.docLimit ?? '∞'}</Td>
+                    <Td align="right">{o.totalDocuments}</Td>
+                    <Td align="right">{o.totalDownloadedDocuments}</Td>
+                    <Td>
+                      {Object.entries(o.docTypeBreakdown)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([type, count]) => `${type}: ${count}`)
+                        .join(', ') || '—'}
+                    </Td>
+                    <Td>{fmtDate(o.createdAt)}</Td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </TableScroll>
+      </Section>
+
+      <Section
+        title="Documentos"
+        subtitle="Cada documento creado, si cargó cuota (Descargado) y cuántas veces pasó por Descargar/Imprimir. &quot;Ver PDF&quot; regenera el PDF actual del documento para inspeccionarlo"
+      >
+        <input
+          type="text"
+          placeholder="Buscar por email, organización o tipo…"
+          value={docSearch}
+          onChange={(e) => setDocSearch(e.target.value)}
+          style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13, marginBottom: 10, width: 280 }}
+        />
+        {pdfError && <p style={{ color: ACCENT, fontSize: 12, marginBottom: 8 }}>{pdfError}</p>}
+        <TableScroll>
+          <table style={tableStyle}>
+            <thead>
+              <tr>
+                <Th>Usuario</Th>
+                <Th>Organización</Th>
+                <Th>Tipo</Th>
+                <Th>Estado</Th>
+                <Th>Descargado</Th>
+                <Th align="right">Veces (descarga/impresión)</Th>
+                <Th>Creado</Th>
+                <Th></Th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDocuments.map((d) => (
+                <tr key={d.id}>
+                  <Td>{d.userEmail || '—'}</Td>
+                  <Td>{d.orgName || '—'}</Td>
+                  <Td>{d.docType}</Td>
+                  <Td>{d.status}</Td>
+                  <Td>{d.downloadCountedAt ? fmtDate(d.downloadCountedAt) : 'No'}</Td>
+                  <Td align="right">{d.eventCount}</Td>
+                  <Td>{fmtDate(d.createdAt)}</Td>
                   <Td>
-                    {Object.entries(o.docTypeBreakdown)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([type, count]) => `${type}: ${count}`)
-                      .join(', ') || '—'}
+                    <button
+                      type="button"
+                      onClick={() => viewPdf(d.id)}
+                      style={{ fontSize: 12, color: ACCENT, background: 'none', border: '1px solid currentColor', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}
+                    >
+                      Ver PDF
+                    </button>
                   </Td>
-                  <Td>{fmtDate(o.createdAt)}</Td>
                 </tr>
-              )
-            })}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        </TableScroll>
       </Section>
 
       <Section
@@ -120,6 +197,7 @@ export function AdminPage() {
         {data.repeats.length === 0 ? (
           <p style={{ color: '#666', fontSize: 13 }}>Sin repeticiones registradas todavía.</p>
         ) : (
+          <TableScroll>
           <table style={tableStyle}>
             <thead>
               <tr>
@@ -144,6 +222,7 @@ export function AdminPage() {
               ))}
             </tbody>
           </table>
+          </TableScroll>
         )}
       </Section>
 
@@ -155,30 +234,32 @@ export function AdminPage() {
           onChange={(e) => setUserSearch(e.target.value)}
           style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13, marginBottom: 10, width: 280 }}
         />
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              <Th>Email</Th>
-              <Th>Organización</Th>
-              <Th>Plan</Th>
-              <Th align="right">Logins</Th>
-              <Th>Último login</Th>
-              <Th>Registrado</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map((u) => (
-              <tr key={u.id}>
-                <Td>{u.email}</Td>
-                <Td>{u.orgName || '—'}</Td>
-                <Td>{u.orgPlan ? <PlanBadge plan={u.orgPlan} /> : '—'}</Td>
-                <Td align="right">{u.loginCount}</Td>
-                <Td>{fmtDate(u.lastSignInAt)}</Td>
-                <Td>{fmtDate(u.createdAt)}</Td>
+        <TableScroll>
+          <table style={tableStyle}>
+            <thead>
+              <tr>
+                <Th>Email</Th>
+                <Th>Organización</Th>
+                <Th>Plan</Th>
+                <Th align="right">Logins</Th>
+                <Th>Último login</Th>
+                <Th>Registrado</Th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredUsers.map((u) => (
+                <tr key={u.id}>
+                  <Td>{u.email}</Td>
+                  <Td>{u.orgName || '—'}</Td>
+                  <Td>{u.orgPlan ? <PlanBadge plan={u.orgPlan} /> : '—'}</Td>
+                  <Td align="right">{u.loginCount}</Td>
+                  <Td>{fmtDate(u.lastSignInAt)}</Td>
+                  <Td>{fmtDate(u.createdAt)}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableScroll>
       </Section>
     </div>
   )
@@ -207,7 +288,16 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
     <div style={{ marginBottom: 36 }}>
       <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 2px' }}>{title}</h2>
       {subtitle && <p style={{ fontSize: 12, color: '#888', margin: '0 0 10px', maxWidth: 720 }}>{subtitle}</p>}
-      <div style={{ overflowX: 'auto' }}>{children}</div>
+      {children}
+    </div>
+  )
+}
+
+/** Caps a long table's height and scrolls inside it; the header row (sticky Th) stays visible. */
+function TableScroll({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ overflow: 'auto', maxHeight: 420, border: '1px solid #eee', borderRadius: 8 }}>
+      {children}
     </div>
   )
 }
@@ -225,9 +315,22 @@ function PlanBadge({ plan }: { plan: string }) {
 
 const tableStyle: React.CSSProperties = { borderCollapse: 'collapse', width: '100%', fontSize: 13 }
 
-function Th({ children, align }: { children: React.ReactNode; align?: 'left' | 'right' }) {
+function Th({ children, align }: { children?: React.ReactNode; align?: 'left' | 'right' }) {
   return (
-    <th style={{ textAlign: align || 'left', padding: '6px 10px', borderBottom: '2px solid #eee', color: '#666', fontWeight: 600, whiteSpace: 'nowrap' }}>
+    <th
+      style={{
+        textAlign: align || 'left',
+        padding: '6px 10px',
+        borderBottom: '2px solid #eee',
+        color: '#666',
+        fontWeight: 600,
+        whiteSpace: 'nowrap',
+        position: 'sticky',
+        top: 0,
+        background: '#fff',
+        zIndex: 1,
+      }}
+    >
       {children}
     </th>
   )

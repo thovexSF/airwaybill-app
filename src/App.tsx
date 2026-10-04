@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { LandingPage } from './pages/LandingPage'
 import { EditorPage } from './pages/EditorPage'
 import { SignupPage } from './pages/SignupPage'
@@ -32,11 +32,17 @@ import { AdminPage } from './pages/AdminPage'
 import { FeedbackWidget } from './components/FeedbackWidget'
 import { isPartnerEmbed } from './lib/partnerTheme'
 
-export default function App() {
+function AppFeedbackWidget() {
   const embed = typeof window !== 'undefined' && isPartnerEmbed()
+  const location = useLocation()
+  if (embed || location.pathname.startsWith('/admin')) return null
+  return <FeedbackWidget />
+}
+
+export default function App() {
   return (
     <BrowserRouter>
-      {!embed && <FeedbackWidget />}
+      <AppFeedbackWidget />
       <Routes>
         <Route path="/partner-entry" element={<PartnerEntryPage />} />
         <Route path="/" element={<LandingPage />} />

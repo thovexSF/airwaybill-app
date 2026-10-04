@@ -52,8 +52,9 @@ app.get('/v1/health', (_req, res) => {
   res.json({ ok: true, service: 'airwaybill-partner-api' })
 })
 
+// Free plan: free_doc_limit() in migration_free_lifetime_limit.sql — lifetime, not monthly.
 const PLAN_DOC_LIMIT: Record<string, number | null> = {
-  free: 10, starter: null, pro: null, enterprise: null,
+  free: 3, starter: null, pro: null, enterprise: null,
 }
 
 function docTypeOf(doc: { data: unknown }): string {
@@ -83,7 +84,9 @@ app.get('/v1/admin/overview', async (req, res) => {
       supabase.from('organizations').select('id, name, plan, plan_expires_at, created_at'),
       supabase.from('organization_members').select('organization_id, user_id, role, joined_at'),
       supabase.from('user_logins').select('user_id, login_count, first_login_at, last_login_at'),
-      supabase.from('awb_usage').select('organization_id, count').eq('month', month),
+      // free_doc_limit()/org_docs_used() (migration_free_lifetime_limit.sql) enforce a
+      // LIFETIME total, not a monthly one — sum every month row, not just the current one.
+      supabase.from('awb_usage').select('organization_id, count'),
       supabase
         .from('awb_documents')
         .select('id, user_id, organization_id, data, status, download_counted_at, created_at')
@@ -119,7 +122,10 @@ app.get('/v1/admin/overview', async (req, res) => {
     const orgById = new Map(orgs.map((o) => [o.id, o]))
     const membershipByUser = new Map(members.map((m) => [m.user_id, m]))
     const loginByUser = new Map(logins.map((l) => [l.user_id, l]))
-    const usageByOrg = new Map(usage.map((u) => [u.organization_id, u.count]))
+    const usageByOrg = new Map<string, number>()
+    for (const u of usage) {
+      usageByOrg.set(u.organization_id, (usageByOrg.get(u.organization_id) ?? 0) + u.count)
+    }
     const docById = new Map(docs.map((d) => [d.id, d]))
     const emailByUser = new Map(authUsers.map((u) => [u.id, u.email || '(sin email)']))
 
@@ -158,14 +164,14 @@ app.get('/v1/admin/overview', async (req, res) => {
           planExpiresAt: org.plan_expires_at,
           createdAt: org.created_at,
           membersCount: members.filter((m) => m.organization_id === org.id).length,
-          docsThisMonth: usageByOrg.get(org.id) ?? 0,
+          docsUsedLifetime: usageByOrg.get(org.id) ?? 0,
           docLimit: PLAN_DOC_LIMIT[org.plan] ?? null,
           totalDocuments: orgDocs.length,
           totalDownloadedDocuments: downloaded.length,
           docTypeBreakdown,
         }
       })
-      .sort((a, b) => b.docsThisMonth - a.docsThisMonth)
+      .sort((a, b) => b.docsUsedLifetime - a.docsUsedLifetime)
 
     // Same document, more than one authorize() call: re-downloads/re-prints,
     // not new usage — this is what answers "fueron del mismo documento?".
@@ -197,9 +203,54 @@ app.get('/v1/admin/overview', async (req, res) => {
       .sort((a, b) => b.eventCount - a.eventCount)
       .slice(0, 100)
 
-    res.json({ generatedAt: new Date().toISOString(), month, users, organizations, repeats })
+    const documents = docs.map((d) => {
+      const org = d.organization_id ? orgById.get(d.organization_id) : undefined
+      return {
+        id: d.id,
+        docType: docTypeOf(d),
+        status: d.status,
+        orgId: org?.id ?? null,
+        orgName: org?.name ?? null,
+        userEmail: d.user_id ? emailByUser.get(d.user_id) ?? null : null,
+        createdAt: d.created_at,
+        downloadCountedAt: d.download_counted_at,
+        eventCount: eventsByDoc.get(d.id)?.length ?? 0,
+      }
+    })
+
+    res.json({ generatedAt: new Date().toISOString(), month, users, organizations, repeats, documents })
   } catch (e: any) {
     res.status(500).json({ error: e.message || 'admin_overview_failed' })
+  }
+})
+
+/** Streams a document's PDF for backoffice inspection — same renderer the partner API uses. */
+app.get('/v1/admin/documents/:id/pdf', async (req, res) => {
+  try {
+    const auth = await requireAdmin(req.header('authorization') ?? undefined)
+    if ('error' in auth) {
+      const body = auth.error === 503 ? { error: 'admin_not_configured' }
+        : auth.error === 401 ? { error: 'unauthorized' }
+        : { error: 'forbidden' }
+      return res.status(auth.error).json(body)
+    }
+    const { supabase } = auth
+
+    const { data: row, error } = await supabase
+      .from('awb_documents')
+      .select('id, data')
+      .eq('id', req.params.id)
+      .maybeSingle()
+
+    if (error) return res.status(500).json({ error: error.message })
+    if (!row) return res.status(404).json({ error: 'not_found' })
+
+    const { buffer, filename, contentType } = await renderDocumentPdf(row.data as any)
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Content-Disposition', `inline; filename="${filename.replace(/"/g, '')}"`)
+    res.send(buffer)
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || 'admin_pdf_failed' })
   }
 })
 

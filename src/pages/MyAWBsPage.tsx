@@ -10,6 +10,7 @@ import { ImportModal } from '../components/ImportModal'
 import { DocEditorModal } from '../components/DocEditorModal'
 import { DOC_TYPES, HUB_DOC_TYPES, DocTypeMeta, docTypeMeta } from '../lib/docTypes'
 import { withHubModal } from '../lib/partnerTheme'
+import { isAdminUiUser } from '../lib/adminUi'
 import { usePostHog } from '@posthog/react'
 
 type ViewMode = 'cards' | 'table'
@@ -280,6 +281,11 @@ export function MyAWBsPage() {
           <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>
             {t('common.settings')}
           </Link>
+          {isAdminUiUser(user?.email) && (
+            <Link to="/admin" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>
+              Admin
+            </Link>
+          )}
           {plan !== 'free' && (
             <span
               style={{

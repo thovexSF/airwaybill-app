@@ -19,7 +19,7 @@ export interface AdminOrgRow {
   planExpiresAt: string | null
   createdAt: string
   membersCount: number
-  docsThisMonth: number
+  docsUsedLifetime: number
   docLimit: number | null
   totalDocuments: number
   totalDownloadedDocuments: number
@@ -37,12 +37,25 @@ export interface AdminRepeatRow {
   lastEventAt: string | null
 }
 
+export interface AdminDocumentRow {
+  id: string
+  docType: string
+  status: string
+  orgId: string | null
+  orgName: string | null
+  userEmail: string | null
+  createdAt: string
+  downloadCountedAt: string | null
+  eventCount: number
+}
+
 export interface AdminOverview {
   generatedAt: string
   month: string
   users: AdminUserRow[]
   organizations: AdminOrgRow[]
   repeats: AdminRepeatRow[]
+  documents: AdminDocumentRow[]
 }
 
 export async function fetchAdminOverview(): Promise<AdminOverview> {
@@ -58,4 +71,23 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
     throw new Error(body.message || body.error || `Error ${res.status}`)
   }
   return res.json()
+}
+
+/** Opens a document's PDF in a new tab for backoffice inspection. */
+export async function openAdminDocumentPdf(documentId: string): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession()
+  const token = sessionData.session?.access_token
+  if (!token) throw new Error('Debes iniciar sesión')
+
+  const res = await fetch(`/v1/admin/documents/${documentId}/pdf`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.message || body.error || `Error ${res.status}`)
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank')
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
