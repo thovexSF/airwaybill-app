@@ -584,6 +584,7 @@ app.get('/api/import/awbeditor/:jobId', async (req, res) => {
 })
 
 // SPA: serve built assets; fall through to index.html for client routes
+app.use('/assets', express.static(path.join(DIST, 'assets'), { index: false, maxAge: '1y', immutable: true }))
 app.use(express.static(DIST, { index: false, maxAge: '1h' }))
 // Express 5 / path-to-regexp: bare '*' is invalid; use a named splat.
 app.get('/{*path}', (req, res, next) => {
