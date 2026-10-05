@@ -17,3 +17,6 @@ supabase/.temp/
 public/.claude/
 .claude/worktrees/
 
+
+# Documentos de referencia de la empresa (pueden tener datos de clientes)
+docs/company-refs/
