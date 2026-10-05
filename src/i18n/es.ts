@@ -280,7 +280,7 @@ const es = {
     zoomOut: 'Alejar',
   },
   eawbPromo: {
-    pill: 'Dejamos listo tu e-AWB Agreement de IATA para que emitas eAWB sin papel',
+    pill: 'Emite eAWB, sin papel',
     title: 'Emite eAWB, sin papel.',
     sub: 'Dejamos listo tu e-AWB Agreement de IATA para que operes electrónicamente con las aerolíneas.',
     button: 'Activar eAWB',

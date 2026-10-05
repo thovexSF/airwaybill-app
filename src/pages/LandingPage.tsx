@@ -91,7 +91,6 @@ export function LandingPage() {
             {t('eawbPromo.pill')}
             <i aria-hidden="true">→</i>
           </Link>
-          <div className="lp-badge">{t('landing.hero.badge')}</div>
           <h1 className="lp-headline">
             {t('landing.hero.title')}
           </h1>
@@ -104,7 +103,6 @@ export function LandingPage() {
             </Link>
             <a href="#how" className="lp-cta-ghost">{t('landing.steps.cta')}</a>
           </div>
-          <p className="lp-hero-note">{t('landing.hero.note')}</p>
         </div>
 
         {/* Mockup — the public demo editor, with the example shipment on the real sheet */}
