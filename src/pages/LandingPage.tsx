@@ -114,12 +114,7 @@ export function LandingPage() {
 
       {/* ── SOCIAL PROOF ── */}
       <section className="lp-proof">
-        <p>Trusted by freight forwarders in</p>
-        <div className="lp-proof-flags">
-          {['🇨🇱 Chile', '🇺🇸 USA', '🇧🇷 Brazil', '🇪🇸 Spain', '🇩🇪 Germany', '🇨🇭 Switzerland'].map(c => (
-            <span key={c}>{c}</span>
-          ))}
-        </div>
+        <p>Trusted by freight forwarders all over the world</p>
       </section>
 
       {/* ── eAWB ── */}
@@ -256,7 +251,17 @@ const MOCK_NAME: Record<string, string> = {
   imo_dgd: 'IMO / IMDG Form',
 }
 
+/** NEPPEX is Chile-only, so it stays out of this overview. */
+const MOCK_GROUPS: { label: string; types: string[] }[] = [
+  { label: 'Air', types: ['awb', 'hawb', 'manifest', 'dgd', 'label'] },
+  { label: 'Maritime', types: ['bl', 'bl_manifest', 'imo_dgd'] },
+  { label: 'e-AWB', types: ['fwb', 'fhl', 'ffr'] },
+  { label: 'Invoice y Guía de despacho', types: ['proforma'] },
+]
+
 function LandingEditorMock() {
+  const byType = new Map(DOC_TYPES.map((dt) => [dt.type, dt]))
+
   return (
     <div className="lp-mock-app">
       <div className="lp-mock-topbar">
@@ -266,10 +271,19 @@ function LandingEditorMock() {
       </div>
       <div className="lp-mock-body">
         <div className="lp-mock-types">
-          {DOC_TYPES.map((dt) => (
-            <div key={dt.type} className={`lp-mock-type${dt.type === 'awb' ? ' active' : ''}`}>
-              <span className="lp-mock-pill" style={{ background: dt.color }}>{dt.badge}</span>
-              <span className="lp-mock-type-name">{MOCK_NAME[dt.type] ?? dt.name}</span>
+          {MOCK_GROUPS.map((group) => (
+            <div key={group.label} className="lp-mock-group">
+              <div className="lp-mock-cat">{group.label}</div>
+              {group.types.map((type) => {
+                const dt = byType.get(type)
+                if (!dt) return null
+                return (
+                  <div key={dt.type} className={`lp-mock-type${dt.type === 'awb' ? ' active' : ''}`}>
+                    <span className="lp-mock-pill" style={{ background: dt.color }}>{dt.badge}</span>
+                    <span className="lp-mock-type-name">{MOCK_NAME[dt.type] ?? dt.name}</span>
+                  </div>
+                )
+              })}
             </div>
           ))}
         </div>
