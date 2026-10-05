@@ -86,6 +86,11 @@ export function LandingPage() {
       {/* ── HERO ── */}
       <section className="lp-hero">
         <div className="lp-hero-inner">
+          <Link to={user ? '/eawb-agreement' : '/signup'} className="lp-eawb-pill">
+            <span>eAWB</span>
+            {t('eawbPromo.pill')}
+            <i aria-hidden="true">→</i>
+          </Link>
           <div className="lp-badge">{t('landing.hero.badge')}</div>
           <h1 className="lp-headline">
             {t('landing.hero.title')}
@@ -110,20 +115,6 @@ export function LandingPage() {
           </div>
           <LandingEditorMock />
         </Link>
-      </section>
-
-      {/* ── eAWB ── */}
-      <section className="lp-eawb">
-        <div className="lp-eawb-inner">
-          <h2>{t('eawbPromo.title')}</h2>
-          <p>{t('eawbPromo.sub')}</p>
-          <Link to={user ? '/eawb-agreement' : '/signup'} className="lp-cta-primary">{t('eawbPromo.button')}</Link>
-        </div>
-      </section>
-
-      {/* ── SOCIAL PROOF ── */}
-      <section className="lp-proof">
-        <p>{t('landing.proof')}</p>
       </section>
 
       {/* ── FEATURES ── */}

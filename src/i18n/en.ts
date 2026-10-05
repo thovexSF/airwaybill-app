@@ -280,6 +280,7 @@ const en = {
     zoomOut: 'Zoom out',
   },
   eawbPromo: {
+    pill: 'We set up your IATA e-AWB Agreement, so you can go paperless with eAWB',
     title: 'Go paperless with eAWB.',
     sub: 'We set up your IATA e-AWB Agreement so you can ship electronically with airlines.',
     button: 'Activate eAWB',
