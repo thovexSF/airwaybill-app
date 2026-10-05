@@ -10,6 +10,7 @@ import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
 import { useDemoMode } from './DemoMode'
 import { useTranslation } from 'react-i18next'
+import { WatermarkUpgradePrompt } from './WatermarkUpgradePrompt'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -55,7 +56,8 @@ export function DocEditorShell<T>({
   const demo = useDemoMode()
   const { t } = useTranslation()
   const { user, logout, orgName } = useAuth()
-  const { plan, docsUsedThisMonth, docLimit } = usePlan()
+  const { plan, orgId, docsUsedThisMonth, docLimit } = usePlan()
+  const docType = typeof (data as any)?.docType === 'string' ? (data as any).docType : 'document'
   const [downloading, setDownloading] = useState(false)
   const [downloadMsg, setDownloadMsg] = useState<string | null>(null)
 
@@ -200,6 +202,16 @@ export function DocEditorShell<T>({
           </button>
         )}
       </div>
+
+      {!demo && forceWatermark && (
+        <WatermarkUpgradePrompt
+          docType={docType}
+          source="doc_editor_limit"
+          plan={plan}
+          orgId={orgId}
+          email={user?.email}
+        />
+      )}
 
       <div className="main">
         {/* ── Form panel ── */}
