@@ -112,20 +112,18 @@ export function LandingPage() {
         </Link>
       </section>
 
-      {/* ── SOCIAL PROOF ── */}
-      <section className="lp-proof">
-        <p>Trusted by freight forwarders all over the world</p>
-      </section>
-
       {/* ── eAWB ── */}
       <section className="lp-eawb">
         <div className="lp-eawb-inner">
-          <div>
-            <h2>{t('eawbPromo.title')}</h2>
-            <p>{t('eawbPromo.sub')}</p>
-          </div>
+          <h2>{t('eawbPromo.title')}</h2>
+          <p>{t('eawbPromo.sub')}</p>
           <Link to={user ? '/eawb-agreement' : '/signup'} className="lp-cta-primary">{t('eawbPromo.button')}</Link>
         </div>
+      </section>
+
+      {/* ── SOCIAL PROOF ── */}
+      <section className="lp-proof">
+        <p>{t('landing.proof')}</p>
       </section>
 
       {/* ── FEATURES ── */}
@@ -252,14 +250,15 @@ const MOCK_NAME: Record<string, string> = {
 }
 
 /** NEPPEX is Chile-only, so it stays out of this overview. */
-const MOCK_GROUPS: { label: string; types: string[] }[] = [
-  { label: 'Air', types: ['awb', 'hawb', 'manifest', 'dgd', 'label'] },
-  { label: 'Maritime', types: ['bl', 'bl_manifest', 'imo_dgd'] },
-  { label: 'e-AWB', types: ['fwb', 'fhl', 'ffr'] },
-  { label: 'Invoice y Guía de despacho', types: ['proforma'] },
+const MOCK_GROUPS: { labelKey: string; types: string[] }[] = [
+  { labelKey: 'landing.mock.air', types: ['awb', 'hawb', 'manifest', 'dgd', 'label'] },
+  { labelKey: 'landing.mock.maritime', types: ['bl', 'bl_manifest', 'imo_dgd'] },
+  { labelKey: 'landing.mock.eawb', types: ['fwb', 'fhl', 'ffr'] },
+  { labelKey: 'landing.mock.invoice', types: ['proforma'] },
 ]
 
 function LandingEditorMock() {
+  const { t } = useTranslation()
   const byType = new Map(DOC_TYPES.map((dt) => [dt.type, dt]))
 
   return (
@@ -272,8 +271,8 @@ function LandingEditorMock() {
       <div className="lp-mock-body">
         <div className="lp-mock-types">
           {MOCK_GROUPS.map((group) => (
-            <div key={group.label} className="lp-mock-group">
-              <div className="lp-mock-cat">{group.label}</div>
+            <div key={group.labelKey} className="lp-mock-group">
+              <div className="lp-mock-cat">{t(group.labelKey)}</div>
               {group.types.map((type) => {
                 const dt = byType.get(type)
                 if (!dt) return null

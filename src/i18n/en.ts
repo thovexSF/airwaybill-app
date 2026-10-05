@@ -45,6 +45,13 @@ const en = {
       sub: 'Join freight forwarders worldwide who\'ve switched from desktop software to Airwaybill App.',
       cta: 'Start for free — no credit card →',
     },
+    proof: 'Trusted by freight forwarders all over the world',
+    mock: {
+      air: 'Air',
+      maritime: 'Maritime',
+      eawb: 'e-AWB',
+      invoice: 'Invoice and dispatch guide',
+    },
     footer: {
       product: 'Product',
       company: 'Company',

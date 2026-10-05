@@ -45,6 +45,13 @@ const es = {
       sub: 'Únete a los agentes de carga del mundo que migraron del software de escritorio a Airwaybill App.',
       cta: 'Empieza gratis — sin tarjeta de crédito →',
     },
+    proof: 'La confianza de los agentes de carga en todo el mundo',
+    mock: {
+      air: 'Aéreo',
+      maritime: 'Marítimo',
+      eawb: 'e-AWB',
+      invoice: 'Factura y guía de despacho',
+    },
     footer: {
       product: 'Producto',
       company: 'Empresa',
