@@ -10,7 +10,7 @@ import {
 const ACCENT = '#8B0000'
 const STEPS = ['company', 'docs', 'eawb', 'done'] as const
 
-export function OnboardingPage() {
+export function OnboardingFlow({ onClose, onOpenEawb }: { onClose: () => void; onOpenEawb: () => void }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { orgId, profile, setProfile, loading, save } = useOrgProfile()
@@ -51,19 +51,21 @@ export function OnboardingPage() {
   async function skip() {
     setBusy(true)
     try { await save({ onboardingDismissedAt: new Date().toISOString() }) } catch { /* se puede retomar desde Configuración */ }
-    navigate('/my-awbs', { replace: true })
+    onClose()
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', background: '#f4f4f4' }} />
+  if (loading) return <div style={{ minHeight: 240 }} />
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f4f4', fontFamily: 'system-ui', padding: '32px 16px' }}>
+    <div style={{ fontFamily: 'system-ui' }}>
       <style>{`@keyframes obIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
         .ob-card{animation:obIn .25s ease both}
         .ob-seg{height:4px;border-radius:2px;background:#ddd;transition:background .3s}.ob-seg.on{background:${ACCENT}}`}</style>
-      <LangSwitcher style={{ position: 'fixed', top: 16, right: 16 }} />
-      <div style={{ maxWidth: 520, margin: '0 auto' }}>
-        <div style={{ fontWeight: 800, letterSpacing: 0.5, marginBottom: 20 }}>AIRWAYBILL <span style={{ color: ACCENT }}>APP</span></div>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, paddingRight: 28 }}>
+          <div style={{ fontWeight: 800, letterSpacing: 0.5 }}>AIRWAYBILL <span style={{ color: ACCENT }}>APP</span></div>
+          <LangSwitcher />
+        </div>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
           {STEPS.map((s, i) => <div key={s} className={`ob-seg${i <= step ? ' on' : ''}`} style={{ flex: 1 }} />)}
@@ -73,7 +75,7 @@ export function OnboardingPage() {
           {key !== 'done' && <button onClick={skip} disabled={busy} style={{ background: 'none', border: 0, color: '#777', cursor: 'pointer', fontSize: 12, textDecoration: 'underline' }}>{t('onboarding.skip')}</button>}
         </div>
 
-        <div key={key} className="ob-card" style={{ background: '#fff', borderRadius: 12, padding: '24px 24px 20px', border: '1px solid #e8dcdc' }}>
+        <div key={key} className="ob-card">
           <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px' }}>{t(`onboarding.title.${key}`)}</h1>
           <p style={{ fontSize: 13, color: '#666', margin: '0 0 18px' }}>{t(`onboarding.sub.${key}`)}</p>
 
@@ -98,9 +100,9 @@ export function OnboardingPage() {
               <button onClick={next} disabled={busy} style={primary}>{busy ? t('onboarding.saving') : t('onboarding.next')}</button>
             ) : (
               <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button onClick={() => navigate('/my-awbs', { replace: true })} style={ghost}>{t('onboarding.done.goHub')}</button>
-                {wantEawb && <button onClick={() => navigate('/eawb-agreement', { replace: true })} style={ghost}>{t('onboarding.done.requestEawb')}</button>}
-                <button onClick={() => navigate('/editor', { replace: true })} style={primary}>{t('onboarding.done.newAwb')}</button>
+                <button onClick={onClose} style={ghost}>{t('onboarding.done.goHub')}</button>
+                {wantEawb && <button onClick={onOpenEawb} style={ghost}>{t('onboarding.done.requestEawb')}</button>}
+                <button onClick={() => navigate('/editor')} style={primary}>{t('onboarding.done.newAwb')}</button>
               </span>
             )}
           </div>

@@ -1,10 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Modal } from '../components/Modal'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
 import { listAgreements } from '../lib/eawbAgreement'
 import { useOrgProfile } from '../lib/orgProfile'
+
+const OnboardingFlow = React.lazy(() => import('./OnboardingPage').then(m => ({ default: m.OnboardingFlow })))
+const EawbAgreementFlow = React.lazy(() => import('./EawbAgreementPage').then(m => ({ default: m.EawbAgreementFlow })))
 import { listAWBs, deleteAWB, AWBDocument } from '../lib/awbService'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
@@ -32,13 +36,21 @@ export function MyAWBsPage() {
   const { profile, loading: profileLoading } = useOrgProfile()
   const profileIncomplete = !profileLoading && (!profile.country || (!profile.onboardingCompletedAt && !profile.onboardingDismissedAt))
   const navigate = useNavigate()
+  const [modalParams, setModalParams] = useSearchParams()
+  const modal = modalParams.get('modal')
+  const openModal = (m: 'onboarding' | 'eawb' | null) => setModalParams(prev => {
+    const n = new URLSearchParams(prev)
+    if (m) n.set('modal', m); else n.delete('modal')
+    return n
+  }, { replace: true })
   useEffect(() => {
     // Cuentas recién creadas (también las de Google) pasan por el onboarding; las existentes solo ven el aviso.
     const created = user?.created_at ? Date.now() - new Date(user.created_at).getTime() : Infinity
     if (profileIncomplete && !profile.country && !profile.onboardingDismissedAt && created < 24 * 3600 * 1000) {
-      navigate('/onboarding', { replace: true })
+      openModal('onboarding')
     }
-  }, [profileIncomplete, profile.country, profile.onboardingDismissedAt, user?.created_at, navigate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileIncomplete, profile.country, profile.onboardingDismissedAt, user?.created_at])
   useEffect(() => {
     if (orgId) listAgreements(orgId).then(r => setHasAgreement(r.some(a => a.status !== 'rechazado'))).catch(() => {})
   }, [orgId])
@@ -346,25 +358,39 @@ export function MyAWBsPage() {
       </div>
 
       <div className="doc-hub-body">
+        {modal === 'onboarding' && (
+          <Modal onClose={() => openModal(null)} label={t('onboarding.title.company')} width={560}>
+            <React.Suspense fallback={<div style={{ minHeight: 240 }} />}>
+              <OnboardingFlow onClose={() => openModal(null)} onOpenEawb={() => openModal('eawb')} />
+            </React.Suspense>
+          </Modal>
+        )}
+        {modal === 'eawb' && (
+          <Modal onClose={() => openModal(null)} label={t('eawb.title')} width={720}>
+            <React.Suspense fallback={<div style={{ minHeight: 240 }} />}>
+              <EawbAgreementFlow onClose={() => openModal(null)} />
+            </React.Suspense>
+          </Modal>
+        )}
         {profileIncomplete && (
-          <Link to="/onboarding" style={{
+          <a href="?modal=onboarding" onClick={(e) => { e.preventDefault(); openModal('onboarding') }} style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
             background: '#faf8f8', border: '1px solid #e8dcdc', borderRadius: 10, padding: '12px 16px', marginBottom: 16,
             textDecoration: 'none', color: '#222',
           }}>
             <span style={{ fontSize: 14 }}><b>{t('onboarding.banner.title')}</b> {t('onboarding.banner.sub')}</span>
             <span style={{ color: '#8B0000', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('onboarding.banner.button')} →</span>
-          </Link>
+          </a>
         )}
         {!profileIncomplete && !profileLoading && !hasAgreement && (
-          <Link to="/eawb-agreement" style={{
+          <a href="?modal=eawb" onClick={(e) => { e.preventDefault(); openModal('eawb') }} style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
             background: '#faf8f8', border: '1px solid #e8dcdc', borderRadius: 10, padding: '12px 16px', marginBottom: 16,
             textDecoration: 'none', color: '#222',
           }}>
             <span style={{ fontSize: 14 }}><b>{t('eawbPromo.title')}</b> {t('eawbPromo.sub')}</span>
             <span style={{ color: '#8B0000', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('eawbPromo.button')} →</span>
-          </Link>
+          </a>
         )}
         <div className="doc-hub-header">
           <div>

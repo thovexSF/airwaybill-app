@@ -12,7 +12,7 @@ import {
 
 const ACCENT = '#8B0000'
 
-export function EawbAgreementPage() {
+export function EawbAgreementFlow({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const { orgId } = usePlan()
@@ -96,11 +96,8 @@ export function EawbAgreementPage() {
   }
 
   return (
-    <div style={{ fontFamily: 'system-ui', maxWidth: 760, margin: '0 auto', padding: '24px 20px 60px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{t('eawb.title')}</h1>
-        <Link to="/settings" style={{ fontSize: 13, color: ACCENT }}>{t('eawb.back')}</Link>
-      </div>
+    <div style={{ fontFamily: 'system-ui' }}>
+      <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 28px 4px 0' }}>{t('eawb.title')}</h1>
       <p style={{ color: '#666', fontSize: 13 }}>{t('eawb.intro')}</p>
       {msg && <p style={{ color: ACCENT, fontSize: 13 }}>{msg}</p>}
 

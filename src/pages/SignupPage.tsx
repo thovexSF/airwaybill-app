@@ -28,7 +28,7 @@ export function SignupPage() {
     if (!result.ok) { setError(result.error); return }
     ;(window as any).clarity?.('event', 'signup_completed')
     posthog?.capture('user_signed_up', { method: 'email', company_name: companyName })
-    navigate('/onboarding', { replace: true })
+    navigate('/my-awbs?modal=onboarding', { replace: true })
   }
 
   return (

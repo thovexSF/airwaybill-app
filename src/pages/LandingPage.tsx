@@ -86,11 +86,6 @@ export function LandingPage() {
       {/* ── HERO ── */}
       <section className="lp-hero">
         <div className="lp-hero-inner">
-          <Link to={user ? '/eawb-agreement' : '/signup'} className="lp-eawb-pill">
-            <span>eAWB</span>
-            {t('eawbPromo.pill')}
-            <i aria-hidden="true">→</i>
-          </Link>
           <h1 className="lp-headline">
             {t('landing.hero.title')}
           </h1>
@@ -103,6 +98,11 @@ export function LandingPage() {
             </Link>
             <a href="#how" className="lp-cta-ghost">{t('landing.steps.cta')}</a>
           </div>
+          <Link to={user ? '/eawb-agreement' : '/signup'} className="lp-eawb-pill">
+            <span>eAWB</span>
+            {t('eawbPromo.pill')}
+            <i aria-hidden="true">→</i>
+          </Link>
         </div>
 
         {/* Mockup — the public demo editor, with the example shipment on the real sheet */}

@@ -32,7 +32,13 @@ const baseline = baselineIdx > -1 ? process.argv[baselineIdx + 1] : null
 
 const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } })
 async function main() {
-await client.connect()
+try {
+  await client.connect()
+} catch (e) {
+  // Sin conexión no sabemos si hay algo pendiente: no bloqueamos el deploy, pero se ve en el log.
+  console.warn(`[migrate] no se pudo conectar (${(e as Error).message}). Revisa DATABASE_URL; migraciones omitidas.`)
+  return
+}
 try {
   await client.query(
     'create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())',

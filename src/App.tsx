@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { LandingPage } from './pages/LandingPage'
 const EditorPage = lazy(() => import('./pages/EditorPage').then(m => ({ default: m.EditorPage })))
 const SignupPage = lazy(() => import('./pages/SignupPage').then(m => ({ default: m.SignupPage })))
@@ -30,8 +30,6 @@ const DemoEditorPage = lazy(() => import('./pages/DemoEditorPage').then(m => ({ 
 const DemoPickerPage = lazy(() => import('./pages/DemoPickerPage').then(m => ({ default: m.DemoPickerPage })))
 const DemoDocPage = lazy(() => import('./pages/DemoDocPage').then(m => ({ default: m.DemoDocPage })))
 import { PartnerEntryPage } from './pages/PartnerEntryPage'
-const EawbAgreementPage = lazy(() => import('./pages/EawbAgreementPage').then(m => ({ default: m.EawbAgreementPage })))
-const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })))
 const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })))
 import { FeedbackWidget } from './components/FeedbackWidget'
 import { isPartnerEmbed } from './lib/partnerTheme'
@@ -104,8 +102,8 @@ export default function App() {
           )}
         />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-        <Route path="/eawb-agreement" element={<ProtectedRoute><EawbAgreementPage /></ProtectedRoute>} />
+        <Route path="/onboarding" element={<Navigate to="/my-awbs?modal=onboarding" replace />} />
+        <Route path="/eawb-agreement" element={<Navigate to="/my-awbs?modal=eawb" replace />} />
         <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
