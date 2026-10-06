@@ -52,8 +52,8 @@ export const onboardingEn = {
     eawbOff: 'eAWB not enabled. You can do it from your documents page at any time.',
   },
   banner: {
-    title: 'Complete your company profile.',
-    sub: 'Country, tax ID and legal representative are written once and prefill your documents.',
+    title: 'Fill your documents faster.',
+    sub: 'Complete your company profile once and we prefill the shipper and agent on every AWB, so you only type each shipment.',
     button: 'Complete profile',
   },
   settings: {
@@ -124,8 +124,8 @@ export const onboardingEs = {
     eawbOff: 'eAWB sin habilitar. Puedes hacerlo desde tus documentos cuando quieras.',
   },
   banner: {
-    title: 'Completa el perfil de tu empresa.',
-    sub: 'País, identificador tributario y representante legal se escriben una vez y prellenan tus documentos.',
+    title: 'Llena tus documentos más rápido.',
+    sub: 'Completa el perfil de tu empresa una vez y prellenamos shipper y agente en cada AWB, para que solo escribas cada envío.',
     button: 'Completar perfil',
   },
   settings: {
