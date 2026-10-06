@@ -9,6 +9,7 @@ import {
   hashApiKey,
   type PartnerApiKeyRow,
 } from '../lib/partnerApiKeys'
+import { EawbStatusCard } from '../components/EawbStatusCard'
 import { CompanyProfileForm } from '../components/CompanyProfileForm'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { usePostHog } from '@posthog/react'
@@ -351,11 +352,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginTop: 32, border: '1px solid #e8dcdc' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 8 }}>e-AWB Agreement</h2>
-          <p style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>Únete al acuerdo multilateral de IATA para operar eAWB. Nosotros tramitamos la solicitud.</p>
-          <Link to="/eawb-agreement" style={{ color: '#8b0000', fontSize: 13, fontWeight: 600 }}>Solicitar / ver estado →</Link>
-        </div>
+        <EawbStatusCard />
 
         <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginTop: 32, border: '1px solid #e8dcdc' }}>
           <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 8 }}>{t('settings.apiKeys')}</h2>

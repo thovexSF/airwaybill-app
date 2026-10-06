@@ -337,6 +337,20 @@ const es = {
       firmadoReupload: 'Puedes subir otra versión si te equivocaste de archivo.',
       aprobado: 'Tu empresa ya es parte del acuerdo multilateral. Escríbenos para activar el eAWB con tus aerolíneas.',
     },
+    card: {
+      accepted: 'Firmado y aceptado',
+      onList: '{{list}} figura en la lista pública de IATA (verificado al {{date}}). Tu empresa es parte del Multilateral e-AWB Agreement.',
+      approved: 'Tu acuerdo está firmado y aprobado. Tu empresa es parte del Multilateral e-AWB Agreement.',
+      none: 'Únete al acuerdo multilateral de IATA para operar eAWB. Nosotros tramitamos la solicitud.',
+      request: 'Solicitar',
+      viewStatus: 'Ver estado',
+      progress: {
+        solicitado: 'Recibimos tu solicitud y la estamos revisando.',
+        enviado_iata: 'Enviada a IATA. Recibirás el contrato para firmar por correo.',
+        pendiente_firma: 'IATA te envió el contrato. Fírmalo y sube aquí el PDF firmado.',
+        firmado: 'Recibimos tu contrato firmado. Está en espera de aprobación.',
+      },
+    },
     reg: {
       panelTitle: 'Tu empresa ya está en el acuerdo con IATA',
       panelText: '{{list}} figura en la lista pública de IATA del Multilateral e-AWB Agreement (verificado al {{date}}). No necesitas solicitarlo de nuevo. Siguiente paso: activar el eAWB con tus aerolíneas.',
