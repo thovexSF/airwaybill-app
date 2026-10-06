@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
@@ -50,10 +50,26 @@ const STEPS = [
 export function LandingPage() {
   const { t } = useTranslation()
   const { user, orgName, logout } = useAuth()
+  const [showBar, setShowBar] = useState(() => {
+    try { return localStorage.getItem('lp_eawb_bar') !== 'closed' } catch { return true }
+  })
+  const closeBar = () => {
+    setShowBar(false)
+    try { localStorage.setItem('lp_eawb_bar', 'closed') } catch { /* sin storage: vuelve a salir */ }
+  }
   const tryPath = user ? '/my-awbs' : '/demo'
 
   return (
     <div className="lp">
+
+      {showBar && (
+        <div className="lp-announce">
+          <Link to={user ? '/my-awbs?modal=eawb' : '/signup'}>
+            <b>{t('eawbPromo.title')}</b> <span>{t('eawbPromo.button')} →</span>
+          </Link>
+          <button type="button" aria-label="Close" onClick={closeBar}>×</button>
+        </div>
+      )}
 
       {/* ── NAV ── */}
       <nav className="lp-nav">
@@ -98,11 +114,6 @@ export function LandingPage() {
             </Link>
             <a href="#how" className="lp-cta-ghost">{t('landing.steps.cta')}</a>
           </div>
-          <Link to={user ? '/eawb-agreement' : '/signup'} className="lp-eawb-pill">
-            <span>eAWB</span>
-            {t('eawbPromo.pill')}
-            <i aria-hidden="true">→</i>
-          </Link>
         </div>
 
         {/* Mockup — the public demo editor, with the example shipment on the real sheet */}
