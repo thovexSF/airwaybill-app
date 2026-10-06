@@ -6,7 +6,7 @@ import { usePlan } from '../lib/usePlan'
 import { useOrgProfile } from '../lib/orgProfile'
 import { FormErrors, isFreeMail, normalizeForm, validateForm } from '../lib/eawbValidation'
 import {
-  AgreementForm, AgreementRow, COUNTRIES, EMPTY_FORM, RegistryCheck, checkRegistry, fmtAsOf,
+  AgreementForm, AgreementRow, COUNTRIES, EMPTY_FORM, RegistryCheck, checkRegistry, fmtAsOf, registryList,
   listAgreements, requestAgreement, uploadSignedAgreement,
 } from '../lib/eawbAgreement'
 
@@ -26,6 +26,8 @@ export function EawbAgreementFlow({ onClose }: { onClose: () => void }) {
   const [msg, setMsg] = useState<string | null>(null)
   const [registry, setRegistry] = useState<RegistryCheck | null>(null)
   const [checking, setChecking] = useState(false)
+  const [forceForm, setForceForm] = useState(false)
+  const [firstCheckDone, setFirstCheckDone] = useState(false)
 
   useEffect(() => {
     setRegistry(null)
@@ -35,7 +37,7 @@ export function EawbAgreementFlow({ onClose }: { onClose: () => void }) {
       checkRegistry(form.companyName)
         .then(setRegistry)
         .catch(() => setRegistry(null))
-        .finally(() => setChecking(false))
+        .finally(() => { setChecking(false); setFirstCheckDone(true) })
     }, 600)
     return () => { clearTimeout(h); setChecking(false) }
   }, [form.companyName])
@@ -103,6 +105,22 @@ export function EawbAgreementFlow({ onClose }: { onClose: () => void }) {
 
       {active ? (
         <Status r={active} busy={busy} onSigned={f => onSigned(active, f)} />
+      ) : (profileLoading || (form.companyName.trim().length >= 3 && !firstCheckDone)) ? (
+        <p style={{ fontSize: 13, color: '#777' }}>{t('eawb.reg.checking')}</p>
+      ) : registry?.status === 'registered' && !forceForm ? (
+        <div style={{ border: '1px solid #cfe5d0', background: '#f3faf3', borderRadius: 10, padding: 20 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 800, margin: '0 0 8px', color: '#2f7d32' }}>{t('eawb.reg.panelTitle')}</h2>
+          <p style={{ fontSize: 14, margin: '0 0 16px' }}>
+            {t('eawb.reg.panelText', { list: registryList(registry), date: registry.asOf ? fmtAsOf(registry.asOf, locale) : '' })}
+          </p>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button type="button" onClick={onClose} style={btnStyle}>{t('eawb.reg.panelDone')}</button>
+            <button type="button" onClick={() => setForceForm(true)}
+              style={{ background: 'none', border: 0, color: '#555', textDecoration: 'underline', cursor: 'pointer', fontSize: 13 }}>
+              {t('eawb.reg.panelOther')}
+            </button>
+          </div>
+        </div>
       ) : (
         <form onSubmit={submit} noValidate>
           <p style={{ fontSize: 13, background: '#fff8e6', border: '1px solid #f0dca0', borderRadius: 8, padding: '8px 12px' }}>{t('eawb.needEnglish')}</p>

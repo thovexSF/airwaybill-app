@@ -338,6 +338,10 @@ const es = {
       aprobado: 'Tu empresa ya es parte del acuerdo multilateral. Escríbenos para activar el eAWB con tus aerolíneas.',
     },
     reg: {
+      panelTitle: 'Tu empresa ya está en el acuerdo con IATA',
+      panelText: '{{list}} figura en la lista pública de IATA del Multilateral e-AWB Agreement (verificado al {{date}}). No necesitas solicitarlo de nuevo. Siguiente paso: activar el eAWB con tus aerolíneas.',
+      panelOther: 'Solicitarlo para otra empresa',
+      panelDone: 'Listo',
       checking: 'Revisando la lista de IATA…',
       notFound: 'Verificado en la lista pública de IATA al {{date}}: tu empresa no figuraba en ella.',
       possible: 'Ya hay nombres parecidos en la lista de IATA: {{list}}. Si alguno es tu empresa, es posible que ya estés registrada.',
