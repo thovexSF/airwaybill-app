@@ -362,6 +362,53 @@ export function MyAWBsPage() {
             <span style={{ color: '#8B0000', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('eawbPromo.button')} →</span>
           </a>
         )}
+        <div className="doc-hub-tabs" role="tablist" aria-label={t('myAwbs.docTypes')}>
+          {DOC_CATEGORIES.map((cat) => {
+            const tabs = HUB_DOC_TYPES.filter((dt) => cat.types.includes(dt.type) && !profileLoading && docTypeAvailable(dt, profile.country, counts[dt.type] || 0))
+            if (!tabs.length) return null
+            return (
+              <div key={cat.key} className="doc-hub-group">
+                <div className="doc-hub-cat">{t(cat.labelKey)}</div>
+                <div className="doc-hub-group-tabs">
+                  {tabs.map((dt) => {
+                    const active = dt.type === activeMeta.type
+                    const n = counts[dt.type] || 0
+                    return (
+                    <button
+                      key={dt.type}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      className={`doc-hub-tab${active ? ' active' : ''}`}
+                      style={{
+                        background: active ? dt.color : '#fff',
+                        color: active ? '#fff' : dt.color,
+                        borderColor: active ? dt.color : `${dt.color}55`,
+                        boxShadow: active ? `0 2px 6px ${dt.color}55` : undefined,
+                      }}
+                      onClick={() => setTab(dt.type)}
+                    >
+                      <span className="doc-hub-tab-label">{dt.badge}</span>
+                      {n > 0 && (
+                        <span
+                          className="doc-hub-tab-count"
+                          style={{
+                            background: active ? '#fff' : dt.color,
+                            color: active ? dt.color : '#fff',
+                          }}
+                        >
+                          {n}
+                        </span>
+                      )}
+                    </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
         <div className="doc-hub-header">
           <div>
             <h1>{activeMeta.name}</h1>
@@ -421,52 +468,6 @@ export function MyAWBsPage() {
           </div>
         </div>
 
-        <div className="doc-hub-tabs" role="tablist" aria-label={t('myAwbs.docTypes')}>
-          {DOC_CATEGORIES.map((cat) => {
-            const tabs = HUB_DOC_TYPES.filter((dt) => cat.types.includes(dt.type) && !profileLoading && docTypeAvailable(dt, profile.country, counts[dt.type] || 0))
-            if (!tabs.length) return null
-            return (
-              <div key={cat.key} className="doc-hub-group">
-                <div className="doc-hub-cat">{t(cat.labelKey)}</div>
-                <div className="doc-hub-group-tabs">
-                  {tabs.map((dt) => {
-                    const active = dt.type === activeMeta.type
-                    const n = counts[dt.type] || 0
-                    return (
-                    <button
-                      key={dt.type}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      className={`doc-hub-tab${active ? ' active' : ''}`}
-                      style={{
-                        background: active ? dt.color : '#fff',
-                        color: active ? '#fff' : dt.color,
-                        borderColor: active ? dt.color : `${dt.color}55`,
-                        boxShadow: active ? `0 2px 6px ${dt.color}55` : undefined,
-                      }}
-                      onClick={() => setTab(dt.type)}
-                    >
-                      <span className="doc-hub-tab-label">{dt.badge}</span>
-                      {n > 0 && (
-                        <span
-                          className="doc-hub-tab-count"
-                          style={{
-                            background: active ? 'rgba(255,255,255,0.25)' : `${dt.color}33`,
-                            color: active ? '#fff' : dt.color,
-                          }}
-                        >
-                          {n}
-                        </span>
-                      )}
-                    </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </div>
 
         <div className="doc-hub-panel">
           <div className="doc-hub-filters">
