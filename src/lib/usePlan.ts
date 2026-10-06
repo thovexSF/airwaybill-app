@@ -77,7 +77,8 @@ export function usePlan(): PlanInfo {
   return {
     plan,
     orgId,
-    docsUsedThisMonth: used,
+    // Cuentas anteriores al límite de por vida pueden tener más usos registrados que el límite: nunca mostramos 4/3.
+    docsUsedThisMonth: limit === null ? used : Math.min(used, limit),
     docLimit: limit,
     canDownloadDocument,
     loading,

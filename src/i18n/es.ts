@@ -152,6 +152,7 @@ const es = {
     copies: 'Copias',
     applyChanges: 'Aplicar',
     pdfDownloads: 'documentos',
+    freeDocsShort: 'gratis',
     freeDocs: 'documentos gratis',
     limitReached: 'Plan Free: 3 documentos sin marca de agua (cualquier tipo)',
     previewLoading: 'Generando vista previa…',

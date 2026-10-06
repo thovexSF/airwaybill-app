@@ -152,6 +152,7 @@ const en = {
     copies: 'Copies',
     applyChanges: 'Apply',
     pdfDownloads: 'documents',
+    freeDocsShort: 'free',
     freeDocs: 'free documents',
     limitReached: 'Free plan: 3 documents without watermark (any type)',
     previewLoading: 'Generating preview…',

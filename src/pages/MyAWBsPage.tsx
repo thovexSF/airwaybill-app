@@ -293,68 +293,32 @@ export function MyAWBsPage() {
   return (
     <div className="doc-hub">
       <div className="topbar partner-hide-in-embed doc-hub-topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link to="/" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textDecoration: 'none' }}>
-            {t('common.home')}
-          </Link>
-          <Link to="/my-awbs" style={{ fontWeight: 800, fontSize: 16, color: '#fff', textDecoration: 'none', letterSpacing: 0.5 }}>
-            ✈ AIRWAYBILL APP
-          </Link>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>{orgName ?? user?.email}</span>
-          {plan === 'free' && docLimit !== null && (
-            <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, whiteSpace: 'nowrap' }}>
-              {docsUsedThisMonth}/{docLimit} {t('editor.freeDocs')}
-            </span>
-          )}
-          <Link to="/settings" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>
-            {t('common.settings')}
-          </Link>
-          {isAdminUiUser(user?.email) && (
-            <Link to="/admin" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, textDecoration: 'none' }}>
-              Admin
-            </Link>
-          )}
-          {plan !== 'free' && (
-            <span
-              style={{
-                background: 'rgba(255,255,255,0.15)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                color: '#fff',
-                fontSize: 11,
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: 20,
-                textTransform: 'capitalize',
-              }}
-            >
-              {plan}
-            </span>
-          )}
-          {(plan === 'free' || plan === 'starter') && (
-            <Link
-              to="/pricing"
-              style={{
-                background: '#fff',
-                color: 'var(--red)',
-                fontSize: 12,
-                fontWeight: 700,
-                padding: '4px 12px',
-                borderRadius: 20,
-                textDecoration: 'none',
-              }}
-            >
-              {plan === 'starter' ? 'Upgrade to Pro' : t('common.upgrade')}
-            </Link>
-          )}
-          <LangSwitcher />
-          <button
-            onClick={logout}
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13 }}
-          >
-            {t('common.signOut')}
-          </button>
+        <Link to="/my-awbs" className="hub-bar-logo">✈ AIRWAYBILL APP</Link>
+        <div className="hub-bar-right">
+          <div className="hub-bar-group">
+            {plan === 'free' && docLimit !== null && (
+              <span className={`hub-bar-usage${docsUsedThisMonth >= docLimit ? ' full' : ''}`}>
+                {docsUsedThisMonth}/{docLimit} {t('common.freeDocsShort')}
+              </span>
+            )}
+            {plan !== 'free' && <span className="hub-bar-plan">{plan}</span>}
+            {(plan === 'free' || plan === 'starter') && (
+              <Link to="/pricing" className="hub-bar-upgrade">
+                {plan === 'starter' ? 'Upgrade to Pro' : t('common.upgrade')}
+              </Link>
+            )}
+          </div>
+          <span className="hub-bar-sep" />
+          <div className="hub-bar-group">
+            <Link to="/settings" className="hub-bar-link">{t('common.settings')}</Link>
+            {isAdminUiUser(user?.email) && <Link to="/admin" className="hub-bar-link">Admin</Link>}
+          </div>
+          <span className="hub-bar-sep" />
+          <div className="hub-bar-group">
+            <LangSwitcher />
+            <span className="hub-bar-name">{orgName ?? user?.email}</span>
+            <button onClick={logout} className="hub-bar-signout">{t('common.signOut')}</button>
+          </div>
         </div>
       </div>
 
