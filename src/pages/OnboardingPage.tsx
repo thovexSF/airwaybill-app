@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ProfileFields, ProfileSection } from '../components/ProfileFields'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { registryList, useRegistryCheck } from '../lib/eawbAgreement'
 import {
   OrgProfile, ProfileErrors, fillDocumentDefaults, normalizeProfile, taxIdLabel, useOrgProfile, validateProfile,
 } from '../lib/orgProfile'
@@ -16,6 +17,8 @@ export function OnboardingFlow({ onClose, onOpenEawb }: { onClose: () => void; o
   const { orgId, profile, setProfile, loading, save } = useOrgProfile()
   const [step, setStep] = useState(0)
   const [wantEawb, setWantEawb] = useState(false)
+  const { registry } = useRegistryCheck(profile.legalName)
+  const alreadyRegistered = registry?.status === 'registered'
   const [errors, setErrors] = useState<ProfileErrors>({})
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -27,7 +30,7 @@ export function OnboardingFlow({ onClose, onOpenEawb }: { onClose: () => void; o
 
   async function next() {
     const normalized = normalizeProfile(profile)
-    const errs = validateProfile(profile, { eawb: key === 'eawb' && wantEawb })
+    const errs = validateProfile(profile, { eawb: key === 'eawb' && wantEawb && !alreadyRegistered })
     // Cada paso solo bloquea por sus propios campos.
     const own: Record<string, (keyof OrgProfile)[]> = {
       company: ['legalName', 'country', 'taxId', 'phone'], docs: ['airportOfDeparture'], eawb: ['iataAgentCode', 'cassCode'], done: [],
@@ -40,7 +43,7 @@ export function OnboardingFlow({ onClose, onOpenEawb }: { onClose: () => void; o
     setBusy(true); setMsg(null)
     try {
       const toSave: Partial<OrgProfile> = { ...normalized }
-      if (key === 'eawb' && !wantEawb) { toSave.iataAgentCode = ''; toSave.cassCode = '' }
+      if (key === 'eawb' && !wantEawb && !alreadyRegistered) { toSave.iataAgentCode = ''; toSave.cassCode = '' }
       if (key === 'eawb') toSave.onboardingCompletedAt = new Date().toISOString()
       await save(toSave)
       if (key === 'eawb' && orgId) await fillDocumentDefaults(orgId, normalized)
@@ -76,13 +79,19 @@ export function OnboardingFlow({ onClose, onOpenEawb }: { onClose: () => void; o
         </div>
 
         <div key={key} className="ob-card">
-          <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px' }}>{t(`onboarding.title.${key}`)}</h1>
-          <p style={{ fontSize: 13, color: '#666', margin: '0 0 18px' }}>{t(`onboarding.sub.${key}`)}</p>
+          <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px' }}>{key === 'eawb' && alreadyRegistered ? t('onboarding.eawbRegistered.title') : t(`onboarding.title.${key}`)}</h1>
+          <p style={{ fontSize: 13, color: '#666', margin: '0 0 18px' }}>{key === 'eawb' && alreadyRegistered ? t('onboarding.eawbRegistered.sub') : t(`onboarding.sub.${key}`)}</p>
 
           {key === 'company' && <ProfileFields section="company" profile={profile} errors={errors} onChange={patch} />}
           {key === 'docs' && <ProfileFields section="docs" profile={profile} errors={errors} onChange={patch} />}
-          {key === 'eawb' && (
+          {key === 'eawb' && alreadyRegistered && registry && (
+            <p style={{ fontSize: 13, color: '#2f7d32', margin: '0 0 8px' }}>{t('onboarding.eawbRegistered.found', { list: registryList(registry) })}</p>
+          )}
+          {key === 'eawb' && !alreadyRegistered && (
             <>
+              {registry?.status === 'possible' && (
+                <p style={{ fontSize: 12, color: '#a60', margin: '0 0 12px' }}>{t('onboarding.eawbRegistered.possible', { list: registryList(registry) })}</p>
+              )}
               <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, marginBottom: 14, cursor: 'pointer' }}>
                 <input type="checkbox" checked={wantEawb} onChange={e => { setWantEawb(e.target.checked); setErrors({}) }} style={{ marginTop: 3 }} />
                 <span><b style={{ fontWeight: 600 }}>{t('onboarding.f.wantEawb')}</b><br /><span style={{ fontSize: 12, color: '#777' }}>{t('onboarding.f.wantEawbHelp')}</span></span>
@@ -90,7 +99,7 @@ export function OnboardingFlow({ onClose, onOpenEawb }: { onClose: () => void; o
               {wantEawb && <ProfileFields section="eawb" profile={profile} errors={errors} onChange={patch} />}
             </>
           )}
-          {key === 'done' && <Summary profile={profile} wantEawb={wantEawb} />}
+          {key === 'done' && <Summary profile={profile} wantEawb={wantEawb && !alreadyRegistered} registered={alreadyRegistered} />}
 
           {msg && <p style={{ color: ACCENT, fontSize: 13 }}>{msg}</p>}
 
@@ -101,7 +110,7 @@ export function OnboardingFlow({ onClose, onOpenEawb }: { onClose: () => void; o
             ) : (
               <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button onClick={onClose} style={ghost}>{t('onboarding.done.goHub')}</button>
-                {wantEawb && <button onClick={onOpenEawb} style={ghost}>{t('onboarding.done.requestEawb')}</button>}
+                {wantEawb && !alreadyRegistered && <button onClick={onOpenEawb} style={ghost}>{t('onboarding.done.requestEawb')}</button>}
                 <button onClick={() => navigate('/editor')} style={primary}>{t('onboarding.done.newAwb')}</button>
               </span>
             )}
@@ -112,7 +121,7 @@ export function OnboardingFlow({ onClose, onOpenEawb }: { onClose: () => void; o
   )
 }
 
-function Summary({ profile, wantEawb }: { profile: OrgProfile; wantEawb: boolean }) {
+function Summary({ profile, wantEawb, registered }: { profile: OrgProfile; wantEawb: boolean; registered: boolean }) {
   const { t } = useTranslation()
   const rows: [string, string][] = [
     [t('onboarding.f.legalName'), profile.legalName],
@@ -126,8 +135,8 @@ function Summary({ profile, wantEawb }: { profile: OrgProfile; wantEawb: boolean
       <table style={{ width: '100%', fontSize: 13, marginBottom: 12 }}>
         <tbody>{rows.map(([k, v]) => <tr key={k}><td style={{ color: '#777', padding: '4px 0' }}>{k}</td><td style={{ textAlign: 'right' }}>{v}</td></tr>)}</tbody>
       </table>
-      <p style={{ fontSize: 13, color: wantEawb ? '#2f7d32' : '#777', margin: '0 0 16px' }}>
-        {wantEawb ? t('onboarding.done.eawbReady') : t('onboarding.done.eawbOff')}
+      <p style={{ fontSize: 13, color: wantEawb || registered ? '#2f7d32' : '#777', margin: '0 0 16px' }}>
+        {registered ? t('onboarding.eawbRegistered.summary') : wantEawb ? t('onboarding.done.eawbReady') : t('onboarding.done.eawbOff')}
       </p>
     </>
   )

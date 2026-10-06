@@ -4,7 +4,7 @@ import { Modal } from '../components/Modal'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
-import { listAgreements } from '../lib/eawbAgreement'
+import { listAgreements, useRegistryCheck } from '../lib/eawbAgreement'
 import { useOrgProfile } from '../lib/orgProfile'
 
 const OnboardingFlow = React.lazy(() => import('./OnboardingPage').then(m => ({ default: m.OnboardingFlow })))
@@ -34,6 +34,7 @@ export function MyAWBsPage() {
   const { plan, docsUsedThisMonth, docLimit, orgId } = usePlan()
   const [hasAgreement, setHasAgreement] = useState(true)
   const { profile, loading: profileLoading } = useOrgProfile()
+  const { registry: iataRegistry } = useRegistryCheck(profile.legalName)
   const profileIncomplete = !profileLoading && (!profile.country || (!profile.onboardingCompletedAt && !profile.onboardingDismissedAt))
   const navigate = useNavigate()
   const [modalParams, setModalParams] = useSearchParams()
@@ -382,7 +383,7 @@ export function MyAWBsPage() {
             <span style={{ color: '#8B0000', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('onboarding.banner.button')} →</span>
           </a>
         )}
-        {!profileIncomplete && !profileLoading && !hasAgreement && (
+        {!profileIncomplete && !profileLoading && !hasAgreement && iataRegistry?.status !== 'registered' && (
           <a href="?modal=eawb" onClick={(e) => { e.preventDefault(); openModal('eawb') }} style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
             background: '#faf8f8', border: '1px solid #e8dcdc', borderRadius: 10, padding: '12px 16px', marginBottom: 16,

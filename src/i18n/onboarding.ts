@@ -1,4 +1,11 @@
 export const onboardingEn = {
+  eawbRegistered: {
+    title: 'Your company is already on the IATA list',
+    sub: 'You do not need to request the e-AWB Agreement. You can start activating eAWB with your airlines.',
+    found: 'Found on the IATA list: {{list}}.',
+    possible: 'Similar names already on the IATA list: {{list}}. If one is your company, you may already be registered.',
+    summary: 'Already registered with IATA: no agreement needed.',
+  },
   steps: { company: 'Your company', docs: 'Documents', eawb: 'eAWB', done: 'Ready' },
   step: 'Step {{n}} of {{total}}',
   skip: 'Skip for now',
@@ -64,6 +71,13 @@ export const onboardingEn = {
 }
 
 export const onboardingEs = {
+  eawbRegistered: {
+    title: 'Tu empresa ya figura en la lista de IATA',
+    sub: 'No necesitas solicitar el e-AWB Agreement. Puedes pasar a activar el eAWB con tus aerolíneas.',
+    found: 'Figura en la lista de IATA: {{list}}.',
+    possible: 'Ya hay nombres parecidos en la lista de IATA: {{list}}. Si alguno es tu empresa, es posible que ya estés registrada.',
+    summary: 'Ya registrada en IATA: no necesitas el acuerdo.',
+  },
   steps: { company: 'Tu empresa', docs: 'Documentos', eawb: 'eAWB', done: 'Listo' },
   step: 'Paso {{n}} de {{total}}',
   skip: 'Omitir por ahora',

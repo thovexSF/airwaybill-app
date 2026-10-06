@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
 export const IATA_REGISTERED_REPORT_URL = 'https://matchmaker.iata.org/efReport/ffAndAffiliatesAgrReport'
@@ -143,4 +144,24 @@ export async function checkRegistry(companyName: string): Promise<RegistryCheck>
 
 export function fmtAsOf(iso: string, locale: string): string {
   return new Date(`${iso}T12:00:00`).toLocaleDateString(locale === 'es' ? 'es-CL' : 'en-GB', { dateStyle: 'long' })
+}
+
+/** Consulta (con retardo) si una razón social ya figura en la lista de IATA; `null` mientras no hay resultado. */
+export function useRegistryCheck(companyName: string) {
+  const [registry, setRegistry] = useState<RegistryCheck | null>(null)
+  const [checking, setChecking] = useState(false)
+  useEffect(() => {
+    setRegistry(null)
+    if (companyName.trim().length < 3) return
+    setChecking(true)
+    const h = setTimeout(() => {
+      checkRegistry(companyName).then(setRegistry).catch(() => setRegistry(null)).finally(() => setChecking(false))
+    }, 400)
+    return () => { clearTimeout(h); setChecking(false) }
+  }, [companyName])
+  return { registry, checking }
+}
+
+export function registryList(r: RegistryCheck): string {
+  return r.matches.map(m => `${m.companyName} (${m.countryName}${m.joiningDate ? `, ${m.joiningDate}` : ''})`).join('; ')
 }
