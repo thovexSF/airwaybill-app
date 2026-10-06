@@ -51,6 +51,7 @@ const es = {
       air: 'Aéreo',
       maritime: 'Marítimo',
       eawb: 'e-AWB',
+      chile: 'Chile',
       invoice: 'Factura y guía de despacho',
     },
     footer: {

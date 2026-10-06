@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { PLANS } from '../data/plans'
-import { DOC_TYPES } from '../lib/docTypes'
+import { DOC_CATEGORIES, DOC_TYPES } from '../lib/docTypes'
 import './LandingPage.css'
 import { LangSwitcher } from '../components/LangSwitcher'
 
@@ -250,12 +250,7 @@ const MOCK_NAME: Record<string, string> = {
 }
 
 /** NEPPEX is Chile-only, so it stays out of this overview. */
-const MOCK_GROUPS: { labelKey: string; types: string[] }[] = [
-  { labelKey: 'landing.mock.air', types: ['awb', 'hawb', 'manifest', 'dgd', 'label'] },
-  { labelKey: 'landing.mock.maritime', types: ['bl', 'bl_manifest', 'imo_dgd'] },
-  { labelKey: 'landing.mock.eawb', types: ['fwb', 'fhl', 'ffr'] },
-  { labelKey: 'landing.mock.invoice', types: ['proforma'] },
-]
+const MOCK_GROUPS = DOC_CATEGORIES.filter((c) => c.key !== 'chile')
 
 function LandingEditorMock() {
   const { t } = useTranslation()

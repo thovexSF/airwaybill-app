@@ -99,3 +99,12 @@ export function docTypeMeta(docType?: string): DocTypeMeta {
 export function docTypeAvailable(meta: DocTypeMeta, country: string, existingCount = 0): boolean {
   return !meta.countries || meta.countries.includes(country) || existingCount > 0
 }
+
+/** Document categories shared by the landing overview and the hub tabs (labels: landing.mock.*). */
+export const DOC_CATEGORIES: { key: string; labelKey: string; types: string[] }[] = [
+  { key: 'air', labelKey: 'landing.mock.air', types: ['awb', 'hawb', 'manifest', 'dgd', 'label'] },
+  { key: 'maritime', labelKey: 'landing.mock.maritime', types: ['bl', 'bl_manifest', 'imo_dgd'] },
+  { key: 'eawb', labelKey: 'landing.mock.eawb', types: ['fwb', 'fhl', 'ffr'] },
+  { key: 'invoice', labelKey: 'landing.mock.invoice', types: ['proforma'] },
+  { key: 'chile', labelKey: 'landing.mock.chile', types: ['neppex'] },
+]
