@@ -51,8 +51,7 @@ const en = {
       air: 'Air',
       maritime: 'Maritime',
       eawb: 'e-AWB',
-      chile: 'Chile',
-      invoice: 'Invoice and dispatch guide',
+      invoice: 'Invoice and Others',
     },
     footer: {
       product: 'Product',

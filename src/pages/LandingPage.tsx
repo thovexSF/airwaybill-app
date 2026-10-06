@@ -239,7 +239,7 @@ const MOCK_NAME: Record<string, string> = {
 }
 
 /** NEPPEX is Chile-only, so it stays out of this overview. */
-const MOCK_GROUPS = DOC_CATEGORIES.filter((c) => c.key !== 'chile')
+const MOCK_GROUPS = DOC_CATEGORIES.map((c) => ({ ...c, types: c.types.filter((type) => type !== 'neppex') }))
 
 function LandingEditorMock() {
   const { t } = useTranslation()

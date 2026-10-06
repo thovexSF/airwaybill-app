@@ -105,6 +105,5 @@ export const DOC_CATEGORIES: { key: string; labelKey: string; types: string[] }[
   { key: 'air', labelKey: 'landing.mock.air', types: ['awb', 'hawb', 'manifest', 'dgd', 'label'] },
   { key: 'maritime', labelKey: 'landing.mock.maritime', types: ['bl', 'bl_manifest', 'imo_dgd'] },
   { key: 'eawb', labelKey: 'landing.mock.eawb', types: ['fwb', 'fhl', 'ffr'] },
-  { key: 'invoice', labelKey: 'landing.mock.invoice', types: ['proforma'] },
-  { key: 'chile', labelKey: 'landing.mock.chile', types: ['neppex'] },
+  { key: 'invoice', labelKey: 'landing.mock.invoice', types: ['proforma', 'neppex'] },
 ]
