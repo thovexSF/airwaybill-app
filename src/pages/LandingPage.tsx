@@ -194,7 +194,7 @@ export function LandingPage() {
 
       {/* ── eAWB (informativo, sin botón) ── */}
       <section className="lp-eawb-banner">
-        <p><b>{t('eawbPromo.bannerTitle')}</b> {t('eawbPromo.bannerText')}</p>
+        <p><b>{t('eawbPromo.title')}</b> {t('eawbPromo.sub')}</p>
       </section>
 
       {/* ── FOOTER ── */}
