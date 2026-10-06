@@ -299,7 +299,7 @@ export function MyAWBsPage() {
           <div className="hub-bar-group">
             {plan === 'free' && docLimit !== null && (
               <span className={`hub-bar-usage${docsUsedThisMonth >= docLimit ? ' full' : ''}`}>
-                {docsUsedThisMonth}/{docLimit} {t('common.freeDocsShort')}
+                {docsUsedThisMonth}/{docLimit} {t('editor.freeDocsShort')}
               </span>
             )}
             {plan !== 'free' && <span className="hub-bar-plan">{plan}</span>}
