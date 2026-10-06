@@ -308,11 +308,7 @@
   font-size: 12px; color: rgba(255,255,255,0.3);
 }
 
-/* ── eAWB announcement bar ── */
-.lp-announce { position: relative; background: var(--dark); color: #f3e3bd; text-align: center; padding: 9px 40px; font-size: 13px; }
-.lp-announce a { color: inherit; }
-.lp-announce b { font-weight: 700; }
-.lp-announce span { color: var(--gold); font-weight: 700; margin-left: 6px; white-space: nowrap; }
-.lp-announce a:hover span { text-decoration: underline; }
-.lp-announce button { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: rgba(255,255,255,0.6); font-size: 20px; line-height: 1; cursor: pointer; }
-.lp-announce button:hover { color: #fff; }
+/* ── eAWB banner informativo ── */
+.lp-eawb-banner { background: var(--light); border-top: 1px solid var(--border); padding: 22px 24px; text-align: center; }
+.lp-eawb-banner p { max-width: 760px; margin: 0 auto; font-size: 15px; color: var(--gray); }
+.lp-eawb-banner b { color: var(--dark); font-weight: 800; }

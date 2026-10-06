@@ -296,6 +296,8 @@ const es = {
     zoomOut: 'Alejar',
   },
   eawbPromo: {
+    bannerTitle: 'Go paperless.',
+    bannerText: 'Te ayudamos a activar la emisión de eAWB con las aerolíneas.',
     pill: 'Emite eAWB, sin papel',
     title: 'Emite eAWB, sin papel.',
     sub: 'Dejamos listo tu e-AWB Agreement de IATA para que operes electrónicamente con las aerolíneas.',
