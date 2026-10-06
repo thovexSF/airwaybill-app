@@ -1,3 +1,4 @@
+import { onboardingEs } from './onboarding'
 const es = {
   // Common
   common: {
@@ -350,6 +351,7 @@ const es = {
       sameSignatory: 'El 2º firmante debe ser otra persona.',
     },
   },
+  onboarding: onboardingEs,
 } as const
 
 export default es

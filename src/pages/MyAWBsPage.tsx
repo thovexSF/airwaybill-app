@@ -1,15 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
 import { listAgreements } from '../lib/eawbAgreement'
+import { useOrgProfile } from '../lib/orgProfile'
 import { listAWBs, deleteAWB, AWBDocument } from '../lib/awbService'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { ImportModal } from '../components/ImportModal'
 import { DocEditorModal } from '../components/DocEditorModal'
-import { DOC_TYPES, HUB_DOC_TYPES, DocTypeMeta, docTypeMeta } from '../lib/docTypes'
+import { DOC_TYPES, HUB_DOC_TYPES, DocTypeMeta, docTypeMeta, docTypeAvailable } from '../lib/docTypes'
 import { withHubModal } from '../lib/partnerTheme'
 import { isAdminUiUser } from '../lib/adminUi'
 import { usePostHog } from '@posthog/react'
@@ -28,6 +29,16 @@ export function MyAWBsPage() {
   const { user, logout, orgName } = useAuth()
   const { plan, docsUsedThisMonth, docLimit, orgId } = usePlan()
   const [hasAgreement, setHasAgreement] = useState(true)
+  const { profile, loading: profileLoading } = useOrgProfile()
+  const profileIncomplete = !profileLoading && (!profile.country || (!profile.onboardingCompletedAt && !profile.onboardingDismissedAt))
+  const navigate = useNavigate()
+  useEffect(() => {
+    // Cuentas recién creadas (también las de Google) pasan por el onboarding; las existentes solo ven el aviso.
+    const created = user?.created_at ? Date.now() - new Date(user.created_at).getTime() : Infinity
+    if (profileIncomplete && !profile.country && !profile.onboardingDismissedAt && created < 24 * 3600 * 1000) {
+      navigate('/onboarding', { replace: true })
+    }
+  }, [profileIncomplete, profile.country, profile.onboardingDismissedAt, user?.created_at, navigate])
   useEffect(() => {
     if (orgId) listAgreements(orgId).then(r => setHasAgreement(r.some(a => a.status !== 'rechazado'))).catch(() => {})
   }, [orgId])
@@ -335,7 +346,17 @@ export function MyAWBsPage() {
       </div>
 
       <div className="doc-hub-body">
-        {!hasAgreement && (
+        {profileIncomplete && (
+          <Link to="/onboarding" style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+            background: '#faf8f8', border: '1px solid #e8dcdc', borderRadius: 10, padding: '12px 16px', marginBottom: 16,
+            textDecoration: 'none', color: '#222',
+          }}>
+            <span style={{ fontSize: 14 }}><b>{t('onboarding.banner.title')}</b> {t('onboarding.banner.sub')}</span>
+            <span style={{ color: '#8B0000', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('onboarding.banner.button')} →</span>
+          </Link>
+        )}
+        {!profileIncomplete && !profileLoading && !hasAgreement && (
           <Link to="/eawb-agreement" style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
             background: '#faf8f8', border: '1px solid #e8dcdc', borderRadius: 10, padding: '12px 16px', marginBottom: 16,
@@ -405,7 +426,7 @@ export function MyAWBsPage() {
         </div>
 
         <div className="doc-hub-tabs" role="tablist" aria-label={t('myAwbs.docTypes')}>
-            {HUB_DOC_TYPES.map((dt) => {
+            {HUB_DOC_TYPES.filter((dt) => !profileLoading && docTypeAvailable(dt, profile.country, counts[dt.type] || 0)).map((dt) => {
               const active = dt.type === activeMeta.type
               const n = counts[dt.type] || 0
               return (

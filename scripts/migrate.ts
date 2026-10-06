@@ -17,6 +17,7 @@ const MIGRATIONS = [
   'migration_admin_backoffice.sql',
   'migration_eawb_agreements.sql',
   'migration_iata_registry.sql',
+  'migration_onboarding.sql',
   'migration_awb_prefix_3digits.sql',
 ]
 

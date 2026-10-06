@@ -18,6 +18,8 @@ export interface DocTypeMeta {
   title: (d: any) => string
   /** Kept for list badges / future paid gates; Free allows every type (quota counts downloads). */
   pro: boolean
+  /** If set, the type is only offered to organizations in these countries (English names, as in lib/eawbAgreement COUNTRIES). */
+  countries?: string[]
 }
 
 // Old imports stored the prefix as "6" or "45"; it is always three digits.
@@ -61,7 +63,7 @@ export const DOC_TYPES: DocTypeMeta[] = [
     title: d => d.referenceNumber || d.blNumber || 'IMO DGD',
   },
   {
-    type: 'neppex', badge: 'NEPPEX', name: 'NEPPEX (SERNAPESCA F15)', color: '#0d4a6b', route: '/neppex', pro: true,
+    type: 'neppex', badge: 'NEPPEX', name: 'NEPPEX (SERNAPESCA F15)', color: '#0d4a6b', route: '/neppex', pro: true, countries: ['Chile'],
     title: d => d.neppexNumber || d.rutExportador || 'NEPPEX',
   },
   {
@@ -91,4 +93,9 @@ const AWB_META = DOC_TYPES[0]
 
 export function docTypeMeta(docType?: string): DocTypeMeta {
   return DOC_TYPES.find(t => t.type === docType) ?? AWB_META
+}
+
+/** Country-specific types stay visible when the country matches, or when the org already has documents of that type. */
+export function docTypeAvailable(meta: DocTypeMeta, country: string, existingCount = 0): boolean {
+  return !meta.countries || meta.countries.includes(country) || existingCount > 0
 }

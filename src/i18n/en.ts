@@ -1,3 +1,4 @@
+import { onboardingEn } from './onboarding'
 const en = {
   // Common
   common: {
@@ -350,6 +351,7 @@ const en = {
       sameSignatory: 'The 2nd signatory must be a different person.',
     },
   },
+  onboarding: onboardingEn,
 } as const
 
 export default en

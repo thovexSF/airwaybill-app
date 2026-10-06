@@ -9,6 +9,7 @@ import {
   hashApiKey,
   type PartnerApiKeyRow,
 } from '../lib/partnerApiKeys'
+import { CompanyProfileForm } from '../components/CompanyProfileForm'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { usePostHog } from '@posthog/react'
 
@@ -317,6 +318,8 @@ export function SettingsPage() {
             </div>
           </form>
         )}
+
+        <CompanyProfileForm />
 
         {/* Subscription section */}
         <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginTop: 32, border: '1px solid #e8dcdc' }}>

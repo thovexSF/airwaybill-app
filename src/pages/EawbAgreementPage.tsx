@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
+import { useOrgProfile } from '../lib/orgProfile'
 import { FormErrors, isFreeMail, normalizeForm, validateForm } from '../lib/eawbValidation'
 import {
   AgreementForm, AgreementRow, COUNTRIES, EMPTY_FORM, RegistryCheck, checkRegistry, fmtAsOf,
@@ -15,6 +16,7 @@ export function EawbAgreementPage() {
   const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const { orgId } = usePlan()
+  const { profile, loading: profileLoading } = useOrgProfile()
   const locale: 'en' | 'es' = i18n.language === 'es' ? 'es' : 'en'
   const [rows, setRows] = useState<AgreementRow[]>([])
   const [form, setForm] = useState<AgreementForm>({ ...EMPTY_FORM, submitterEmail: user?.email ?? '' })
@@ -37,6 +39,27 @@ export function EawbAgreementPage() {
     }, 600)
     return () => { clearTimeout(h); setChecking(false) }
   }, [form.companyName])
+
+  useEffect(() => {
+    // Prellena desde el perfil de empresa, sin pisar lo que el usuario ya escribió.
+    if (profileLoading) return
+    const up = (v: string) => v.toUpperCase()
+    setForm(f => ({
+      ...f,
+      submitterName: f.submitterName || profile.contactName,
+      companyName: f.companyName || up(profile.legalName),
+      address: f.address || profile.address,
+      city: f.city || profile.city,
+      country: profile.country || f.country,
+      iataAgentCode: f.iataAgentCode || profile.iataAgentCode,
+      cassCode: f.cassCode || profile.cassCode,
+      contactName: f.contactName || up(profile.contactName),
+      contactEmail: f.contactEmail || user?.email || '',
+      contactPhone: f.contactPhone || profile.phone,
+      signatoryName: f.signatoryName || up(profile.legalRepName),
+      signatoryTitle: f.signatoryTitle || profile.legalRepTitle,
+    }))
+  }, [profileLoading, profile, user?.email])
 
   const load = useCallback(async () => {
     if (orgId) setRows(await listAgreements(orgId))
