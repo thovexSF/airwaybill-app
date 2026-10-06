@@ -1,4 +1,4 @@
-import React, { FormEvent, useState } from 'react'
+import React, { FormEvent, useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
@@ -35,7 +35,7 @@ const EyeOffIcon = () => (
 
 export function LoginPage() {
   const { t } = useTranslation()
-  const { login, loginWithProvider, user } = useAuth()
+  const { login, loginWithProvider, sendLoginCode, verifyLoginCode, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
@@ -43,6 +43,17 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  // 'password' (por defecto) o 'code': ingreso con un código de un solo uso enviado al correo.
+  const [mode, setMode] = useState<'password' | 'code'>('password')
+  const [codeSent, setCodeSent] = useState(false)
+  const [code, setCode] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const h = setTimeout(() => setCooldown(c => c - 1), 1000)
+    return () => clearTimeout(h)
+  }, [cooldown])
 
   const destination = (location.state as { from?: string } | undefined)?.from ?? '/my-awbs'
   if (user) return <Navigate to={destination} replace />
@@ -55,6 +66,34 @@ export function LoginPage() {
     setLoading(false)
     if (!result.ok) { setError(result.error); return }
     navigate(destination, { replace: true })
+  }
+
+  async function handleSendCode(e?: FormEvent) {
+    e?.preventDefault()
+    setError('')
+    setLoading(true)
+    const result = await sendLoginCode(email.toLowerCase().trim())
+    setLoading(false)
+    if (!result.ok) {
+      setError(/signups not allowed|not found/i.test(result.error) ? t('auth.login.code.noAccount') : result.error)
+      return
+    }
+    setCodeSent(true)
+    setCooldown(30)
+  }
+
+  async function handleVerifyCode(e: FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    const result = await verifyLoginCode({ email: email.toLowerCase().trim(), code: code.trim() })
+    setLoading(false)
+    if (!result.ok) { setError(t('auth.login.code.invalid')); return }
+    navigate(destination, { replace: true })
+  }
+
+  function switchMode(next: 'password' | 'code') {
+    setMode(next); setCodeSent(false); setCode(''); setError('')
   }
 
   async function handleProvider(provider: 'google' | 'github') {
@@ -78,7 +117,7 @@ export function LoginPage() {
 
         {error && <div className="auth-error" style={{ marginTop: 16 }}>{error}</div>}
 
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="auth-form" onSubmit={mode === 'password' ? handleSubmit : codeSent ? handleVerifyCode : handleSendCode}>
           <div className="auth-field">
             <label htmlFor="email">{t('auth.login.email')}</label>
             <div className="auth-input-wrap">
@@ -92,11 +131,12 @@ export function LoginPage() {
                 placeholder="operaciones@empresa.com"
                 autoFocus
                 required
+                readOnly={codeSent}
               />
             </div>
           </div>
 
-          <div className="auth-field">
+          {mode === 'password' && <div className="auth-field">
             <label htmlFor="password">{t('auth.login.password')}</label>
             <div className="auth-input-wrap">
               <span className="auth-adornment"><LockIcon /></span>
@@ -119,16 +159,57 @@ export function LoginPage() {
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
-          </div>
+          </div>}
+
+          {mode === 'code' && codeSent && (
+            <div className="auth-field">
+              <p style={{ fontSize: 13, color: '#555', margin: '0 0 10px' }}>{t('auth.login.code.sent', { email: email.toLowerCase().trim() })}</p>
+              <label htmlFor="otp">{t('auth.login.code.label')}</label>
+              <div className="auth-input-wrap">
+                <input
+                  id="otp"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]{6,10}"
+                  maxLength={10}
+                  value={code}
+                  onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  autoFocus
+                  required
+                  style={{ letterSpacing: 4, fontSize: 18, textAlign: 'center' }}
+                />
+              </div>
+            </div>
+          )}
 
           <button type="submit" className="auth-submit" disabled={loading}>
-            {loading ? t('auth.login.submitting') : t('auth.login.submit')}
+            {mode === 'password'
+              ? (loading ? t('auth.login.submitting') : t('auth.login.submit'))
+              : codeSent
+                ? (loading ? t('auth.login.code.verifying') : t('auth.login.code.verify'))
+                : (loading ? t('auth.login.code.sending') : t('auth.login.code.send'))}
           </button>
 
-          <p style={{ textAlign: 'right', margin: '4px 0 0' }}>
-            <Link to="/forgot-password" style={{ fontSize: 13, color: '#8b0000' }}>
-              {t('auth.login.forgotPassword')}
-            </Link>
+          {mode === 'code' && codeSent && (
+            <p style={{ textAlign: 'center', margin: '10px 0 0' }}>
+              <button type="button" disabled={cooldown > 0 || loading} onClick={() => handleSendCode()}
+                style={{ background: 'none', border: 0, color: cooldown > 0 ? '#999' : '#8b0000', cursor: cooldown > 0 ? 'default' : 'pointer', fontSize: 13 }}>
+                {cooldown > 0 ? t('auth.login.code.resendIn', { s: cooldown }) : t('auth.login.code.resend')}
+              </button>
+            </p>
+          )}
+
+          <p style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '10px 0 0' }}>
+            <button type="button" onClick={() => switchMode(mode === 'password' ? 'code' : 'password')}
+              style={{ background: 'none', border: 0, padding: 0, fontSize: 13, color: '#8b0000', cursor: 'pointer', textAlign: 'left' }}>
+              {mode === 'password' ? t('auth.login.code.link') : t('auth.login.code.usePassword')}
+            </button>
+            {mode === 'password' && (
+              <Link to="/forgot-password" style={{ fontSize: 13, color: '#8b0000' }}>
+                {t('auth.login.forgotPassword')}
+              </Link>
+            )}
           </p>
         </form>
 

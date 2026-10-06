@@ -10,6 +10,8 @@ type AuthContextValue = {
   orgName: string | null
   signup: (input: { companyName: string; email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
   login: (input: { email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
+  sendLoginCode: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>
+  verifyLoginCode: (input: { email: string; code: string }) => Promise<{ ok: true } | { ok: false; error: string }>
   loginWithProvider: (provider: 'google' | 'github') => Promise<void>
   logout: () => Promise<void>
 }
@@ -90,6 +92,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) return { ok: false, error: error.message }
       posthog?.capture('user_logged_in', { method: 'email' })
+      return { ok: true }
+    },
+
+    // Solo para cuentas existentes: crear cuenta pide el nombre de la empresa en /signup.
+    sendLoginCode: async (email) => {
+      const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })
+      if (error) return { ok: false, error: error.message }
+      return { ok: true }
+    },
+
+    verifyLoginCode: async ({ email, code }) => {
+      const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' })
+      if (error) return { ok: false, error: error.message }
+      posthog?.capture('user_logged_in', { method: 'email_code' })
       return { ok: true }
     },
 
