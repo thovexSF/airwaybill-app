@@ -105,6 +105,12 @@ export function NeppexPage() {
   }, [docId])
 
   useEffect(() => {
+    if (plan !== 'free' && data.isDraft) {
+      setData(d => ({ ...d, isDraft: false }))
+    }
+  }, [plan, data.isDraft])
+
+  useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => regenerate(data), 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
