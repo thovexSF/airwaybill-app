@@ -134,9 +134,15 @@ and the logo files are kept in step with `airlineByPrefix.ts` in `b2b`. Only add
 a prefix you have verified — a wrong mapping goes straight onto a printed
 waybill.
 
-`src/pdf/DGDDocument.tsx` and `src/pdf/ManifestDocument.tsx` are the renderers
-for the other two original document types, defined more directly (no separate
-layout-schema file, vector-drawn boxes). Every document ported from the `b2b`
+`src/pdf/DGDDocument.tsx` redraws the IATA Shipper's Declaration (DGR 8.1, English
+with Spanish translation, red hatching) as vectors. The sheet — rules, dotted lines,
+hatching and every caption — is `src/pdf/dgdForm.ts`, **generated** by
+`scripts/extract-dgd-form.py` from a reference PDF's geometry (run it again with
+that PDF to regenerate; never edit the file by hand). `DGDDocument` only places the
+values into that sheet's boxes and continues long tables on extension sheets that
+repeat the hatching, AWB number and "Page n of N". `src/pdf/ManifestDocument.tsx`
+is the renderer for the other original document type, defined more directly (no
+separate layout-schema file, vector-drawn boxes). Every document ported from the `b2b`
 suite follows that simpler shape too — a single `*Document.tsx`, no coordinate
 schema and no live overlay.
 
