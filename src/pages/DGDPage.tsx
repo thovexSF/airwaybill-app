@@ -328,10 +328,7 @@ export function DGDPage() {
                 <Field label="Name of Signatory" value={data.signatoryName} onChange={set('signatoryName')} />
                 <Field label="Title" value={data.signatoryTitle} onChange={set('signatoryTitle')} />
               </Row>
-              <Row>
-                <Field label="Place" value={data.signaturePlace} onChange={set('signaturePlace')} placeholder="Santiago" />
-                <Field label="Date" value={data.signatureDate} onChange={set('signatureDate')} placeholder="01-JAN-2025" />
-              </Row>
+              <Field label="Date" value={data.signatureDate} onChange={set('signatureDate')} placeholder="01-JAN-2025" />
               <div className="field">
                 <label>Draft watermark</label>
                 <label className="toggle">

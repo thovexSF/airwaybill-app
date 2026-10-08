@@ -97,13 +97,11 @@ export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onA
           <textarea className="dgdo-in" aria-label="Additional handling information" style={{ ...box(53, 632, 500, 25), ...font(8, false) }}
             value={data.additionalHandling} onChange={e => onField({ additionalHandling: e.target.value })} />
 
-          <input className="dgdo-in" aria-label="Name of signatory" placeholder="Name" style={{ ...line(359, 693, 118, 8.5), ...font(8.5) }}
+          <input className="dgdo-in" aria-label="Name of signatory" placeholder="Name" style={{ ...line(359, 693, 92, 8.5), ...font(8.5) }}
             value={data.signatoryName} onChange={e => onField({ signatoryName: e.target.value })} />
-          <input className="dgdo-in" aria-label="Title" placeholder="Title" style={{ ...line(480, 693, 76, 8.5), ...font(8.5) }}
+          <input className="dgdo-in" aria-label="Title" placeholder="Title" style={{ ...line(454, 693, 103, 8.5), ...font(8.5) }}
             value={data.signatoryTitle} onChange={e => onField({ signatoryTitle: e.target.value })} />
-          <input className="dgdo-in" aria-label="Place" placeholder="Place" style={{ ...line(456, 709, 52, 9), ...font(9) }}
-            value={data.signaturePlace} onChange={e => onField({ signaturePlace: e.target.value })} />
-          <input className="dgdo-in" aria-label="Date" placeholder="Date" style={{ ...line(510, 709, 47, 9), ...font(9) }}
+          <input className="dgdo-in" aria-label="Date" placeholder="Date" style={{ ...line(456, 709, 101, 9), ...font(9) }}
             value={data.signatureDate} onChange={e => onField({ signatureDate: e.target.value })} />
         </>
       )}

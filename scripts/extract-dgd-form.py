@@ -61,14 +61,25 @@ def close_rules(rules):
     """The reference leaves its rules short of the frame and of the central divider; close the boxes."""
     for r in rules:
         _, x0, y0, x1, y1 = r
-        if abs(x1 - x0) + abs(y1 - y0) < 20: continue   # dashes of the dotted rules stay as they are
+        if abs(x1 - x0) + abs(y1 - y0) < 15: continue   # dashes of the dotted rules stay as they are
         if y0 == y1:  # horizontal
             if 48.5 < x0 <= 56: r[1] = FRAME_L
             if 540 <= x1 < FRAME_R: r[3] = FRAME_R
             if 280 <= x1 <= 296 and r[1] < DIVIDER_X: r[3] = DIVIDER_X
             if 296 <= x0 <= 308 and r[3] > DIVIDER_X: r[1] = DIVIDER_X
+    # The central divider stops short of the Transport Details frame (its top edge sits at y = 214.02).
+    for r in rules:
+        if abs(r[1] - DIVIDER_X) < 0.5 and r[1] == r[3] and 195 <= r[4] <= 212:
+            r[4] = 214.02
+    # Snap rule ends onto a perpendicular rule that passes within 4 pt, so T-junctions meet.
+    horizontals = [r for r in rules if r[2] == r[4] and r[3] - r[1] >= 15]
+    for v in (r for r in rules if r[1] == r[3] and r[4] - r[2] >= 15):
+        for h in horizontals:
+            if h[1] - 1 <= v[1] <= h[3] + 1:
+                if 0 < h[2] - v[4] <= 4: v[4] = h[2]
+                if 0 < v[2] - h[2] <= 4: v[2] = h[2]
     # Bridge small gaps between collinear vertical rules.
-    verticals = sorted((r for r in rules if r[1] == r[3] and r[4] - r[2] >= 20), key=lambda r: (round(r[1], 1), r[2]))
+    verticals = sorted((r for r in rules if r[1] == r[3] and r[4] - r[2] >= 15), key=lambda r: (round(r[1], 1), r[2]))
     for a, b in zip(verticals, verticals[1:]):
         if abs(a[1] - b[1]) < 0.5 and 0 < b[2] - a[4] <= 12:
             a[4] = b[2]

@@ -148,7 +148,7 @@ function DeclarationPage({ data, items, index, total, hideValues, logoUrl }: {
         </View>
       )}
       {!hideHeader && <At x={359.3} y={694} size={8.5} width={196}>{sign}</At>}
-      {!hideHeader && <At x={456} y={709} size={9} width={100}>{[data.signaturePlace, data.signatureDate].filter(Boolean).join(', ')}</At>}
+      {!hideHeader && <At x={456} y={709} size={9} width={100}>{data.signatureDate}</At>}
 
       <Text style={[s.abs, { left: 48.1, top: 768, fontSize: 5, color: '#999' }]}>AIRWAYBILL APP</Text>
     </Page>
