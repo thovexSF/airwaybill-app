@@ -145,7 +145,7 @@ const es = {
     downloading: 'Preparando descarga...',
     downloadError: 'No se pudo descargar el PDF',
     downloadPdf: '⬇ Descargar PDF',
-    limitBanner: 'Usaste los 3 documentos gratis del plan Free. Los nuevos PDF llevan marca de agua DRAFT: suscríbete a Pro para quitarla.',
+    limitBanner: 'Usaste los 3 documentos gratis del plan Free. Los nuevos PDF llevan marca de agua DRAFT: actualiza a Starter para quitarla.',
     upgradeNow: 'Actualizar a Starter →',
     editFields: 'Editar campos',
     copies: 'Copias',

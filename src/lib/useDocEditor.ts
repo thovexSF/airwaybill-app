@@ -37,6 +37,12 @@ export function useDocEditor<T extends SuiteDocumentData>(
       .catch(() => {})
   }, [docId])
 
+  useEffect(() => {
+    if (guard.plan !== 'free' && data.isDraft) {
+      setData(prev => prev.isDraft ? { ...prev, isDraft: false } : prev)
+    }
+  }, [guard.plan, data.isDraft])
+
   /** Persist and return the document id, or null if the save failed. */
   async function persist(): Promise<string | null> {
     const doc = await saveDocument<T>(data, currentId ?? undefined)
