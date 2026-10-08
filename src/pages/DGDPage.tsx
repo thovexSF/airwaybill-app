@@ -5,7 +5,9 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { DGDData, DGDItem, defaultDGDData } from '../types/dgd'
-import { DGDDocument } from '../pdf/DGDDocument'
+import { DGDDocument, DGD_ROWS } from '../pdf/DGDDocument'
+import { DGDOverlay } from '../components/DGDOverlay'
+import { useOrgProfile } from '../lib/orgProfile'
 import { saveDGD, getDGD } from '../lib/dgdService'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
@@ -52,6 +54,7 @@ export function DGDPage() {
   const { user, logout, orgName } = useAuth()
   const { plan } = usePlan()
   const quota = usePdfDownloadGuard()
+  const { profile } = useOrgProfile()
   const demo = useDemoMode()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -61,6 +64,10 @@ export function DGDPage() {
   const [currentId, setCurrentId] = useState<string | null>(docId)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
+  // Edit on the sheet itself: the preview is rendered without values and the inputs draw them. Downloads
+  // always use the full `pdfUrl`, never this preview.
+  const [overlayMode, setOverlayMode] = useState(() => window.matchMedia('(min-width: 900px)').matches)
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null)
   const [numPages, setNumPages] = useState(1)
   const [zoom, setZoom] = useState(1.0)
   const [generating, setGenerating] = useState(false)
@@ -95,13 +102,16 @@ export function DGDPage() {
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => regenerate(data), 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, quota.atLimit])
+  }, [data, quota.atLimit, overlayMode, profile.companyLogoUrl])
 
   async function regenerate(d: DGDData) {
     setGenerating(true)
     try {
-      const blob = await pdf(<DGDDocument data={quota.atLimit ? { ...d, isDraft: true } : d} />).toBlob()
+      const doc = quota.atLimit ? { ...d, isDraft: true } : d
+      const logo = d.logoUrl ?? (profile.companyLogoUrl || undefined)
+      const blob = await pdf(<DGDDocument data={doc} logoUrl={logo} />).toBlob()
       setPdfBlob(blob)
+      setPreviewBlob(overlayMode ? await pdf(<DGDDocument data={doc} logoUrl={logo} hideValues />).toBlob() : blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
       console.error('DGD PDF error:', e)
@@ -135,6 +145,14 @@ export function DGDPage() {
     setData(d => ({
       ...d,
       items: [...d.items, { id: uid(), unIdNo: '', properShippingName: '', classDivision: '', subsidiaryRisk: '', packingGroup: '', quantity: '', packingInstruction: '', authorization: '' }],
+    }))
+  }
+
+  /** Typing into the empty line at the foot of the table creates the item. */
+  function addItemWith(key: keyof DGDItem, value: string) {
+    setData(d => ({
+      ...d,
+      items: [...d.items, { id: uid(), unIdNo: '', properShippingName: '', classDivision: '', subsidiaryRisk: '', packingGroup: '', quantity: '', packingInstruction: '', authorization: '', [key]: value } as DGDItem],
     }))
   }
 
@@ -352,13 +370,34 @@ export function DGDPage() {
             <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
             <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16 }}>+</button>
             <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>Reset</button>
+            <button
+              onClick={() => setOverlayMode(m => !m)}
+              title="Type directly on the sheet"
+              style={{ background: overlayMode ? '#8b0000' : '#333', border: 'none', color: overlayMode ? '#fff' : '#aaa', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
+            >
+              {overlayMode ? 'Editing on sheet' : 'Edit on sheet'}
+            </button>
             {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 4 }}>Updating…</span>}
           </div>
           {pdfBlob ? (
             <div style={{ overflow: 'auto', flex: 1, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <Document file={pdfBlob} onLoadSuccess={({ numPages }) => setNumPages(numPages)} loading={null}>
+              <Document file={previewBlob ?? pdfBlob} onLoadSuccess={({ numPages }) => setNumPages(numPages)} loading={null}>
                 {Array.from({ length: numPages }, (_, i) => (
-                  <Page key={i + 1} pageNumber={i + 1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} />
+                  <div key={i + 1} style={{ position: 'relative', width: 612 * zoom * 1.5, flexShrink: 0 }}>
+                    <Page pageNumber={i + 1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} />
+                    {overlayMode && (
+                      <DGDOverlay
+                        data={data}
+                        scale={zoom * 1.5}
+                        pageIndex={i}
+                        items={data.items.slice(i * DGD_ROWS, (i + 1) * DGD_ROWS)}
+                        onField={patch => setData(d => ({ ...d, ...patch }))}
+                        onItem={updateItem}
+                        onAddItem={addItemWith}
+                        onRemoveItem={removeItem}
+                      />
+                    )}
+                  </div>
                 ))}
               </Document>
             </div>

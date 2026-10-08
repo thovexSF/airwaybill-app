@@ -19,6 +19,7 @@ const MIGRATIONS = [
   'migration_iata_registry.sql',
   'migration_onboarding.sql',
   'migration_awb_prefix_3digits.sql',
+  'migration_company_logo.sql',
 ]
 
 const url = process.env.DATABASE_URL

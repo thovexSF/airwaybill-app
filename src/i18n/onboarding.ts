@@ -42,6 +42,10 @@ export const onboardingEn = {
     agentCodeHelp: 'Type the 7 digits together, with no spaces, dashes or slashes. Example: if your code is shown as 75-1 9012, type 7519012. If your company is not an IATA agent, type N/A.',
     cassCode: 'CASS / Branch code (optional)',
     cassHelp: 'Exactly 4 digits, including leading zeros. Example: 0014. It is the separate number after the slash (75-1 9012 / 0014 → 0014).',
+    logo: 'Company logo',
+    logoUpload: 'Upload logo',
+    logoRemove: 'Remove',
+    logoHelp: 'Printed on documents with a logo box, such as the Dangerous Goods Declaration. PNG or JPG; it is resized automatically.',
   },
   done: {
     summary: 'Summary',
@@ -67,6 +71,7 @@ export const onboardingEn = {
     airport: 'Use the 3-letter IATA code (e.g. SCL).',
     agentCode: 'Enter exactly 7 digits (e.g. 7519012) or N/A.',
     cass: 'Enter exactly 4 digits (e.g. 0014).',
+    logo: 'That image could not be read.',
   },
 }
 
@@ -114,6 +119,10 @@ export const onboardingEs = {
     agentCodeHelp: 'Escribe los 7 dígitos juntos, sin espacios, guiones ni barras. Ejemplo: si tu código aparece como 75-1 9012, escribe 7519012. Si tu empresa no es agente IATA, escribe N/A.',
     cassCode: 'Código CASS / Branch (opcional)',
     cassHelp: 'Exactamente 4 dígitos, con los ceros a la izquierda. Ejemplo: 0014. Es el número aparte después de la barra (75-1 9012 / 0014 → 0014).',
+    logo: 'Logo de la empresa',
+    logoUpload: 'Subir logo',
+    logoRemove: 'Quitar',
+    logoHelp: 'Se imprime en los documentos que tienen un recuadro para logo, como la Declaración de Mercancías Peligrosas. PNG o JPG; se reduce automáticamente.',
   },
   done: {
     summary: 'Resumen',
@@ -139,5 +148,6 @@ export const onboardingEs = {
     airport: 'Usa el código IATA de 3 letras (ej. SCL).',
     agentCode: 'Ingresa exactamente 7 dígitos (ej. 7519012) o N/A.',
     cass: 'Ingresa exactamente 4 dígitos (ej. 0014).',
+    logo: 'No se pudo leer esa imagen.',
   },
 }

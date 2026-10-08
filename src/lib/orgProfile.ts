@@ -16,20 +16,22 @@ export interface OrgProfile {
   airportOfDeparture: string
   iataAgentCode: string
   cassCode: string
+  /** Company logo as a (downscaled) data URL; printed on documents with a logo box. */
+  companyLogoUrl: string
   onboardingCompletedAt: string | null
   onboardingDismissedAt: string | null
 }
 
 export const EMPTY_PROFILE: OrgProfile = {
   legalName: '', country: '', taxId: '', phone: '', contactName: '', address: '', city: '',
-  legalRepName: '', legalRepTitle: '', airportOfDeparture: '', iataAgentCode: '', cassCode: '',
+  legalRepName: '', legalRepTitle: '', airportOfDeparture: '', iataAgentCode: '', cassCode: '', companyLogoUrl: '',
   onboardingCompletedAt: null, onboardingDismissedAt: null,
 }
 
 const COLS: Record<keyof OrgProfile, string> = {
   legalName: 'legal_name', country: 'country', taxId: 'tax_id', phone: 'phone', contactName: 'contact_name',
   address: 'address', city: 'city', legalRepName: 'legal_rep_name', legalRepTitle: 'legal_rep_title',
-  airportOfDeparture: 'airport_of_departure', iataAgentCode: 'iata_agent_code', cassCode: 'cass_code',
+  airportOfDeparture: 'airport_of_departure', iataAgentCode: 'iata_agent_code', cassCode: 'cass_code', companyLogoUrl: 'company_logo_url',
   onboardingCompletedAt: 'onboarding_completed_at', onboardingDismissedAt: 'onboarding_dismissed_at',
 }
 
@@ -140,4 +142,23 @@ export async function fillDocumentDefaults(orgId: string, p: OrgProfile) {
   if (Object.keys(patch).length) {
     await supabase.from('organization_defaults').update(patch).eq('organization_id', orgId)
   }
+}
+
+/** Downscales a logo to at most 480x160 px PNG (data URL), so it stays small enough to keep in the profile and in documents. */
+export function logoToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const k = Math.min(1, 480 / img.width, 160 / img.height)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(img.width * k))
+      canvas.height = Math.max(1, Math.round(img.height * k))
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      resolve(canvas.toDataURL('image/png'))
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('invalid_image')) }
+    img.src = url
+  })
 }

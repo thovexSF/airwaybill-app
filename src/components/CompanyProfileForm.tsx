@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ProfileFields } from './ProfileFields'
-import { ProfileErrors, fillDocumentDefaults, normalizeProfile, useOrgProfile, validateProfile } from '../lib/orgProfile'
+import { ProfileErrors, fillDocumentDefaults, logoToDataUrl, normalizeProfile, useOrgProfile, validateProfile } from '../lib/orgProfile'
 
 const ACCENT = '#8b0000'
 
@@ -39,6 +39,32 @@ export function CompanyProfileForm() {
         <div><ProfileFields section="company" profile={profile} errors={errors} onChange={onChange} /></div>
         <div><ProfileFields section="docs" profile={profile} errors={errors} onChange={onChange} /></div>
         <div><ProfileFields section="eawb" profile={profile} errors={errors} onChange={onChange} /></div>
+      </div>
+      <div style={{ margin: '4px 0 18px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ width: 160, height: 54, border: '1px dashed #ccc', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
+          {profile.companyLogoUrl
+            ? <img src={profile.companyLogoUrl} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            : <span style={{ fontSize: 11, color: '#aaa' }}>{t('onboarding.f.logo')}</span>}
+        </div>
+        <div>
+          <label style={{ display: 'inline-block', background: '#fff', border: '1px solid #ddd', borderRadius: 6, padding: '7px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            {t('onboarding.f.logoUpload')}
+            <input type="file" accept="image/png,image/jpeg" style={{ display: 'none' }}
+              onChange={async e => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (!f) return
+                try { onChange({ companyLogoUrl: await logoToDataUrl(f) }) } catch { setMsg(t('onboarding.err.logo')) }
+              }} />
+          </label>
+          {profile.companyLogoUrl && (
+            <button type="button" onClick={() => onChange({ companyLogoUrl: '' })}
+              style={{ marginLeft: 8, background: 'none', border: 0, color: '#777', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>
+              {t('onboarding.f.logoRemove')}
+            </button>
+          )}
+          <div style={{ fontSize: 11, color: '#777', marginTop: 6, maxWidth: 360 }}>{t('onboarding.f.logoHelp')}</div>
+        </div>
       </div>
       <button type="submit" disabled={busy} style={{ background: ACCENT, color: '#fff', border: 0, borderRadius: 6, padding: '10px 24px', fontWeight: 700, cursor: 'pointer' }}>
         {busy ? t('onboarding.saving') : t('onboarding.save')}

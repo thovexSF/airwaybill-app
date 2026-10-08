@@ -1,5 +1,5 @@
 import React from 'react'
-import { Document, Page, View, Text, StyleSheet, Svg, Path, Line, Text as SvgText } from '@react-pdf/renderer'
+import { Document, Page, View, Text, Image, StyleSheet, Svg, Path, Line, Text as SvgText } from '@react-pdf/renderer'
 import { DGDData, DGDItem } from '../types/dgd'
 import { DGD_FORM } from './dgdForm'
 
@@ -33,10 +33,10 @@ function At({ x, y, size = 9, width, children }: { x: number; y: number; size?: 
 }
 
 /** Table geometry, read off the sheet: column rules, header bottom and the dotted footer rule. */
-const COL = [48.5, 86, 239.5, 277.5, 312, 442, 477.5, 558]
-const BODY_TOP = 405
+export const COL = [48.5, 86, 239.5, 277.5, 312, 442, 477.5, 558]
+export const BODY_TOP = 405
 const BODY_BOTTOM = 605
-const ROW_H = 20
+export const ROW_H = 20
 export const DGD_ROWS = Math.floor((BODY_BOTTOM - BODY_TOP - 4) / ROW_H)
 
 function itemCells(item: DGDItem): string[] {
@@ -74,10 +74,13 @@ function Strike({ x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; y2: nu
 }
 
 // Option boxes (x1, y1, x2, y2).
-const PASSENGER_BOX = [54, 265, 116, 292.5]
-const CARGO_ONLY_BOX = [116, 265, 175.5, 292.5]
-const NON_RADIOACTIVE_BOX = [318.5, 307.5, 408.5, 322.5]
-const RADIOACTIVE_BOX = [408.5, 307.5, 476.5, 322.5]
+export const PASSENGER_BOX = [54, 265, 116, 292.5]
+export const CARGO_ONLY_BOX = [116, 265, 175.5, 292.5]
+export const NON_RADIOACTIVE_BOX = [318.5, 307.5, 408.5, 322.5]
+export const RADIOACTIVE_BOX = [408.5, 307.5, 476.5, 322.5]
+
+/** The empty box beside the consignee, where the shipper's logo goes (x, y, w, h). */
+export const LOGO_BOX = [309, 118, 244, 62]
 
 function pageNumbers(data: DGDData, index: number, total: number): [string, string] {
   if (total > 1) return [String(index + 1), String(total)]
@@ -85,7 +88,13 @@ function pageNumbers(data: DGDData, index: number, total: number): [string, stri
   return m ? [m[1], m[2]] : ['1', '1']
 }
 
-function DeclarationPage({ data, items, index, total }: { data: DGDData; items: DGDItem[]; index: number; total: number }) {
+function DeclarationPage({ data, items, index, total, hideValues, logoUrl }: {
+  data: DGDData; items: DGDItem[]; index: number; total: number; hideValues: boolean; logoUrl?: string
+}) {
+  // With the on-screen editor open the inputs own the values. They cover the first sheet entirely and only
+  // the table on continuation sheets; page numbers are derived, so the PDF always draws them.
+  const hideHeader = hideValues && index === 0
+  const hideItems = hideValues
   const cargoOnly = data.shipmentType === 'cargo_only'
   const [pageNo, pageTotal] = pageNumbers(data, index, total)
   const strikeBox = (b: number[]) => <Strike x1={b[0]} y1={b[1]} x2={b[2]} y2={b[3]} />
@@ -97,21 +106,24 @@ function DeclarationPage({ data, items, index, total }: { data: DGDData; items: 
       <Sheet />
 
       {/* Header */}
-      <At x={53.3} y={64} size={9} width={236}>{data.shipperNameAndAddress}</At>
-      <At x={420} y={53} size={10}>{data.awbNo}</At>
+      {logoUrl && (
+        <Image src={logoUrl} style={{ position: 'absolute', left: LOGO_BOX[0], top: LOGO_BOX[1], width: LOGO_BOX[2], height: LOGO_BOX[3], objectFit: 'contain' }} />
+      )}
+      {!hideHeader && <At x={53.3} y={64} size={9} width={236}>{data.shipperNameAndAddress}</At>}
+      {!hideHeader && <At x={420} y={53} size={10}>{data.awbNo}</At>}
       <At x={338} y={74} size={10}>{pageNo}</At>
       <At x={380} y={74} size={10}>{pageTotal}</At>
-      <At x={470} y={100} size={8} width={86}>{data.shipperReference}</At>
-      <At x={53.3} y={145} size={9} width={236}>{data.consigneeNameAndAddress}</At>
+      {!hideHeader && <At x={470} y={100} size={8} width={86}>{data.shipperReference}</At>}
+      {!hideHeader && <At x={53.3} y={145} size={9} width={236}>{data.consigneeNameAndAddress}</At>}
 
       {/* Transport details */}
-      <At x={186.2} y={268} size={10}>{data.airportOfDeparture}</At>
-      <At x={182} y={313} size={10}>{data.airportOfDestination}</At>
+      {!hideHeader && <At x={186.2} y={268} size={10}>{data.airportOfDeparture}</At>}
+      {!hideHeader && <At x={182} y={313} size={10}>{data.airportOfDestination}</At>}
       {cargoOnly ? strikeBox(PASSENGER_BOX) : strikeBox(CARGO_ONLY_BOX)}
       {data.isRadioactive ? strikeBox(NON_RADIOACTIVE_BOX) : strikeBox(RADIOACTIVE_BOX)}
 
       {/* Nature and quantity of dangerous goods */}
-      {items.map((item, r) => (
+      {!hideItems && items.map((item, r) => (
         <React.Fragment key={item.id}>
           {itemCells(item).map((v, i) => v ? (
             <Text
@@ -130,18 +142,20 @@ function DeclarationPage({ data, items, index, total }: { data: DGDData; items: 
       ))}
 
       {/* Additional handling + certification */}
-      <View style={[s.abs, { left: 53.3, top: 634, width: 500, height: 22 }]}>
-        <Text style={{ fontFamily: 'Helvetica', fontSize: 8, lineHeight: 1.2 }}>{data.additionalHandling}</Text>
-      </View>
-      <At x={359.3} y={694} size={8.5} width={196}>{sign}</At>
-      <At x={456} y={709} size={9} width={100}>{[data.signaturePlace, data.signatureDate].filter(Boolean).join(', ')}</At>
+      {!hideHeader && (
+        <View style={[s.abs, { left: 53.3, top: 634, width: 500, height: 22 }]}>
+          <Text style={{ fontFamily: 'Helvetica', fontSize: 8, lineHeight: 1.2 }}>{data.additionalHandling}</Text>
+        </View>
+      )}
+      {!hideHeader && <At x={359.3} y={694} size={8.5} width={196}>{sign}</At>}
+      {!hideHeader && <At x={456} y={709} size={9} width={100}>{[data.signaturePlace, data.signatureDate].filter(Boolean).join(', ')}</At>}
 
       <Text style={[s.abs, { left: 48.1, top: 768, fontSize: 5, color: '#999' }]}>AIRWAYBILL APP</Text>
     </Page>
   )
 }
 
-export function DGDDocument({ data }: { data: DGDData }) {
+export function DGDDocument({ data, hideValues = false, logoUrl }: { data: DGDData; hideValues?: boolean; logoUrl?: string }) {
   // The table box is fixed on the sheet; more lines continue on further sheets that repeat the
   // hatching, the AWB number and "Page n of N", as DGR 8.1 requires for extension pages.
   const chunks: DGDItem[][] = []
@@ -151,7 +165,7 @@ export function DGDDocument({ data }: { data: DGDData }) {
   return (
     <Document>
       {chunks.map((items, i) => (
-        <DeclarationPage key={i} data={data} items={items} index={i} total={chunks.length} />
+        <DeclarationPage key={i} data={data} items={items} index={i} total={chunks.length} hideValues={hideValues} logoUrl={logoUrl ?? data.logoUrl} />
       ))}
     </Document>
   )

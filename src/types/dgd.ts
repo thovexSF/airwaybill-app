@@ -41,6 +41,8 @@ export interface DGDData {
 
   // Meta
   isDraft: boolean
+  /** Shipper's logo (data URL) printed in the empty box beside the consignee; defaults to the company profile's. */
+  logoUrl?: string
 }
 
 export const defaultDGDData: DGDData = {
