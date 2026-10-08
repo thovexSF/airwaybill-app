@@ -75,6 +75,9 @@ export function DGDPage() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [formWidth, setFormWidth] = useState(380)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const previewScrollRef = useRef<HTMLDivElement>(null)
+  const savedScroll = useRef(0)
+  const restorePending = useRef(false)
   const dragRef = useRef(false)
 
   const blocked = false
@@ -98,26 +101,49 @@ export function DGDPage() {
     }
   }, [docId])
 
+  const logo = data.logoUrl ?? (profile.companyLogoUrl || undefined)
+  const docForRender = (d: DGDData) => (quota.atLimit ? { ...d, isDraft: true } : d)
+
+  // The PDF that gets downloaded: always complete, refreshed shortly after the data changes.
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => regenerate(data), 400)
+    timerRef.current = setTimeout(async () => {
+      try {
+        const blob = await pdf(<DGDDocument data={docForRender(data)} logoUrl={logo} />).toBlob()
+        setPdfBlob(blob)
+        setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
+      } catch (e) {
+        console.error('DGD PDF error:', e)
+      }
+    }, 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, quota.atLimit, overlayMode, profile.companyLogoUrl])
+  }, [data, quota.atLimit, logo])
 
-  async function regenerate(d: DGDData) {
-    setGenerating(true)
-    try {
-      const doc = quota.atLimit ? { ...d, isDraft: true } : d
-      const logo = d.logoUrl ?? (profile.companyLogoUrl || undefined)
-      const blob = await pdf(<DGDDocument data={doc} logoUrl={logo} />).toBlob()
-      setPdfBlob(blob)
-      setPreviewBlob(overlayMode ? await pdf(<DGDDocument data={doc} logoUrl={logo} hideValues />).toBlob() : blob)
-      setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
-    } catch (e) {
-      console.error('DGD PDF error:', e)
-    }
-    setGenerating(false)
-  }
+  // What the preview shows. Editing on the sheet draws no values underneath, so typing must not reload the
+  // viewer (that emptied it, scrolled it to the top and dropped focus): it only reloads when the sheet itself
+  // changes: struck options, number of sheets, draft mark, logo.
+  const previewKey = overlayMode
+    ? JSON.stringify(['sheet', data.shipmentType, data.isRadioactive, data.isDraft, quota.atLimit, Math.max(1, Math.ceil(data.items.length / DGD_ROWS)), logo])
+    : JSON.stringify(['full', data, quota.atLimit, logo])
+
+  useEffect(() => {
+    let cancelled = false
+    const h = setTimeout(async () => {
+      setGenerating(true)
+      try {
+        const blob = await pdf(<DGDDocument data={docForRender(data)} logoUrl={logo} hideValues={overlayMode} />).toBlob()
+        if (cancelled) return
+        savedScroll.current = previewScrollRef.current?.scrollTop ?? 0
+        restorePending.current = true
+        setPreviewBlob(blob)
+      } catch (e) {
+        console.error('DGD preview error:', e)
+      }
+      if (!cancelled) setGenerating(false)
+    }, overlayMode ? 120 : 400)
+    return () => { cancelled = true; clearTimeout(h) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewKey])
 
   async function handleSave() {
     setSaving(true)
@@ -376,12 +402,25 @@ export function DGDPage() {
             </button>
             {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 4 }}>Updating…</span>}
           </div>
-          {pdfBlob ? (
-            <div style={{ overflow: 'auto', flex: 1, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <Document file={previewBlob ?? pdfBlob} onLoadSuccess={({ numPages }) => setNumPages(numPages)} loading={null}>
+          {previewBlob ? (
+            <div ref={previewScrollRef} style={{ overflow: 'auto', flex: 1, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <Document file={previewBlob} onLoadSuccess={({ numPages }) => setNumPages(numPages)} loading={null}>
                 {Array.from({ length: numPages }, (_, i) => (
                   <div key={i + 1} style={{ position: 'relative', width: 612 * zoom * 1.5, flexShrink: 0 }}>
-                    <Page pageNumber={i + 1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} />
+                    <Page
+                      pageNumber={i + 1}
+                      scale={zoom * 1.5}
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
+                      // The viewer rebuilds when the sheet changes; put the reader back where they were.
+                      onRenderSuccess={() => {
+                        // Once per reload, when the last sheet has painted (earlier ones would clamp the position).
+                        if (restorePending.current && i === numPages - 1 && previewScrollRef.current) {
+                          previewScrollRef.current.scrollTop = savedScroll.current
+                          restorePending.current = false
+                        }
+                      }}
+                    />
                     {overlayMode && (
                       <DGDOverlay
                         data={data}
