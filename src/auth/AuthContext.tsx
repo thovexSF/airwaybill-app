@@ -12,7 +12,7 @@ type AuthContextValue = {
   login: (input: { email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
   sendLoginCode: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>
   verifyLoginCode: (input: { email: string; code: string }) => Promise<{ ok: true } | { ok: false; error: string }>
-  loginWithProvider: (provider: 'google' | 'github') => Promise<void>
+  loginWithProvider: (provider: 'google' | 'github' | 'apple') => Promise<void>
   logout: () => Promise<void>
 }
 
