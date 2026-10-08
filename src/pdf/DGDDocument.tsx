@@ -51,6 +51,9 @@ function Sheet() {
       {DGD_FORM.paths.map((p, i) => (
         <Path key={i} d={p.d} fill={p.fill} fillRule={p.evenOdd ? 'evenodd' : 'nonzero'} />
       ))}
+      {DGD_FORM.strokes.map((st, i) => (
+        <Path key={`s${i}`} d={st.d} stroke={st.stroke} strokeWidth={st.width} fill="none" />
+      ))}
       {DGD_FORM.words.map((w, i) => (
         <SvgText key={`w${i}`} x={w.x} y={w.y} style={{ fontFamily: w.bold ? 'Helvetica-Bold' : 'Helvetica', fontSize: w.size }} fill="#000">
           {w.text}
