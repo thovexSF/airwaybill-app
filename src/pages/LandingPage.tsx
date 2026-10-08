@@ -110,6 +110,11 @@ export function LandingPage() {
         </Link>
       </section>
 
+      {/* ── eAWB (informativo, sin botón) ── */}
+      <section className="lp-eawb-banner">
+        <p><b>{t('eawbPromo.title')}</b> {t('eawbPromo.sub')}</p>
+      </section>
+
       {/* ── FEATURES ── */}
       <section className="lp-features" id="features">
         <div className="lp-section-inner">
@@ -190,11 +195,6 @@ export function LandingPage() {
             {t('landing.finalCta.cta')}
           </Link>
         </div>
-      </section>
-
-      {/* ── eAWB (informativo, sin botón) ── */}
-      <section className="lp-eawb-banner">
-        <p><b>{t('eawbPromo.title')}</b> {t('eawbPromo.sub')}</p>
       </section>
 
       {/* ── FOOTER ── */}
