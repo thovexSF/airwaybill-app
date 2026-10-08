@@ -245,3 +245,7 @@
   height: 1px;
   background: #e8dcdc;
 }
+
+/* Tras credenciales inválidas se resaltan los botones sociales: la cuenta puede haberse creado con Google o GitHub. */
+.auth-social.hint .auth-social-btn { box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.35); }
+.auth-error-link { background: none; border: 0; padding: 0; color: #8b0000; font: inherit; text-decoration: underline; cursor: pointer; }

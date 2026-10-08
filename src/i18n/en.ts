@@ -79,6 +79,7 @@ const en = {
       password: 'Password',
       submit: 'Sign in',
       submitting: 'Signing in...',
+      badCredentials: "Wrong email or password. If you created your account with Google or GitHub, use those buttons below.",
       forgotPassword: 'Forgot your password?',
       noAccount: 'Don\'t have an account?',
       createAccount: 'Create free account',

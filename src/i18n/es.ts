@@ -79,6 +79,7 @@ const es = {
       password: 'Contraseña',
       submit: 'Iniciar sesión',
       submitting: 'Entrando...',
+      badCredentials: "Correo o contraseña incorrectos. Si creaste tu cuenta con Google o GitHub, usa esos botones de abajo.",
       forgotPassword: '¿Olvidaste tu contraseña?',
       noAccount: '¿No tienes cuenta?',
       createAccount: 'Crear cuenta gratis',

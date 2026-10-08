@@ -42,6 +42,8 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  // Tras credenciales inválidas orientamos al usuario sin revelar si el correo tiene cuenta ni con qué método.
+  const [badCredentials, setBadCredentials] = useState(false)
   const [loading, setLoading] = useState(false)
   // 'password' (por defecto) o 'code': ingreso con un código de un solo uso enviado al correo.
   const [mode, setMode] = useState<'password' | 'code'>('password')
@@ -61,10 +63,16 @@ export function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
+    setBadCredentials(false)
     setLoading(true)
     const result = await login({ email: email.toLowerCase().trim(), password })
     setLoading(false)
-    if (!result.ok) { setError(result.error); return }
+    if (!result.ok) {
+      const invalid = /invalid login credentials/i.test(result.error)
+      setBadCredentials(invalid)
+      setError(invalid ? t('auth.login.badCredentials') : result.error)
+      return
+    }
     navigate(destination, { replace: true })
   }
 
@@ -115,9 +123,21 @@ export function LoginPage() {
         <h1 className="auth-title">{t('auth.login.submit')}</h1>
         <p className="auth-sub">{t('auth.login.sub')}</p>
 
-        {error && <div className="auth-error" style={{ marginTop: 16 }}>{error}</div>}
+        {error && (
+          <div className="auth-error" style={{ marginTop: 16 }}>
+            {error}
+            {badCredentials && (
+              <>
+                {' '}
+                <button type="button" onClick={() => switchMode('code')} className="auth-error-link">
+                  {t('auth.login.code.link')}
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
-        <div className="auth-social">
+        <div className={`auth-social${badCredentials ? ' hint' : ''}`}>
           <button className="auth-social-btn google" onClick={() => handleProvider('google')}>
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.5 30.2 0 24 0 14.6 0 6.6 5.5 2.7 13.5l7.8 6C12.4 13.2 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.6 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 6.9-10 6.9-17z"/><path fill="#FBBC05" d="M10.5 28.5c-.5-1.5-.8-3.2-.8-4.9s.3-3.4.8-4.9l-7.8-6C1 15.9 0 19.8 0 24s1 8.1 2.7 11.3l7.8-6z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.2 0-11.6-4.2-13.5-9.9l-7.8 6C6.6 42.5 14.6 48 24 48z"/></svg>
             {t('auth.login.google')}
