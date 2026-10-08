@@ -21,6 +21,7 @@ import { recordPdfDownload } from '../lib/pdfQuota'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { usePostHog } from '@posthog/react'
+import { withPdfWatermarkPolicy } from '../lib/watermarkPolicy'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -72,7 +73,7 @@ export function EditorPage() {
   const [downloadCountedAt, setDownloadCountedAt] = useState<string | null>(null)
   // Free plan, allowance spent: documents still download, but always with the DRAFT watermark.
   const atLimit = plan === 'free' && !canDownloadDocument && !downloadCountedAt
-  const renderData = atLimit ? { ...data, isDraft: true } : data
+  const renderData = withPdfWatermarkPolicy(data, { plan, forceWatermark: atLimit })
   const [formWidth, setFormWidth] = useState(initialFormWidth)
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)

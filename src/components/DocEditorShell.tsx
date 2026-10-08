@@ -10,6 +10,7 @@ import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
 import { useDemoMode } from './DemoMode'
 import { useTranslation } from 'react-i18next'
+import { WatermarkableDocumentData, withPdfWatermarkPolicy } from '../lib/watermarkPolicy'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -21,7 +22,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
  * bar, resizable form panel and the debounced PDF preview. Pages supply their
  * own form fields as children plus a renderer for their PDF document.
  */
-export function DocEditorShell<T>({
+export function DocEditorShell<T extends WatermarkableDocumentData>({
   data,
   renderDocument,
   subtitle,
@@ -89,7 +90,7 @@ export function DocEditorShell<T>({
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => { void regenerate(data) }, 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, forceWatermark])
+  }, [data, forceWatermark, plan, demo])
 
   // Release the last preview URL when the editor unmounts.
   useEffect(() => () => { setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null }) }, [])
@@ -122,7 +123,8 @@ export function DocEditorShell<T>({
   async function regenerate(d: T) {
     setGenerating(true)
     try {
-      const blob = await pdf(renderDocument(forceWatermark ? { ...d, isDraft: true } : d)).toBlob()
+      const renderData = withPdfWatermarkPolicy(d, { plan, forceWatermark, isDemo: demo })
+      const blob = await pdf(renderDocument(renderData)).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {

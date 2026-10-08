@@ -145,7 +145,7 @@ const en = {
     downloading: 'Preparing download...',
     downloadError: 'Could not download PDF',
     downloadPdf: '⬇ Download PDF',
-    limitBanner: 'You\'ve used the 3 free documents included in Free. New PDFs now carry a DRAFT watermark — subscribe to Pro to remove it.',
+    limitBanner: 'You\'ve used the 3 free documents included in Free. New PDFs now carry a DRAFT watermark — upgrade to Starter to remove it.',
     upgradeNow: 'Upgrade to Starter →',
     editFields: 'Edit fields',
     copies: 'Copies',

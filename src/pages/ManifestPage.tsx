@@ -14,6 +14,7 @@ import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
+import { withPdfWatermarkPolicy } from '../lib/watermarkPolicy'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -88,15 +89,22 @@ export function ManifestPage() {
   }, [docId])
 
   useEffect(() => {
+    if (!demo && plan !== 'free' && data.isDraft) {
+      setData(d => d.isDraft ? { ...d, isDraft: false } : d)
+    }
+  }, [demo, plan, data.isDraft])
+
+  useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => regenerate(data), 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, quota.atLimit])
+  }, [data, quota.atLimit, plan, demo])
 
   async function regenerate(d: ManifestData) {
     setGenerating(true)
     try {
-      const blob = await pdf(<ManifestDocument data={quota.atLimit ? { ...d, isDraft: true } : d} />).toBlob()
+      const renderData = withPdfWatermarkPolicy(d, { plan, forceWatermark: quota.atLimit, isDemo: demo })
+      const blob = await pdf(<ManifestDocument data={renderData} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
