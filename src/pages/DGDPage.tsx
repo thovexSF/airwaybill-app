@@ -7,6 +7,7 @@ import 'react-pdf/dist/Page/TextLayer.css'
 import { DGDData, DGDItem, defaultDGDData } from '../types/dgd'
 import { DGDDocument, DGD_ROWS } from '../pdf/DGDDocument'
 import { DGDOverlay } from '../components/DGDOverlay'
+import { clearSignature, signatureState, signDgd } from '../lib/dgdSignature'
 import { useOrgProfile } from '../lib/orgProfile'
 import { saveDGD, getDGD } from '../lib/dgdService'
 import { useAuth } from '../auth/AuthContext'
@@ -122,8 +123,9 @@ export function DGDPage() {
   // What the preview shows. Editing on the sheet draws no values underneath, so typing must not reload the
   // viewer (that emptied it, scrolled it to the top and dropped focus): it only reloads when the sheet itself
   // changes: struck options, number of sheets, draft mark, logo.
+  const sigState = signatureState(data)
   const previewKey = overlayMode
-    ? JSON.stringify(['sheet', data.shipmentType, data.isRadioactive, data.isDraft, quota.atLimit, Math.max(1, Math.ceil(data.items.length / DGD_ROWS)), logo])
+    ? JSON.stringify(['sheet', data.shipmentType, data.isRadioactive, data.isDraft, quota.atLimit, Math.max(1, Math.ceil(data.items.length / DGD_ROWS)), logo, sigState, data.signatureProof?.signedAt])
     : JSON.stringify(['full', data, quota.atLimit, logo])
 
   useEffect(() => {
@@ -180,6 +182,11 @@ export function DGDPage() {
       ...d,
       items: [...d.items, { id: uid(), unIdNo: '', properShippingName: '', classDivision: '', subsidiaryRisk: '', packingGroup: '', quantity: '', packingInstruction: '', authorization: '', [key]: value } as DGDItem],
     }))
+  }
+
+  function signNow() {
+    if (!profile.signatureUrl) return
+    setData(d => signDgd(d, profile.signatureUrl, user?.email ?? ''))
   }
 
   function removeItem(id: string) {
@@ -355,6 +362,24 @@ export function DGDPage() {
                 <Field label="Title" value={data.signatoryTitle} onChange={set('signatoryTitle')} />
               </Row>
               <Field label="Date" value={data.signatureDate} onChange={set('signatureDate')} placeholder="01-JAN-2025" />
+              {!demo && (
+                <div className="field">
+                  <label>Signature</label>
+                  {sigState === 'valid' ? (
+                    <div style={{ fontSize: 12, color: '#2f7d32', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span>Signed {data.signatureProof?.signedAt.slice(0, 16).replace('T', ' ')} UTC</span>
+                      <button type="button" className="btn-example" style={{ color: '#8b0000', background: 'none' }} onClick={() => setData(d => clearSignature(d))}>Remove</button>
+                    </div>
+                  ) : profile.signatureUrl ? (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button type="button" className="btn-download" style={{ fontSize: 12, padding: '6px 14px' }} onClick={signNow}>Sign with my signature</button>
+                      {sigState === 'modified' && <span style={{ fontSize: 11, color: '#8b0000' }}>The declaration changed after it was signed. Sign again.</span>}
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 12, color: '#777' }}>No signature saved. Upload one in Settings, under Company profile.</span>
+                  )}
+                </div>
+              )}
               <div className="field">
                 <label>Draft watermark</label>
                 <label className="toggle">
@@ -431,6 +456,10 @@ export function DGDPage() {
                         onItem={updateItem}
                         onAddItem={addItemWith}
                         onRemoveItem={removeItem}
+                        signature={sigState}
+                        hasProfileSignature={!!profile.signatureUrl}
+                        onSign={signNow}
+                        onClearSignature={() => setData(d => clearSignature(d))}
                       />
                     )}
                   </div>

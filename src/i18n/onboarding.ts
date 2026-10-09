@@ -46,6 +46,9 @@ export const onboardingEn = {
     logoUpload: 'Upload logo',
     logoRemove: 'Remove',
     logoHelp: 'Printed on documents with a logo box, such as the Dangerous Goods Declaration. PNG or JPG; it is resized automatically.',
+    signature: "Signatory's signature",
+    signatureUpload: 'Upload signature',
+    signatureHelp: 'A photo or scan of your signature on a white background (JPG or PNG). It is stamped on documents that carry one, such as the Dangerous Goods Declaration, when you click to sign.',
   },
   done: {
     summary: 'Summary',
@@ -123,6 +126,9 @@ export const onboardingEs = {
     logoUpload: 'Subir logo',
     logoRemove: 'Quitar',
     logoHelp: 'Se imprime en los documentos que tienen un recuadro para logo, como la Declaración de Mercancías Peligrosas. PNG o JPG; se reduce automáticamente.',
+    signature: 'Firma del firmante',
+    signatureUpload: 'Subir firma',
+    signatureHelp: 'Foto o escaneo de tu firma sobre fondo blanco (JPG o PNG). Se estampa en los documentos que la llevan, como la Declaración de Mercancías Peligrosas, cuando haces clic en firmar.',
   },
   done: {
     summary: 'Resumen',

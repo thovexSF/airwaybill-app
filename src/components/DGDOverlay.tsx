@@ -1,8 +1,9 @@
 import React from 'react'
 import { DGDData, DGDItem } from '../types/dgd'
+import type { SignatureState } from '../lib/dgdSignature'
 import {
   BODY_TOP, COL, DGD_ROWS, ROW_H,
-  CARGO_ONLY_BOX, NON_RADIOACTIVE_BOX, PASSENGER_BOX, RADIOACTIVE_BOX,
+  CARGO_ONLY_BOX, NON_RADIOACTIVE_BOX, PASSENGER_BOX, RADIOACTIVE_BOX, SIGNATURE_BOX,
 } from '../pdf/DGDDocument'
 
 /**
@@ -10,7 +11,7 @@ import {
  * `DGDDocument` places its values at, so typing feels like filling in the paper form. While this
  * is mounted the preview PDF is rendered with `hideValues`, so a value is never drawn twice.
  */
-export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onAddItem, onRemoveItem }: {
+export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onAddItem, onRemoveItem, signature, hasProfileSignature, onSign, onClearSignature }: {
   data: DGDData
   /** CSS pixels per PDF point. */
   scale: number
@@ -21,6 +22,10 @@ export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onA
   onItem: (id: string, key: keyof DGDItem, value: string) => void
   onAddItem: (key: keyof DGDItem, value: string) => void
   onRemoveItem: (id: string) => void
+  signature: SignatureState
+  hasProfileSignature: boolean
+  onSign: () => void
+  onClearSignature: () => void
 }) {
   const px = (v: number) => v * scale
   const box = (x: number, y: number, w: number, h: number): React.CSSProperties => ({
@@ -65,6 +70,8 @@ export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onA
         .dgdo-opt:hover { background: rgba(60,120,255,0.12); }
         .dgdo-x { position: absolute; background: none; border: 0; padding: 0; color: #b00; cursor: pointer; line-height: 1; opacity: 0.35; }
         .dgdo-x:hover { opacity: 1; }
+        .dgdo-sign { position: absolute; background: rgba(139,0,0,0.04); border: 1px dashed rgba(139,0,0,0.45); color: #8b0000; font-family: Helvetica, Arial, sans-serif; font-weight: 700; cursor: pointer; padding: 0; border-radius: 3px; }
+        .dgdo-sign:hover { background: rgba(139,0,0,0.1); }
       `}</style>
 
       {first && (
@@ -101,6 +108,21 @@ export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onA
             value={data.signatoryName} onChange={e => onField({ signatoryName: e.target.value })} />
           <input className="dgdo-in" aria-label="Title" placeholder="Title" style={{ ...line(454, 693, 103, 8.5), ...font(8.5) }}
             value={data.signatoryTitle} onChange={e => onField({ signatoryTitle: e.target.value })} />
+          {signature === 'valid' ? (
+            <button type="button" className="dgdo-x" title="Remove signature" aria-label="Remove signature"
+              style={{ ...box(SIGNATURE_BOX[0] + SIGNATURE_BOX[2] - 6, SIGNATURE_BOX[1] - 3, 10, 10), fontSize: px(10), opacity: 0.6 }}
+              onClick={onClearSignature}>×</button>
+          ) : hasProfileSignature ? (
+            <button type="button" className="dgdo-sign" title="Stamp your signature on this declaration" aria-label="Sign"
+              style={{ ...box(SIGNATURE_BOX[0] - 2, SIGNATURE_BOX[1] - 2, SIGNATURE_BOX[2] + 4, SIGNATURE_BOX[3] + 12), fontSize: px(7) }}
+              onClick={onSign}>
+              {signature === 'modified' ? 'Changed after signing — click to sign again' : 'Click to sign'}
+            </button>
+          ) : (
+            <div title="Upload your signature in Settings" style={{ ...box(SIGNATURE_BOX[0] - 2, SIGNATURE_BOX[1] + 6, SIGNATURE_BOX[2] + 4, 22), fontSize: px(6), color: 'rgba(0,0,0,0.35)', fontFamily: 'Helvetica, Arial, sans-serif', lineHeight: 1.2 }}>
+              No signature saved. Upload one in Settings.
+            </div>
+          )}
           <input className="dgdo-in" aria-label="Date" placeholder="Date" style={{ ...line(456, 709, 101, 9), ...font(9) }}
             value={data.signatureDate} onChange={e => onField({ signatureDate: e.target.value })} />
         </>

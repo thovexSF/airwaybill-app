@@ -18,20 +18,22 @@ export interface OrgProfile {
   cassCode: string
   /** Company logo as a (downscaled) data URL; printed on documents with a logo box. */
   companyLogoUrl: string
+  /** Signatory's handwritten signature as a (downscaled) data URL, stamped on documents that carry one. */
+  signatureUrl: string
   onboardingCompletedAt: string | null
   onboardingDismissedAt: string | null
 }
 
 export const EMPTY_PROFILE: OrgProfile = {
   legalName: '', country: '', taxId: '', phone: '', contactName: '', address: '', city: '',
-  legalRepName: '', legalRepTitle: '', airportOfDeparture: '', iataAgentCode: '', cassCode: '', companyLogoUrl: '',
+  legalRepName: '', legalRepTitle: '', airportOfDeparture: '', iataAgentCode: '', cassCode: '', companyLogoUrl: '', signatureUrl: '',
   onboardingCompletedAt: null, onboardingDismissedAt: null,
 }
 
 const COLS: Record<keyof OrgProfile, string> = {
   legalName: 'legal_name', country: 'country', taxId: 'tax_id', phone: 'phone', contactName: 'contact_name',
   address: 'address', city: 'city', legalRepName: 'legal_rep_name', legalRepTitle: 'legal_rep_title',
-  airportOfDeparture: 'airport_of_departure', iataAgentCode: 'iata_agent_code', cassCode: 'cass_code', companyLogoUrl: 'company_logo_url',
+  airportOfDeparture: 'airport_of_departure', iataAgentCode: 'iata_agent_code', cassCode: 'cass_code', companyLogoUrl: 'company_logo_url', signatureUrl: 'signature_url',
   onboardingCompletedAt: 'onboarding_completed_at', onboardingDismissedAt: 'onboarding_dismissed_at',
 }
 
@@ -144,17 +146,20 @@ export async function fillDocumentDefaults(orgId: string, p: OrgProfile) {
   }
 }
 
-/** Downscales a logo to at most 480x160 px PNG (data URL), so it stays small enough to keep in the profile and in documents. */
-export function logoToDataUrl(file: File): Promise<string> {
+/** Downscales an image to fit `maxW` x `maxH` and returns a PNG data URL (small enough to keep in the profile and in documents). */
+function resizeToDataUrl(file: File, maxW: number, maxH: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
     img.onload = () => {
-      const k = Math.min(1, 480 / img.width, 160 / img.height)
+      const k = Math.min(1, maxW / img.width, maxH / img.height)
       const canvas = document.createElement('canvas')
       canvas.width = Math.max(1, Math.round(img.width * k))
       canvas.height = Math.max(1, Math.round(img.height * k))
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      const ctx = canvas.getContext('2d')!
+      ctx.fillStyle = '#fff'   // JPGs have no alpha: keep the paper white
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
       URL.revokeObjectURL(url)
       resolve(canvas.toDataURL('image/png'))
     }
@@ -162,3 +167,6 @@ export function logoToDataUrl(file: File): Promise<string> {
     img.src = url
   })
 }
+
+export const logoToDataUrl = (file: File) => resizeToDataUrl(file, 480, 160)
+export const signatureToDataUrl = (file: File) => resizeToDataUrl(file, 400, 140)

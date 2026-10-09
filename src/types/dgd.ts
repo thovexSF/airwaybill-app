@@ -43,6 +43,10 @@ export interface DGDData {
   isDraft: boolean
   /** Shipper's logo (data URL) printed in the empty box beside the consignee; defaults to the company profile's. */
   logoUrl?: string
+  /** Handwritten signature image stamped in the Signature box, copied from the profile when the signatory signs. */
+  signatureUrl?: string
+  /** Evidence of the signing; the signature only counts while `hash` still matches the document's content. */
+  signatureProof?: { hash: string; signedAt: string; signedBy: string }
 }
 
 export const defaultDGDData: DGDData = {

@@ -2,6 +2,7 @@ import React from 'react'
 import { Document, Page, View, Text, Image, StyleSheet, Svg, Path, Line, Text as SvgText } from '@react-pdf/renderer'
 import { DGDData, DGDItem } from '../types/dgd'
 import { DGD_FORM } from './dgdForm'
+import { signatureState } from '../lib/dgdSignature'
 
 /**
  * IATA Shipper's Declaration for Dangerous Goods (DGR 8.1): English wording with Spanish
@@ -79,6 +80,9 @@ export const CARGO_ONLY_BOX = [116, 265, 175.5, 292.5]
 export const NON_RADIOACTIVE_BOX = [318.5, 307.5, 408.5, 322.5]
 export const RADIOACTIVE_BOX = [408.5, 307.5, 476.5, 322.5]
 
+/** The signature zone: x, y, width, height of the image, with the evidence line under it. */
+export const SIGNATURE_BOX = [446, 716, 108, 34]
+
 /** The empty box beside the consignee, where the shipper's logo goes (x, y, w, h). */
 export const LOGO_BOX = [309, 118, 244, 62]
 
@@ -149,6 +153,15 @@ function DeclarationPage({ data, items, index, total, hideValues, logoUrl }: {
       )}
       {!hideHeader && <At x={359.3} y={694} size={8.5} width={196}>{sign}</At>}
       {!hideHeader && <At x={456} y={709} size={9} width={100}>{data.signatureDate}</At>}
+
+      {signatureState(data) === 'valid' && data.signatureUrl && data.signatureProof && (
+        <>
+          <Image src={data.signatureUrl} style={{ position: 'absolute', left: SIGNATURE_BOX[0], top: SIGNATURE_BOX[1], width: SIGNATURE_BOX[2], height: SIGNATURE_BOX[3], objectFit: 'contain' }} />
+          <Text style={[s.abs, { left: SIGNATURE_BOX[0], top: 752, width: 110, fontSize: 4.6, color: '#444', lineHeight: 1.15 }]}>
+            {`Electronically signed · Firmado electrónicamente\n${data.signatoryName || data.signatureProof.signedBy} · ${data.signatureProof.signedAt.slice(0, 16).replace('T', ' ')} UTC`}
+          </Text>
+        </>
+      )}
 
       <Text style={[s.abs, { left: 48.1, top: 768, fontSize: 5, color: '#999' }]}>AIRWAYBILL APP</Text>
     </Page>
