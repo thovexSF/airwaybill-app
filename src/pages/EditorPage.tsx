@@ -195,7 +195,7 @@ export function EditorPage() {
   async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
     setGenerating(true)
     try {
-      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} />).toBlob()
+      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} showBrandStamp={false} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
@@ -238,7 +238,7 @@ export function EditorPage() {
    * every value drawn by the HTML inputs instead.
    */
   async function downloadPdfFile() {
-    const blob = await pdf(<AWBDocument data={renderData} userScale={pdfScale} withConditions />).toBlob()
+    const blob = await pdf(<AWBDocument data={renderData} userScale={pdfScale} withConditions showBrandStamp={false} />).toBlob()
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -465,6 +465,7 @@ export function EditorPage() {
           onClose={() => setCopiesOpen(false)}
           authorize={authorizeCopies}
           fileName={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}`}
+          showBrandStamp={false}
         />
         <FwbPreviewDialog
           open={fwbOpen}
