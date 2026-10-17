@@ -13,6 +13,7 @@ import { usePdfDownloadGuard } from '../lib/pdfQuota'
 import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
+import { WatermarkUpgradePrompt } from '../components/WatermarkUpgradePrompt'
 import { track } from '../lib/analytics'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -223,6 +224,8 @@ export function ManifestPage() {
           />
         )}
       </div>
+
+      {!demo && quota.atLimit && <WatermarkUpgradePrompt source="manifest_editor" />}
 
       <div className="main">
         {/* Form panel */}
