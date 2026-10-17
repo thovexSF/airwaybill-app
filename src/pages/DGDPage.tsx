@@ -107,6 +107,12 @@ export function DGDPage() {
 
   // The PDF that gets downloaded: always complete, refreshed shortly after the data changes.
   useEffect(() => {
+    if (plan !== 'free' && data.isDraft) {
+      setData(d => ({ ...d, isDraft: false }))
+    }
+  }, [plan, data.isDraft])
+
+  useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(async () => {
       try {

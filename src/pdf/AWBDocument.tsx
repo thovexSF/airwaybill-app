@@ -236,7 +236,17 @@ function AwbSheet({ ink, wash, label, footer }: { ink: string; wash: string; lab
  * while the HTML overlay is up: the overlay already shows every value, and
  * drawing them here too made each one appear twice.
  */
-function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?: boolean; copyKey?: string }) {
+function AWBFacePage({
+  data,
+  hideValues,
+  copyKey,
+  showBrandStamp = true,
+}: {
+  data: AWBData
+  hideValues?: boolean
+  copyKey?: string
+  showBrandStamp?: boolean
+}) {
   const isHawb = data.docType === 'hawb'
   const awbFull = isHawb
     ? (data.hawbNumber || '')
@@ -254,7 +264,7 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
 
       {data.isDraft && <Text style={[styles.watermark, { color: theme.ink }]}>DRAFT</Text>}
 
-      <Text style={[styles.stamp, { color: theme.ink }]}>GENERATED WITH AIRWAYBILL.APP</Text>
+      {showBrandStamp && <Text style={[styles.stamp, { color: theme.ink }]}>GENERATED WITH AIRWAYBILL.APP</Text>}
 
       {fieldDefs.map((def, i) => {
         // The overlay covers only what the user types, so the derived values —
@@ -328,15 +338,16 @@ const conditions = StyleSheet.create({
  * it is on paper; the live editor leaves it off so a keystroke only re-lays out
  * the page being edited.
  */
-export function AWBDocument({ data, hideValues, withConditions }: {
+export function AWBDocument({ data, hideValues, withConditions, showBrandStamp = true }: {
   data: AWBData
   userScale?: 'sm' | 'md' | 'lg'
   hideValues?: boolean
   withConditions?: boolean
+  showBrandStamp?: boolean
 }) {
   return (
     <Document>
-      <AWBFacePage data={data} hideValues={hideValues} />
+      <AWBFacePage data={data} hideValues={hideValues} showBrandStamp={showBrandStamp} />
       {withConditions && <AwbConditionsPage />}
     </Document>
   )
@@ -347,12 +358,16 @@ export function AWBDocument({ data, hideValues, withConditions }: {
  * coloured sheet followed by its own reverse, so printing double-sided gives
  * every sheet its contract instead of one contract for the whole stack.
  */
-export function AWBCopiesDocument({ data, copies }: { data: AWBData; copies: string[] }) {
+export function AWBCopiesDocument({ data, copies, showBrandStamp = true }: {
+  data: AWBData
+  copies: string[]
+  showBrandStamp?: boolean
+}) {
   return (
     <Document>
       {copies.map((key) => (
         <React.Fragment key={key}>
-          <AWBFacePage data={data} copyKey={key} />
+          <AWBFacePage data={data} copyKey={key} showBrandStamp={showBrandStamp} />
           <AwbConditionsPage />
         </React.Fragment>
       ))}
