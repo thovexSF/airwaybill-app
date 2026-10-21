@@ -25,6 +25,14 @@ const LIMITS: Record<Plan, number | null> = {
   enterprise: null,
 }
 
+// Cuentas internas de B2B: sin límite de gratuidad, sea cual sea el plan de su organización.
+const UNLIMITED_EMAIL_DOMAINS = ['b2bx.cl']
+
+function hasUnlimitedEmail(email: string | undefined): boolean {
+  const domain = email?.split('@')[1]?.toLowerCase()
+  return !!domain && UNLIMITED_EMAIL_DOMAINS.includes(domain)
+}
+
 export function usePlan(): PlanInfo {
   const { user } = useAuth()
   const [plan, setPlan]   = useState<Plan>('free')
@@ -59,7 +67,7 @@ export function usePlan(): PlanInfo {
       const id   = membership.organization_id
       const p    = (membership.organizations as any)?.plan ?? 'free'
       setOrgId(id)
-      setPlan(p)
+      setPlan(hasUnlimitedEmail(user!.email) ? 'enterprise' : p)
 
       await loadUsage(id)
       setLoading(false)

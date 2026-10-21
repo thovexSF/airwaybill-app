@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page, pdfjs } from 'react-pdf'
@@ -34,10 +34,12 @@ export function DocEditorShell<T>({
   authorizeDownload,
   forceWatermark,
   extraActions,
+  overlay,
   children,
 }: {
   data: T
-  renderDocument: (data: T) => React.ReactElement
+  /** `hideValues` is set while `overlay` is on screen, so each value shows once. */
+  renderDocument: (data: T, opts: { hideValues: boolean }) => React.ReactElement
   subtitle: string
   accent?: string
   fileName: string
@@ -50,6 +52,8 @@ export function DocEditorShell<T>({
   /** Free plan with the allowance spent: render every PDF with the DRAFT watermark. */
   forceWatermark?: boolean
   extraActions?: React.ReactNode
+  /** Inputs laid over page 1 of the preview, sized to its rendered width. Makes the form panel optional. */
+  overlay?: (pageWidthPx: number) => React.ReactNode
   children: React.ReactNode
 }) {
   const demo = useDemoMode()
@@ -67,6 +71,45 @@ export function DocEditorShell<T>({
   const [formWidth, setFormWidth] = useState(460)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
+
+  // Same 900px threshold as the AWB editor: below it there is no room to type on the page.
+  const [overlayMode, setOverlayMode] = useState(() => !!overlay && window.innerWidth >= 900)
+  const [showForm, setShowForm] = useState(() => !overlayMode)
+  const [pageWidthPx, setPageWidthPx] = useState(0)
+  const pageWrapRef = useRef<HTMLDivElement | null>(null)
+
+  const updatePageWidth = useCallback(() => {
+    const width = pageWrapRef.current?.getBoundingClientRect().width
+    if (width) setPageWidthPx(width)
+  }, [])
+
+  const setPageWrap = useCallback((node: HTMLDivElement | null) => {
+    pageWrapRef.current = node
+    if (node) requestAnimationFrame(updatePageWidth)
+  }, [updatePageWidth])
+
+  useEffect(() => {
+    if (!overlay) return
+    const onResize = () => {
+      if (window.innerWidth < 900) { setOverlayMode(false); setShowForm(true) }
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    const el = pageWrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect.width
+      if (w) setPageWidthPx(w)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [overlayMode, pdfBlob])
+
+  const docFor = (d: T, hideValues: boolean) =>
+    renderDocument(forceWatermark ? { ...d, isDraft: true } : d, { hideValues })
 
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
@@ -89,7 +132,7 @@ export function DocEditorShell<T>({
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => { void regenerate(data) }, 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, forceWatermark])
+  }, [data, forceWatermark, overlayMode])
 
   // Release the last preview URL when the editor unmounts.
   useEffect(() => () => { setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null }) }, [])
@@ -107,12 +150,15 @@ export function DocEditorShell<T>({
           return
         }
       }
+      // The preview is blank under the overlay, so the file is always rendered afresh with its values.
+      const url = overlayMode ? URL.createObjectURL(await pdf(docFor(data, false)).toBlob()) : pdfUrl
       const link = document.createElement('a')
-      link.href = pdfUrl
+      link.href = url
       link.download = fileName
       document.body.appendChild(link)
       link.click()
       link.remove()
+      if (url !== pdfUrl) setTimeout(() => URL.revokeObjectURL(url), 1000)
       onDownload?.()
     } finally {
       setDownloading(false)
@@ -122,7 +168,7 @@ export function DocEditorShell<T>({
   async function regenerate(d: T) {
     setGenerating(true)
     try {
-      const blob = await pdf(renderDocument(forceWatermark ? { ...d, isDraft: true } : d)).toBlob()
+      const blob = await pdf(docFor(d, overlayMode)).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
@@ -203,7 +249,7 @@ export function DocEditorShell<T>({
 
       <div className="main">
         {/* ── Form panel ── */}
-        <div className="form-panel-wrap" style={{ width: formWidth }}>
+        <div className="form-panel-wrap" style={{ width: formWidth, display: showForm ? undefined : 'none' }}>
           <div className="form-panel">{children}</div>
           <div className="mobile-pdf-strip">
             {demo
@@ -220,7 +266,7 @@ export function DocEditorShell<T>({
           </div>
         </div>
 
-        <div className="resize-handle" onMouseDown={onDragStart} title="Drag to resize" />
+        {showForm && <div className="resize-handle" onMouseDown={onDragStart} title="Drag to resize" />}
 
         {/* ── PDF preview ── */}
         <div className="preview-panel">
@@ -229,13 +275,36 @@ export function DocEditorShell<T>({
             <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
             <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16 }}>+</button>
             <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>Reset</button>
+            {overlay && window.innerWidth >= 900 && (
+              <>
+                <button
+                  onClick={() => setShowForm(v => !v)}
+                  style={{ background: showForm ? '#555' : '#333', border: 'none', color: '#ddd', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, marginLeft: 8 }}
+                >
+                  {showForm ? '☰ Ocultar formulario' : '☰ Abrir formulario'}
+                </button>
+                <button
+                  onClick={() => setOverlayMode(v => { if (v) setShowForm(true); return !v })}
+                  style={{ background: overlayMode ? '#8B0000' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}
+                >
+                  {overlayMode ? '✎ Editando sobre el PDF' : '✎ Editar sobre el PDF'}
+                </button>
+              </>
+            )}
             {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 4 }}>Updating…</span>}
           </div>
           {pdfBlob ? (
             <div style={{ overflow: 'auto', flex: 1, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
               <Document file={pdfBlob} onLoadSuccess={({ numPages }) => setNumPages(numPages)} loading={null}>
                 {Array.from({ length: numPages }, (_, i) => (
-                  <Page key={i + 1} pageNumber={i + 1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} />
+                  i === 0 && overlayMode && overlay ? (
+                    <div key={1} ref={setPageWrap} style={{ position: 'relative' }}>
+                      <Page pageNumber={1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} loading={null} onRenderSuccess={updatePageWidth} />
+                      {pageWidthPx > 0 && overlay(pageWidthPx)}
+                    </div>
+                  ) : (
+                    <Page key={i + 1} pageNumber={i + 1} scale={zoom * 1.5} renderTextLayer={false} renderAnnotationLayer={false} />
+                  )
                 ))}
               </Document>
             </div>

@@ -65,17 +65,20 @@ export function Select({ label, value, onChange, options }: {
   )
 }
 
-export function Check({ label, checked, onChange }: {
+export function Check({ label, checked, onChange, disabled, hint }: {
   label: string
   checked: boolean
   onChange: (v: boolean) => void
+  disabled?: boolean
+  hint?: string
 }) {
   return (
     <div className="field">
       <label className="toggle" style={{ marginTop: 16 }}>
-        <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+        <input type="checkbox" checked={checked} disabled={disabled} onChange={e => onChange(e.target.checked)} />
         <span>{label}</span>
       </label>
+      {hint && <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{hint}</div>}
     </div>
   )
 }

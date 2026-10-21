@@ -18,6 +18,8 @@ export interface ProformaData {
   otherReferences: string
 
   // Parties
+  /** Logo printed in "Issued by": a public path, an uploaded image as a data URL, or '' for none. */
+  sellerLogo?: string
   seller: string
   buyer: string
   shipper: string
@@ -65,6 +67,7 @@ export const defaultProformaData: ProformaData = {
   dueDate: '',
   awbNumber: '',
   otherReferences: '',
+  sellerLogo: '',
   seller: '',
   buyer: '',
   shipper: '',
@@ -87,6 +90,8 @@ export const defaultProformaData: ProformaData = {
   buyerSignature: '',
   isDraft: true,
 }
+
+export const B2B_EXPRESS_LOGO = '/proforma-logos/b2b-express.png'
 
 export function lineAmount(item: ProformaLineItem): number {
   return (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0)

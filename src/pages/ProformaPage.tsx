@@ -6,8 +6,12 @@ import {
   proformaTotals,
   ProformaData,
   ProformaLineItem,
+  B2B_EXPRESS_LOGO,
 } from '../types/proforma'
 import { ProformaDocument } from '../pdf/ProformaDocument'
+import { LINE_ROWS } from '../pdf/proformaLayout'
+import { ProformaOverlay, LogoMenu } from '../components/ProformaOverlay'
+import { useAuth } from '../auth/AuthContext'
 import { DocEditorShell } from '../components/DocEditorShell'
 import { Section, Row, Field, TextArea, Check, GridTable, GridRow } from '../components/DocForm'
 import { useDocEditor, newRowId } from '../lib/useDocEditor'
@@ -16,16 +20,19 @@ import { track } from '../lib/analytics'
 const COLS = '1fr 60px 60px 80px 70px 80px 24px'
 
 export function ProformaPage() {
+  const { user } = useAuth()
+  const isB2b = user?.email?.toLowerCase().endsWith('@b2bx.cl')
   const { data, setData, set, saving, saveMsg, save, authorizeDownload, atLimit } =
-    useDocEditor<ProformaData>('proforma', defaultProformaData, '/proforma')
+    useDocEditor<ProformaData>('proforma', { ...defaultProformaData, sellerLogo: isB2b ? B2B_EXPRESS_LOGO : '' }, '/proforma')
 
   const { subtotal, tax, total } = proformaTotals(data)
 
   const updateLine = (id: string, key: keyof ProformaLineItem, value: string) =>
     setData(d => ({ ...d, lineItems: d.lineItems.map(l => l.id === id ? { ...l, [key]: value } : l) }))
 
+  // The sheet has a fixed number of rows; anything past them would not print.
   const addLine = () =>
-    setData(d => ({ ...d, lineItems: [...d.lineItems, emptyProformaLine(newRowId())] }))
+    setData(d => d.lineItems.length >= LINE_ROWS ? d : ({ ...d, lineItems: [...d.lineItems, emptyProformaLine(newRowId())] }))
 
   const removeLine = (id: string) =>
     setData(d => ({ ...d, lineItems: d.lineItems.filter(l => l.id !== id) }))
@@ -36,7 +43,8 @@ export function ProformaPage() {
   return (
     <DocEditorShell
       data={data}
-      renderDocument={d => <ProformaDocument data={d} />}
+      renderDocument={(d, opts) => <ProformaDocument data={d} hideValues={opts.hideValues} />}
+      overlay={pageWidthPx => <ProformaOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />}
       subtitle="Proforma Invoice"
       accent="#5c3a1a"
       fileName={`Proforma_${data.proformaNumber || 'draft'}.pdf`}
@@ -60,6 +68,13 @@ export function ProformaPage() {
       </Section>
 
       <Section title="Parties">
+        <div style={{ padding: '10px 12px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>Logo (issued by)</span>
+          {data.sellerLogo
+            ? <img src={data.sellerLogo} alt="" style={{ height: 28, maxWidth: 120, objectFit: 'contain' }} />
+            : <span style={{ fontSize: 12, color: '#999' }}>Sin logo</span>}
+          <LogoMenu value={data.sellerLogo ?? ''} onChange={v => setData(d => ({ ...d, sellerLogo: v }))} style={{ position: 'relative' }} menuAlign="left" />
+        </div>
         <div style={{ padding: '10px 12px', display: 'flex', gap: 8 }}>
           <TextArea label="Seller (issued by)" value={data.seller} onChange={set('seller')} rows={4} />
           <TextArea label="Buyer (bill to)" value={data.buyer} onChange={set('buyer')} rows={4} />
@@ -91,7 +106,7 @@ export function ProformaPage() {
           headers={['Description', 'Qty', 'Unit', 'Unit price', 'Tax', 'Amount', '']}
           minWidth={620}
           onAdd={addLine}
-          addLabel="+ Add line"
+          addLabel={data.lineItems.length >= LINE_ROWS ? `Máximo ${LINE_ROWS} líneas` : '+ Add line'}
         >
           {data.lineItems.map(item => (
             <GridRow key={item.id} columns={COLS}>
@@ -136,7 +151,13 @@ export function ProformaPage() {
           <TextArea label="Notes" value={data.notes} onChange={set('notes')} rows={2} />
         </div>
         <Row>
-          <Check label="Show DRAFT watermark" checked={data.isDraft} onChange={set('isDraft')} />
+          <Check
+            label="Show DRAFT watermark"
+            checked={data.isDraft || atLimit}
+            onChange={set('isDraft')}
+            disabled={atLimit}
+            hint={atLimit ? 'Plan gratis: alcanzaste el límite de documentos del mes, el PDF lleva DRAFT hasta que actualices el plan.' : undefined}
+          />
         </Row>
       </Section>
     </DocEditorShell>

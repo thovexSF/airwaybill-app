@@ -1,0 +1,198 @@
+import { ProformaData, ProformaLineItem, lineAmount, proformaTotals } from '../types/proforma'
+
+/**
+ * Fixed geometry of the proforma, in PDF points on a US Letter page. Imported
+ * by both `ProformaDocument` (the PDF) and `ProformaOverlay` (the inputs laid
+ * over the preview), so what is typed on screen sits exactly where it prints.
+ */
+export const PAGE_WIDTH = 612
+export const PAGE_HEIGHT = 792
+export const LEADING = 11
+export const LINE_ROWS = 12
+export const RED = '#8B0000'
+
+const M = 28
+const W = PAGE_WIDTH - 2 * M
+const PAD = 5
+const LBL = 14
+const ROW_H = 15
+const LOGO_RATIO = 577 / 238
+
+export interface PfBox { x: number; y: number; w: number; h: number; label?: string; fill?: string }
+export interface PfCaption { x: number; y: number; text: string; size?: number; bold?: boolean; align?: 'left' | 'right'; w?: number }
+export interface PfLine { x: number; y: number; w: number }
+export interface PfField {
+  key: string
+  x: number; y: number; w: number; h: number
+  fontSize?: number
+  bold?: boolean
+  multiline?: boolean
+  align?: 'left' | 'center' | 'right'
+  /** Computed by the PDF (amounts, totals); the overlay never draws it. */
+  readOnly?: boolean
+  placeholder?: string
+}
+
+export interface ProformaLayout {
+  boxes: PfBox[]
+  captions: PfCaption[]
+  lines: PfLine[]
+  fields: PfField[]
+  logo: { x: number; y: number; w: number; h: number } | null
+}
+
+const COLS = (() => {
+  const widths = [0.46, 0.12, 0.16, 0.12, 0.14].map(p => p * W)
+  let x = M
+  return widths.map(w => { const c = { x, w }; x += w; return c })
+})()
+
+export function proformaLayout(hasLogo: boolean): ProformaLayout {
+  const boxes: PfBox[] = []
+  const captions: PfCaption[] = []
+  const lines: PfLine[] = []
+  const fields: PfField[] = []
+  const box = (b: PfBox) => { boxes.push(b); return b }
+  const one = LEADING + 2
+
+  // ── Seller | date / number / references ──
+  const sellerW = W * 0.48
+  const rightX = M + sellerW
+  const rightW = W - sellerW
+  const seller = box({ x: M, y: 56, w: sellerW, h: 96, label: 'Issued by (seller)' })
+  const logoH = 30
+  const logo = hasLogo ? { x: seller.x + PAD, y: seller.y + LBL, w: logoH * LOGO_RATIO, h: logoH } : null
+  const sellerTop = seller.y + LBL + (logo ? logoH + 4 : 0)
+  fields.push({ key: 'seller', x: seller.x + PAD, y: sellerTop, w: seller.w - 2 * PAD, h: seller.y + seller.h - PAD - sellerTop, multiline: true })
+
+  const date = box({ x: rightX, y: 56, w: rightW / 2, h: 48, label: 'Date' })
+  fields.push({ key: 'issueDate', x: date.x + PAD, y: date.y + LBL + 2, w: date.w - 2 * PAD, h: one, fontSize: 10, placeholder: 'YYYY-MM-DD' })
+  const num = box({ x: rightX + rightW / 2, y: 56, w: rightW / 2, h: 48, label: 'Proforma invoice number' })
+  fields.push({ key: 'proformaNumber', x: num.x + PAD, y: num.y + LBL + 2, w: num.w - 2 * PAD, h: one, fontSize: 11, bold: true })
+
+  const refs = box({ x: rightX, y: 104, w: rightW, h: 48, label: 'Other references' })
+  captions.push({ x: refs.x + PAD, y: refs.y + LBL + 2, text: 'AWB', size: 7, bold: true })
+  fields.push({ key: 'awbNumber', x: refs.x + PAD + 24, y: refs.y + LBL, w: refs.w - 2 * PAD - 24, h: one })
+  fields.push({ key: 'otherReferences', x: refs.x + PAD, y: refs.y + LBL + one + 2, w: refs.w - 2 * PAD, h: one })
+
+  // ── Shipper / consignee | buyer ──
+  for (const [key, label, y] of [['shipper', 'Shipper', 152], ['consignee', 'Consignee', 240]] as const) {
+    const b = box({ x: M, y, w: sellerW, h: 88, label })
+    fields.push({ key, x: b.x + PAD, y: b.y + LBL, w: b.w - 2 * PAD, h: b.h - LBL - PAD, multiline: true })
+  }
+  const buyer = box({ x: rightX, y: 152, w: rightW, h: 176, label: 'Bill to (buyer)' })
+  fields.push({ key: 'buyer', x: buyer.x + PAD, y: buyer.y + LBL, w: buyer.w - 2 * PAD, h: buyer.h - LBL - PAD, multiline: true })
+
+  // ── Origin / destination / currency ──
+  let x = M
+  for (const [key, label, pct] of [['origin', 'Origin', 0.4], ['destination', 'Destination', 0.4], ['currency', 'Currency', 0.2]] as const) {
+    const b = box({ x, y: 328, w: W * pct, h: 34, label })
+    fields.push({ key, x: b.x + PAD, y: b.y + LBL + 2, w: b.w - 2 * PAD, h: one, fontSize: 10 })
+    x += b.w
+  }
+
+  // ── Transport / terms ──
+  const transport = box({ x: M, y: 362, w: W / 2, h: 46, label: 'Transport details' })
+  fields.push({ key: 'transportDetails', x: transport.x + PAD, y: transport.y + LBL, w: transport.w - 2 * PAD, h: transport.h - LBL - PAD, multiline: true })
+  const terms = box({ x: M + W / 2, y: 362, w: W / 2, h: 46, label: 'Terms of delivery and payment' })
+  fields.push({ key: 'incoterms', x: terms.x + PAD, y: terms.y + LBL, w: terms.w - 2 * PAD, h: one, placeholder: 'Incoterms' })
+  fields.push({ key: 'paymentTerms', x: terms.x + PAD, y: terms.y + LBL + one, w: terms.w - 2 * PAD, h: one, placeholder: 'Payment terms' })
+
+  // ── Line items ──
+  const headY = 408
+  const bodyY = headY + 18
+  const bodyH = LINE_ROWS * ROW_H + 4
+  const heads = ['Description', 'Quantity', 'Unit price/rate', 'Tax', 'Amount']
+  COLS.forEach((c, i) => {
+    box({ x: c.x, y: headY, w: c.w, h: 18, label: heads[i], fill: '#faf0f0' })
+    box({ x: c.x, y: bodyY, w: c.w, h: bodyH })
+  })
+  for (let r = 0; r < LINE_ROWS; r++) {
+    const y = bodyY + 2 + r * ROW_H
+    const [desc, qty, rate, tax, amt] = COLS
+    const row = (k: keyof ProformaLineItem | 'amount') => `lineItems.${r}.${k}`
+    fields.push({ key: row('description'), x: desc.x + 4, y, w: desc.w - 8, h: one })
+    fields.push({ key: row('quantity'), x: qty.x + 4, y, w: qty.w / 2 - 4, h: one, align: 'right' })
+    fields.push({ key: row('unit'), x: qty.x + qty.w / 2 + 2, y, w: qty.w / 2 - 6, h: one })
+    fields.push({ key: row('unitPrice'), x: rate.x + 4, y, w: rate.w - 8, h: one, align: 'right' })
+    fields.push({ key: row('tax'), x: tax.x + 4, y, w: tax.w - 8, h: one, align: 'right' })
+    fields.push({ key: row('amount'), x: amt.x + 4, y, w: amt.w - 8, h: one, align: 'right', readOnly: true })
+  }
+
+  // ── Totals ──
+  const totalsY = bodyY + bodyH
+  const totW = W * 0.38
+  const totX = M + W - totW
+  ;(['Subtotal', 'Tax', 'Total'] as const).forEach((k, i) => {
+    const y = totalsY + i * ROW_H
+    box({ x: totX, y, w: totW * 0.55, h: ROW_H })
+    box({ x: totX + totW * 0.55, y, w: totW * 0.45, h: ROW_H })
+    captions.push({ x: totX + 4, y: y + 3, text: k, size: 9, bold: k === 'Total' })
+    fields.push({ key: `total.${k}`, x: totX + totW * 0.55 + 4, y: y + 2, w: totW * 0.45 - 8, h: one, align: 'right', bold: k === 'Total', readOnly: true })
+  })
+
+  // ── Authentication ──
+  const authY = totalsY + 3 * ROW_H + 8
+  const authH = 64
+  ;([['seller', "Seller's authentication"], ['buyer', "Buyer's acceptance"]] as const).forEach(([who, label], i) => {
+    const b = box({ x: M + i * W / 2, y: authY, w: W / 2, h: authH, label })
+    const colW = (b.w - 2 * PAD) / 3
+    const valY = b.y + 30
+    lines.push({ x: b.x + PAD, y: valY + one + 1, w: b.w - 2 * PAD })
+    ;(['AuthDate', 'AuthPlace', 'Signature'] as const).forEach((suffix, c) => {
+      fields.push({ key: `${who}${suffix}`, x: b.x + PAD + c * colW, y: valY, w: colW - 4, h: one })
+      captions.push({ x: b.x + PAD + c * colW, y: valY + one + 3, text: ['date', 'place', 'signature'][c], size: 7 })
+    })
+  })
+
+  // ── Bank / notes ──
+  const footY = authY + authH + 6
+  captions.push({ x: M, y: footY + 1, text: 'Bank:', size: 8, bold: true })
+  fields.push({ key: 'bankDetails', x: M + 34, y: footY, w: W - 34, h: one, fontSize: 8 })
+  captions.push({ x: M, y: footY + one + 1, text: 'Notes:', size: 8, bold: true })
+  fields.push({ key: 'notes', x: M + 34, y: footY + one, w: W - 34, h: PAGE_HEIGHT - 20 - footY - one, fontSize: 8, multiline: true })
+
+  return { boxes, captions, lines, fields, logo }
+}
+
+function money(n: number): string {
+  if (!Number.isFinite(n) || n === 0) return ''
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+/** Value the PDF prints for a field. Money columns are formatted; the overlay edits the raw string instead. */
+export function printedValue(data: ProformaData, key: string): string {
+  const total = /^total\.(.+)$/.exec(key)
+  if (total) {
+    const t = proformaTotals(data)
+    return money({ Subtotal: t.subtotal, Tax: t.tax, Total: t.total }[total[1]] ?? 0)
+  }
+  const row = /^lineItems\.(\d+)\.(.+)$/.exec(key)
+  if (row) {
+    const item = data.lineItems[Number(row[1])]
+    if (!item) return ''
+    if (row[2] === 'amount') return money(lineAmount(item))
+    if (row[2] === 'unitPrice' || row[2] === 'tax') return money(parseFloat(item[row[2]]) || 0)
+    return item[row[2] as keyof ProformaLineItem] ?? ''
+  }
+  return rawValue(data, key)
+}
+
+export function rawValue(data: ProformaData, key: string): string {
+  const row = /^lineItems\.(\d+)\.(.+)$/.exec(key)
+  if (row) return data.lineItems[Number(row[1])]?.[row[2] as keyof ProformaLineItem] ?? ''
+  return String((data as unknown as Record<string, unknown>)[key] ?? '')
+}
+
+export function setValue(data: ProformaData, key: string, value: string, newId: () => string): ProformaData {
+  const row = /^lineItems\.(\d+)\.(.+)$/.exec(key)
+  if (!row) return { ...data, [key]: value }
+  const index = Number(row[1])
+  const items = [...data.lineItems]
+  // Typing into an empty row further down the sheet creates the rows above it.
+  while (items.length <= index) {
+    items.push({ id: newId(), description: '', quantity: '', unit: '', unitPrice: '', tax: '' })
+  }
+  items[index] = { ...items[index], [row[2]]: value }
+  return { ...data, lineItems: items }
+}
