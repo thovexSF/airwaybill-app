@@ -30,10 +30,20 @@ Keys are stored as SHA-256 hashes. Creating a key from Settings on a free plan s
 | PATCH | `/v1/documents/:id` | `{ "data": {…} }` |
 | DELETE | `/v1/documents/:id` | — |
 | GET/POST | `/v1/documents/:id/pdf` | optional `{ "copies": ["1","2"] }` → PDF bytes |
+| POST | `/v1/embed-session` | `{ "theme":"b2b", "next":"/my-awbs" }` → `{ embedUrl, expiresInSeconds }` |
 | POST | `/v1/fwb/preview` | AWB JSON (or FwbInput) → `{ ok, message, errors, warnings }` |
 | POST | `/v1/documents/:id/fwb` | generate FWB/17, persist `eAwb*` on document |
 
 `data` is the same JSON shape the SPA stores in `awb_documents.data` (`docType` discriminator).
+
+## Embedded app (SSO)
+
+`POST /v1/embed-session` returns a one-time `embedUrl` (`/partner-entry?…`) valid for
+`expiresInSeconds` (60). The partner opens it in an iframe or new tab: the SPA exchanges the
+magic-link token for a Supabase session of the key's acting user, so there is no second login.
+`theme` (default `b2b`) styles the shell, `next` is the SPA path to land on (default `/my-awbs`).
+The base of `embedUrl` is `PUBLIC_APP_URL`, then `AIRWAYBILL_APP_URL`, then the request host.
+Request the URL right before opening it: it is single-use and expires quickly.
 
 ## CLI (optional)
 
