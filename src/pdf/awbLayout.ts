@@ -145,7 +145,8 @@ const STATIC: FieldDef[] = [
   field(P.sci, 'sci', { label: 'SCI' }),
 
   field(P.ratePiecesTotal, 'ratePiecesTotal', { readOnly: true }),
-  field(P.rateGrossTotal, 'rateGrossTotal', { readOnly: true }),
+  field(P.rateGrossTotal, 'rateGrossTotal', { align: 'right', readOnly: true }),
+  field(P.rateUnitTotal, 'rateGrossUnit', { align: 'center', readOnly: true }),
   field(P.rateGrandTotal, 'rateGrandTotal', { readOnly: true }),
 
   field(P.weightChargePrepaid, 'weightChargePPD', { align: 'right', label: 'Weight charge (prepaid)' }),
@@ -168,9 +169,10 @@ const STATIC: FieldDef[] = [
 function rateRow(index: number): FieldDef[] {
   return [
     field(rows(P.ratePieces, index), `rateItems.${index}.pieces`, { label: 'No. of pieces' }),
-    field(rows(P.rateGross, index), `rateItems.${index}.grossWeight`, { label: 'Gross weight' }),
+    field(rows(P.rateGross, index), `rateItems.${index}.grossWeight`, { align: 'right', label: 'Gross weight' }),
+    field(rows(P.rateUnit, index), `rateItems.${index}.weightUnitMark`, { align: 'center', readOnly: true }),
     field(rows(P.rateClass, index), `rateItems.${index}.rateClass`, { label: 'Rate class' }),
-    field(rows(P.rateChargeable, index), `rateItems.${index}.chargeableWeight`, { label: 'Chargeable weight' }),
+    field(rows(P.rateChargeable, index), `rateItems.${index}.chargeableWeight`, { align: 'right', label: 'Chargeable weight' }),
     field(rows(P.rateCharge, index), `rateItems.${index}.rateCharge`, { label: 'Rate / charge' }),
     field(rows(P.rateTotal, index), `rateItems.${index}.total`, { label: 'Total' }),
   ]

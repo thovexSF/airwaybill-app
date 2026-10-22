@@ -7,7 +7,7 @@ export interface FieldPosition {
   height: number;
 }
 
-export const AWB_FIELD_LAYOUT_REV = 18;
+export const AWB_FIELD_LAYOUT_REV = 19;
 
 export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   awbNumberLeft: { top: 2.10, left: 10.0, width: 28, height: 1.8 },
@@ -52,15 +52,20 @@ export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   valueCustoms: { top: 35.61, left: 86.76, width: 10.5, height: 1.5 },
   insurance: { top: 38.64, left: 56.18, width: 16, height: 1.5 },
   ratePieces: { top: 49.71, left: 11.57, width: 6.2, height: 17.8 },
-  rateGross: { top: 49.71, left: 18.82, width: 7.4, height: 17.8 },
+  // Peso bruto alineado a la derecha contra su regla (22.29%); la unidad va en
+  // la columna kg/lb de la hoja (22.29%–23.46%), no pegada al número.
+  rateGross: { top: 49.71, left: 14.6, width: 7.2, height: 17.8 },
+  rateUnit: { top: 49.71, left: 22.29, width: 1.17, height: 17.8 },
   rateClass: { top: 49.71, left: 24.79, width: 8.2, height: 17.8 },
-  rateChargeable: { top: 49.71, left: 40.00, width: 7.2, height: 17.8 },
-  rateCharge: { top: 49.71, left: 45.29, width: 10.5, height: 17.8 },
+  // Columnas de la hoja: chargeable 35.23%–43.45%, rate 44.66%–54.05%.
+  rateChargeable: { top: 49.71, left: 35.6, width: 7.5, height: 17.8 },
+  rateCharge: { top: 49.71, left: 45.29, width: 8.4, height: 17.8 },
   rateTotal: { top: 49.71, left: 61.96, width: 14.8, height: 16.8 },
   rateTable: { top: 49.71, left: 10.5, width: 59.5, height: 17.8 },
   natureQuantity: { top: 49.71, left: 71.16, width: 24.7, height: 20.2 },
   ratePiecesTotal: { top: 68.27, left: 11.57, width: 6.2, height: 1.6 },
-  rateGrossTotal: { top: 68.27, left: 18.82, width: 7.4, height: 1.6 },
+  rateGrossTotal: { top: 68.27, left: 14.6, width: 7.2, height: 1.6 },
+  rateUnitTotal: { top: 68.27, left: 22.29, width: 1.17, height: 1.6 },
   rateGrandTotal: { top: 68.27, left: 61.96, width: 14.8, height: 1.6 },
   chargesPrepaid: { top: 71.97, left: 12.2, width: 13.06, height: 13.5 },
   chargesCollect: { top: 71.97, left: 26.8, width: 12.2, height: 13.5 },

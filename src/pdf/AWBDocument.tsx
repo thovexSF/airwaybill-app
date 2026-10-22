@@ -1,5 +1,5 @@
 import React from 'react'
-import { formatCharge } from '../lib/awbCharges'
+import { formatCharge, CHARGE_KEYS } from '../lib/awbCharges'
 import { Document, Page, View, Text, Image, Font, StyleSheet, Svg, Path, Rect } from '@react-pdf/renderer'
 import { AWBData } from '../types/awb'
 import {
@@ -130,11 +130,6 @@ function Field({ def, value }: { def: FieldDef; value: string }) {
 
 const num = (v: unknown) => Number(String(v ?? '').replace(',', '.')) || 0
 
-const CHARGE_KEYS = new Set([
-  'weightChargePPD', 'weightChargeCOLL', 'valuationChargePPD', 'valuationChargeCOLL',
-  'taxPPD', 'taxCOLL', 'totalOtherChargesDueAgent', 'totalOtherChargesDueCarrier',
-  'totalPrepaid', 'totalCollect',
-])
 
 
 function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: AwbLeft): string {
@@ -144,9 +139,9 @@ function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: AwbL
   if (rate) {
     const item = data.rateItems[Number(rate[1])]
     if (!item) return ''
+    // The unit has a column of its own on the sheet, beside the gross weight.
+    if (rate[2] === 'weightUnitMark') return item.grossWeight ? (item.weightUnit || 'K').charAt(0) : ''
     const value = String(item[rate[2] as keyof typeof item] ?? '')
-    // The gross weight column carries its unit, as it does on a typed waybill.
-    if (rate[2] === 'grossWeight' && value) return `${value} ${(item.weightUnit || 'K').charAt(0)}`
     if (rate[2] === 'total') return formatCharge(value, data.currency)
     return value
   }
@@ -180,8 +175,11 @@ function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: AwbL
     }
     case 'rateGrossTotal': {
       const total = data.rateItems.reduce((s, r) => s + num(r.grossWeight), 0)
-      const unit = (data.rateItems[0]?.weightUnit || 'K').charAt(0)
-      return total ? `${+total.toFixed(1)} ${unit}` : ''
+      return total ? String(+total.toFixed(1)) : ''
+    }
+    case 'rateGrossUnit': {
+      const total = data.rateItems.reduce((s, r) => s + num(r.grossWeight), 0)
+      return total ? (data.rateItems[0]?.weightUnit || 'K').charAt(0) : ''
     }
     case 'rateGrandTotal': {
       const total = data.rateItems.reduce((s, r) => s + num(r.total), 0)

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { formatCharge, CHARGE_KEYS } from '../lib/awbCharges'
 import { AWBData, RateItem, OtherCharge, defaultAWBData } from '../types/awb'
 import {
   AWB_LAYOUT, FieldDef, FieldKey, PAGE_WIDTH, LEADING,
@@ -44,6 +45,7 @@ function fieldStringValue(data: AWBData, def: FieldDef): string {
  */
 export function AWBOverlay({ data, onChange, pageWidthPx }: { data: AWBData; onChange: (d: AWBData) => void; pageWidthPx: number }) {
   const [focusedRow, setFocusedRow] = useState<{ table: 'rateItems' | 'otherCharges'; index: number } | null>(null)
+  const [focusedKey, setFocusedKey] = useState<string | null>(null)
   const ptToPx = pageWidthPx / PAGE_WIDTH
 
   const fieldDefs = getFieldDefs(data.rateItems.length, data.otherCharges.length)
@@ -95,7 +97,10 @@ export function AWBOverlay({ data, onChange, pageWidthPx }: { data: AWBData; onC
           )
         }
 
-        const value = fieldStringValue(data, def)
+        const raw = fieldStringValue(data, def)
+        // Amounts read as they print ("235.20"); the box shows what is typed only while editing it.
+        const isAmount = CHARGE_KEYS.has(key) || /^(rateItems\.\d+\.total|otherCharges\.\d+\.amount)$/.test(key)
+        const value = isAmount && focusedKey !== key ? formatCharge(raw, data.currency) : raw
         const rowMatch = /^(rateItems|otherCharges)\.(\d+)\./.exec(key)
         const rowInfo = rowMatch ? { table: rowMatch[1] as 'rateItems' | 'otherCharges', index: Number(rowMatch[2]) } : null
 
@@ -133,9 +138,10 @@ export function AWBOverlay({ data, onChange, pageWidthPx }: { data: AWBData; onC
           padding: 0, color: '#000', resize: 'none',
         }
 
-        const sharedHandlers = rowInfo ? {
-          onFocus: () => setFocusedRow(rowInfo),
-        } : undefined
+        const sharedHandlers = {
+          onFocus: () => { setFocusedKey(key); if (rowInfo) setFocusedRow(rowInfo) },
+          onBlur: () => setFocusedKey(k => (k === key ? null : k)),
+        }
 
 
         if (def.multiline) {

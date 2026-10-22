@@ -9,3 +9,10 @@ export function formatCharge(value: unknown, currency?: string): string {
   if (!Number.isFinite(n)) return raw
   return n.toFixed(ZERO_DECIMAL_CURRENCIES.has((currency ?? '').trim().toUpperCase()) ? 0 : 2)
 }
+
+/** AWBData keys holding a charge amount (rate totals and other-charge amounts aside). */
+export const CHARGE_KEYS = new Set([
+  'weightChargePPD', 'weightChargeCOLL', 'valuationChargePPD', 'valuationChargeCOLL',
+  'taxPPD', 'taxCOLL', 'totalOtherChargesDueAgent', 'totalOtherChargesDueCarrier',
+  'totalPrepaid', 'totalCollect',
+])
