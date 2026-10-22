@@ -12,6 +12,7 @@ import { ProformaDocument } from '../pdf/ProformaDocument'
 import { LINE_ROWS } from '../pdf/proformaLayout'
 import { ProformaOverlay, LogoMenu } from '../components/ProformaOverlay'
 import { useAuth } from '../auth/AuthContext'
+import { DraftToggle } from '../components/DraftToggle'
 import { DocEditorShell } from '../components/DocEditorShell'
 import { Section, Row, Field, TextArea, Check, GridTable, GridRow } from '../components/DocForm'
 import { useDocEditor, newRowId } from '../lib/useDocEditor'
@@ -44,6 +45,7 @@ export function ProformaPage() {
     <DocEditorShell
       data={data}
       renderDocument={(d, opts) => <ProformaDocument data={d} hideValues={opts.hideValues} />}
+      toolbarExtra={<DraftToggle checked={data.isDraft} onChange={set('isDraft')} locked={atLimit} />}
       overlay={pageWidthPx => <ProformaOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />}
       subtitle="Proforma Invoice"
       accent="#5c3a1a"

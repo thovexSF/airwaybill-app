@@ -35,6 +35,7 @@ export function DocEditorShell<T>({
   forceWatermark,
   extraActions,
   overlay,
+  toolbarExtra,
   children,
 }: {
   data: T
@@ -54,6 +55,8 @@ export function DocEditorShell<T>({
   extraActions?: React.ReactNode
   /** Inputs laid over page 1 of the preview, sized to its rendered width. Makes the form panel optional. */
   overlay?: (pageWidthPx: number) => React.ReactNode
+  /** Controls placed in the preview toolbar, next to zoom. */
+  toolbarExtra?: React.ReactNode
   children: React.ReactNode
 }) {
   const demo = useDemoMode()
@@ -275,6 +278,7 @@ export function DocEditorShell<T>({
             <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
             <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16 }}>+</button>
             <button onClick={() => setZoom(1.0)} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>Reset</button>
+            {toolbarExtra}
             {overlay && window.innerWidth >= 900 && (
               <>
                 <button
