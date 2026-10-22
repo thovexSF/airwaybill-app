@@ -1,4 +1,5 @@
 import React from 'react'
+import { formatCharge } from '../lib/awbCharges'
 import { Document, Page, View, Text, Image, Font, StyleSheet, Svg, Path, Rect } from '@react-pdf/renderer'
 import { AWBData } from '../types/awb'
 import {
@@ -108,6 +109,13 @@ function Field({ def, value }: { def: FieldDef; value: string }) {
 
 const num = (v: unknown) => Number(String(v ?? '').replace(',', '.')) || 0
 
+const CHARGE_KEYS = new Set([
+  'weightChargePPD', 'weightChargeCOLL', 'valuationChargePPD', 'valuationChargeCOLL',
+  'taxPPD', 'taxCOLL', 'totalOtherChargesDueAgent', 'totalOtherChargesDueCarrier',
+  'totalPrepaid', 'totalCollect',
+])
+
+
 function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: AwbLeft): string {
   const key = def.key
 
@@ -118,12 +126,15 @@ function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: AwbL
     const value = String(item[rate[2] as keyof typeof item] ?? '')
     // The gross weight column carries its unit, as it does on a typed waybill.
     if (rate[2] === 'grossWeight' && value) return `${value} ${(item.weightUnit || 'K').charAt(0)}`
+    if (rate[2] === 'total') return formatCharge(value, data.currency)
     return value
   }
   const charge = /^otherCharges\.(\d+)\.(.+)$/.exec(key)
   if (charge) {
     const item = data.otherCharges[Number(charge[1])]
-    return item ? String(item[charge[2] as keyof typeof item] ?? '') : ''
+    if (!item) return ''
+    const value = item[charge[2] as keyof typeof item]
+    return charge[2] === 'amount' ? formatCharge(value, data.currency) : String(value ?? '')
   }
 
   switch (key) {
@@ -153,7 +164,7 @@ function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: AwbL
     }
     case 'rateGrandTotal': {
       const total = data.rateItems.reduce((s, r) => s + num(r.total), 0)
-      return total ? total.toFixed(2) : ''
+      return total ? formatCharge(total, data.currency) : ''
     }
     case 'referenceNumber':
       if (data.docType === 'hawb' && data.mawbReference) {
@@ -164,6 +175,7 @@ function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: AwbL
       return String(data.referenceNumber ?? '')
     default: {
       const v = (data as unknown as Record<string, unknown>)[key]
+      if (CHARGE_KEYS.has(key)) return formatCharge(v, data.currency)
       if (v != null && typeof v === 'object') return ''
       return String(v ?? '')
     }
