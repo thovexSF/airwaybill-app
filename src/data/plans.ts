@@ -27,7 +27,7 @@ export const PLANS: PlanConfig[] = [
   {
     id: 'starter',
     name: 'Starter',
-    priceDisplay: '$19',
+    priceDisplay: '$10',
     period: 'per month',
     description: 'For small freight forwarders',
     features: ['Unlimited AWB PDF downloads', 'No watermark', 'Custom carrier logo', 'AWB check digit validation', '2 users', 'Email support'],
@@ -37,7 +37,7 @@ export const PLANS: PlanConfig[] = [
   {
     id: 'pro',
     name: 'Pro',
-    priceDisplay: '$35',
+    priceDisplay: '$19',
     period: 'per month',
     description: 'For active freight forwarders',
     features: ['Everything in Starter', 'HAWB + DGD + Manifest', 'Flight manifest export', '5 users', 'Priority support'],

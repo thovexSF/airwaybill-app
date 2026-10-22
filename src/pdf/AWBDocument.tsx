@@ -359,13 +359,19 @@ export function AWBDocument({ data, hideValues, withConditions }: {
  * coloured sheet followed by its own reverse, so printing double-sided gives
  * every sheet its contract instead of one contract for the whole stack.
  */
-export function AWBCopiesDocument({ data, copies }: { data: AWBData; copies: string[] }) {
+export type AwbCopySides = 'both' | 'face' | 'conditions'
+
+/**
+ * `sides` lets the contract go to the printer on its own: one reverse per
+ * selected copy, so a stack printed face-only can be turned over and fed back.
+ */
+export function AWBCopiesDocument({ data, copies, sides = 'both' }: { data: AWBData; copies: string[]; sides?: AwbCopySides }) {
   return (
     <Document>
       {copies.map((key) => (
         <React.Fragment key={key}>
-          <AWBFacePage data={data} copyKey={key} />
-          <AwbConditionsPage />
+          {sides !== 'conditions' && <AWBFacePage data={data} copyKey={key} />}
+          {sides !== 'face' && <AwbConditionsPage />}
         </React.Fragment>
       ))}
     </Document>

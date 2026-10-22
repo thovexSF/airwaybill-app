@@ -11,3 +11,14 @@ export function validateAWBSerial(serial: string): boolean {
   const expected = computeCheckDigit(clean.slice(0, 7))
   return clean[7] === expected
 }
+
+/**
+ * Reads what was typed or pasted into the serial box. A full number
+ * ("180-19167820") carries the prefix along, which otherwise ends up printed
+ * twice ("180-180-19167820") and makes the FWB invalid.
+ */
+export function splitAwbSerial(value: string): { prefix?: string; serial: string } {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  if (digits.length === 11) return { prefix: digits.slice(0, 3), serial: digits.slice(3) }
+  return { serial: digits.slice(0, 8) }
+}

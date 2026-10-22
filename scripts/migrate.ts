@@ -21,6 +21,8 @@ const MIGRATIONS = [
   'migration_awb_prefix_3digits.sql',
   'migration_company_logo.sql',
   'migration_signature.sql',
+  'migration_contact_tax_id.sql',
+  'migration_org_shared_documents.sql',
 ]
 
 const url = process.env.DATABASE_URL

@@ -5,7 +5,7 @@ import { ProfileFields, ProfileSection } from '../components/ProfileFields'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { registryList, useRegistryCheck } from '../lib/eawbAgreement'
 import {
-  OrgProfile, ProfileErrors, fillDocumentDefaults, normalizeProfile, taxIdLabel, useOrgProfile, validateProfile,
+  OrgProfile, ProfileErrors, fillDocumentDefaults, normalizeProfile, useOrgProfile, validateProfile,
 } from '../lib/orgProfile'
 
 const ACCENT = '#8B0000'
@@ -33,7 +33,7 @@ export function OnboardingFlow({ onClose, onOpenEawb }: { onClose: () => void; o
     const errs = validateProfile(profile, { eawb: key === 'eawb' && wantEawb && !alreadyRegistered })
     // Cada paso solo bloquea por sus propios campos.
     const own: Record<string, (keyof OrgProfile)[]> = {
-      company: ['legalName', 'country', 'taxId', 'phone'], docs: ['airportOfDeparture'], eawb: ['iataAgentCode', 'cassCode'], done: [],
+      company: ['legalName', 'country', 'taxId', 'contactTaxId', 'phone'], docs: ['airportOfDeparture'], eawb: ['iataAgentCode', 'cassCode'], done: [],
     }
     const stepErrs: ProfileErrors = {}
     for (const k of own[key]) if (errs[k]) stepErrs[k] = errs[k]
@@ -124,9 +124,11 @@ export function OnboardingFlow({ onClose, onOpenEawb }: { onClose: () => void; o
 function Summary({ profile, wantEawb, registered }: { profile: OrgProfile; wantEawb: boolean; registered: boolean }) {
   const { t } = useTranslation()
   const rows: [string, string][] = [
+    [t('onboarding.f.contactName'), profile.contactName],
+    [profile.country === 'Chile' ? t('onboarding.f.yourRut') : t('onboarding.f.yourTaxId'), profile.contactTaxId],
     [t('onboarding.f.legalName'), profile.legalName],
     [t('onboarding.f.country'), profile.country],
-    [profile.country ? taxIdLabel(profile.country) : '', profile.taxId],
+    [profile.country === 'Chile' ? t('onboarding.f.companyRut') : t('onboarding.f.companyTaxId'), profile.taxId],
     [t('onboarding.f.legalRepName'), profile.legalRepName],
     [t('onboarding.f.airport'), profile.airportOfDeparture],
   ].filter(([, v]) => v) as [string, string][]

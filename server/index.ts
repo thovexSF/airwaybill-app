@@ -428,17 +428,57 @@ app.post('/v1/embed-session', async (req, res) => {
   const { supabase, ctx } = auth
 
   try {
-    const { data: userData, error: userErr } = await supabase.auth.admin.getUserById(ctx.actingUserId)
-    if (userErr || !userData?.user?.email) {
-      return res.status(500).json({ error: 'acting_user_missing_email' })
+    // The partner vouches for the person signed in on its side; without one we
+    // fall back to the key's acting user.
+    const partnerEmail =
+      typeof req.body?.user?.email === 'string' ? req.body.user.email.trim().toLowerCase() : ''
+    let email: string
+    if (partnerEmail) {
+      email = partnerEmail
+      const fullName = typeof req.body.user.name === 'string' ? req.body.user.name.trim() : ''
+      const { error: createErr } = await supabase.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        app_metadata: { partner_org_id: ctx.organizationId },
+        user_metadata: fullName ? { full_name: fullName } : {},
+      })
+      if (createErr && (createErr as any).code !== 'email_exists') {
+        return res.status(500).json({ error: createErr.message })
+      }
+    } else {
+      const { data: userData, error: userErr } = await supabase.auth.admin.getUserById(ctx.actingUserId)
+      if (userErr || !userData?.user?.email) {
+        return res.status(500).json({ error: 'acting_user_missing_email' })
+      }
+      email = userData.user.email
     }
-    const email = userData.user.email
+
     const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email,
     })
     if (linkErr || !linkData?.properties?.hashed_token) {
       return res.status(500).json({ error: linkErr?.message || 'embed_link_failed' })
+    }
+
+    if (partnerEmail) {
+      const { data: memberships, error: memErr } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', linkData.user.id)
+      if (memErr) return res.status(500).json({ error: memErr.message })
+      const orgIds = (memberships ?? []).map((m) => m.organization_id)
+      // The app works on a user's single org; joining a second one would leave
+      // it guessing which documents to show.
+      if (orgIds.length && !orgIds.includes(ctx.organizationId)) {
+        return res.status(409).json({ error: 'user_in_other_org' })
+      }
+      if (!orgIds.length) {
+        const ins = await supabase
+          .from('organization_members')
+          .insert({ organization_id: ctx.organizationId, user_id: linkData.user.id, role: 'member' })
+        if (ins.error) return res.status(500).json({ error: ins.error.message })
+      }
     }
 
     const theme = typeof req.body?.theme === 'string' ? req.body.theme : 'b2b'

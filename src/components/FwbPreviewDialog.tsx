@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import type { AWBData } from '../types/awb'
 import { applyEAwbResult, buildFwbFromAwb } from '../lib/awbToFwb'
 import type { FwbBuildResult } from '../lib/fwbCargoImp'
+import { splitAwbSerial } from '../lib/awbCheckDigit'
 
 interface Props {
   open: boolean
@@ -25,7 +26,7 @@ export function FwbPreviewDialog({ open, onClose, data, onGenerated }: Props) {
 
   const awbLabel = useMemo(() => {
     const p = data.awbPrefix?.replace(/\D/g, '')
-    const s = data.awbSerial?.replace(/\D/g, '')
+    const s = data.awbSerial && splitAwbSerial(data.awbSerial).serial
     return p && s ? `${p}-${s}` : 'AWB'
   }, [data.awbPrefix, data.awbSerial])
 

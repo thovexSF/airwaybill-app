@@ -1,13 +1,14 @@
 import type { AWBData } from '../types/awb'
 import type { FwbInput } from './fwbCargoImp'
 import { buildFwb17, type FwbBuildResult } from './fwbCargoImp'
+import { splitAwbSerial } from './awbCheckDigit'
 
 /** Map editor AWBData → FwbInput for FWB/17. */
 export function awbDataToFwbInput(data: AWBData): FwbInput {
   const first = data.rateItems?.[0]
   return {
     awbPrefix: data.awbPrefix,
-    awbSerial: data.awbSerial,
+    awbSerial: splitAwbSerial(data.awbSerial).serial,
     airportOfDeparture: data.awbAirportCode || data.airportOfDeparture,
     airportOfDestination: data.airportOfDestination,
     departureDisplay: data.airportOfDeparture || data.awbAirportCode,

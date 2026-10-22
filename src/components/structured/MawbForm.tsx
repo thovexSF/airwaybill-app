@@ -28,6 +28,7 @@ import {
 } from './types';
 import RateItemDialog from './RateItemDialog';
 import { Fieldset } from './formChrome';
+import { splitAwbSerial } from '../../lib/awbCheckDigit';
 
 const MONO = {
   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
@@ -297,7 +298,14 @@ const MawbForm: React.FC<Props> = ({ data, onChange }) => {
             <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 0.25 }}>AWB number</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
               <Mini value={form.awbPrefix} onChange={(v) => set('awbPrefix', v.replace(/\D/g, '').slice(0, 3))} width={56} />
-              <Mini value={form.awbSerial} onChange={(v) => set('awbSerial', v)} width={120} />
+              <Mini
+                value={form.awbSerial}
+                onChange={(v) => {
+                  const { prefix, serial } = splitAwbSerial(v);
+                  setForm((prev) => ({ ...prev, awbSerial: serial, ...(prefix ? { awbPrefix: prefix } : {}) }));
+                }}
+                width={120}
+              />
               <FormControlLabel
                 control={<Checkbox size="small" checked={form.assignOnSave} onChange={(e) => set('assignOnSave', e.target.checked)} />}
                 label="assign on save"

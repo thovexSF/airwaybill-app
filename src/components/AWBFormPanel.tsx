@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { AWBData, RateItem, OtherCharge } from '../types/awb'
-import { validateAWBSerial, computeCheckDigit } from '../lib/awbCheckDigit'
+import { validateAWBSerial, computeCheckDigit, splitAwbSerial } from '../lib/awbCheckDigit'
 import { applyAutoCalc } from '../lib/rateVolume'
 import { recalculateCharges } from '../lib/recalculateCharges'
 import { RateItemDialog } from './RateItemDialog'
@@ -126,7 +126,10 @@ export function AWBFormPanel({ data, onChange, lockDraftWatermark }: Props) {
               <label>Serial Number<span style={{ color: '#c00', marginLeft: 2 }}>*</span></label>
               <input
                 value={data.awbSerial}
-                onChange={(e) => set('awbSerial')(e.target.value)}
+                onChange={(e) => {
+                  const { prefix, serial } = splitAwbSerial(e.target.value)
+                  commit({ ...data, awbSerial: serial, ...(prefix ? { awbPrefix: prefix } : {}) })
+                }}
                 placeholder="12345675"
                 style={{ borderColor: data.awbSerial.length === 8 ? (validateAWBSerial(data.awbSerial) ? '#2a7a2a' : '#c00') : undefined }}
               />

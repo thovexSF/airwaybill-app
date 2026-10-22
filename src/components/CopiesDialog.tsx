@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
 import { Document, Page } from 'react-pdf'
 import { AWBData } from '../types/awb'
-import { AWBCopiesDocument } from '../pdf/AWBDocument'
+import { AWBCopiesDocument, AwbCopySides } from '../pdf/AWBDocument'
 import { AWB_COPIES, DEFAULT_COPIES } from '../pdf/awbCopyTheme'
 
 /**
@@ -32,6 +32,7 @@ export function CopiesDialog({
 }) {
   const { t } = useTranslation()
   const [selected, setSelected] = useState<string[]>(DEFAULT_COPIES)
+  const [sides, setSides] = useState<AwbCopySides>('both')
   const [blob, setBlob] = useState<Blob | null>(null)
   const [busy, setBusy] = useState(false)
   const [pageCount, setPageCount] = useState(0)
@@ -82,7 +83,7 @@ export function CopiesDialog({
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
-          const next = await pdf(<AWBCopiesDocument data={data} copies={copies} />).toBlob()
+          const next = await pdf(<AWBCopiesDocument data={data} copies={copies} sides={sides} />).toBlob()
           if (id !== genRef.current) return
           setBlob(next)
           setError(null)
@@ -96,7 +97,7 @@ export function CopiesDialog({
       })()
     }, 300)
     return () => window.clearTimeout(timer)
-  }, [open, data, copies, t])
+  }, [open, data, copies, sides, t])
 
   if (!open) return null
 
@@ -108,16 +109,19 @@ export function CopiesDialog({
 
   /** Renders the current selection once, for whatever the caller does next. */
   async function currentBlob(): Promise<Blob> {
-    return blob ?? pdf(<AWBCopiesDocument data={data} copies={copies} />).toBlob()
+    return blob ?? pdf(<AWBCopiesDocument data={data} copies={copies} sides={sides} />).toBlob()
   }
+
+  // The contract alone carries none of the waybill's data, so it costs no quota.
+  const needsAuthorize = () => sides !== 'conditions' && !!authorize
 
   async function handleDownload() {
     if (!copies.length) return
-    if (authorize && !(await authorize())) return
+    if (needsAuthorize() && !(await authorize!())) return
     const url = URL.createObjectURL(await currentBlob())
     const link = document.createElement('a')
     link.href = url
-    link.download = `${fileName}_copies.pdf`
+    link.download = sides === 'conditions' ? `${fileName}_contract.pdf` : `${fileName}_copies.pdf`
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -126,7 +130,7 @@ export function CopiesDialog({
 
   async function handlePrint() {
     if (!copies.length) return
-    if (authorize && !(await authorize())) return
+    if (needsAuthorize() && !(await authorize!())) return
     const url = URL.createObjectURL(await currentBlob())
     // A dedicated window so the browser's own print dialog owns the job; some
     // mobile browsers refuse to open a blob, in which case the tab never
@@ -160,6 +164,15 @@ export function CopiesDialog({
                 <span>{c.label}</span>
               </label>
             ))}
+            <div className="copies-sides" role="radiogroup" aria-label={t('copies.sides')}>
+              <span className="copies-sides-label">{t('copies.sides')}</span>
+              {(['both', 'face', 'conditions'] as const).map((s) => (
+                <label key={s} className="copies-item">
+                  <input type="radio" name="copies-sides" checked={sides === s} onChange={() => setSides(s)} />
+                  <span>{t(`copies.sides_${s}`)}</span>
+                </label>
+              ))}
+            </div>
             <p className="copies-hint">{t('copies.hint')}</p>
             {error && <p className="copies-error">{error}</p>}
           </div>

@@ -9,6 +9,7 @@ export interface OrgProfile {
   taxId: string
   phone: string
   contactName: string
+  contactTaxId: string
   address: string
   city: string
   legalRepName: string
@@ -25,13 +26,13 @@ export interface OrgProfile {
 }
 
 export const EMPTY_PROFILE: OrgProfile = {
-  legalName: '', country: '', taxId: '', phone: '', contactName: '', address: '', city: '',
+  legalName: '', country: '', taxId: '', phone: '', contactName: '', contactTaxId: '', address: '', city: '',
   legalRepName: '', legalRepTitle: '', airportOfDeparture: '', iataAgentCode: '', cassCode: '', companyLogoUrl: '', signatureUrl: '',
   onboardingCompletedAt: null, onboardingDismissedAt: null,
 }
 
 const COLS: Record<keyof OrgProfile, string> = {
-  legalName: 'legal_name', country: 'country', taxId: 'tax_id', phone: 'phone', contactName: 'contact_name',
+  legalName: 'legal_name', country: 'country', taxId: 'tax_id', phone: 'phone', contactName: 'contact_name', contactTaxId: 'contact_tax_id',
   address: 'address', city: 'city', legalRepName: 'legal_rep_name', legalRepTitle: 'legal_rep_title',
   airportOfDeparture: 'airport_of_departure', iataAgentCode: 'iata_agent_code', cassCode: 'cass_code', companyLogoUrl: 'company_logo_url', signatureUrl: 'signature_url',
   onboardingCompletedAt: 'onboarding_completed_at', onboardingDismissedAt: 'onboarding_dismissed_at',
@@ -68,6 +69,7 @@ export function normalizeProfile(p: OrgProfile): OrgProfile {
     ...p,
     legalName: p.legalName.trim(),
     taxId: p.country === 'Chile' ? p.taxId.replace(/[.\s]/g, '').toUpperCase() : p.taxId.trim(),
+    contactTaxId: p.country === 'Chile' ? p.contactTaxId.replace(/[.\s]/g, '').toUpperCase() : p.contactTaxId.trim(),
     phone: normalizePhone(p.phone),
     legalRepName: p.legalRepName.trim().toUpperCase(),
     airportOfDeparture: p.airportOfDeparture.trim().toUpperCase(),
@@ -85,6 +87,7 @@ export function validateProfile(raw: OrgProfile, opts: { eawb: boolean }): Profi
   if (!p.legalName) e.legalName = 'required'
   if (!p.country) e.country = 'required'
   if (p.country === 'Chile' && p.taxId && !validRut(p.taxId)) e.taxId = 'rut'
+  if (p.country === 'Chile' && p.contactTaxId && !validRut(p.contactTaxId)) e.contactTaxId = 'rut'
   if (p.phone && !/^00\d{8,15}$/.test(p.phone)) e.phone = 'phone'
   if (p.airportOfDeparture && !/^[A-Z]{3}$/.test(p.airportOfDeparture)) e.airportOfDeparture = 'airport'
   if (opts.eawb) {
