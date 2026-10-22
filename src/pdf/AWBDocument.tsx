@@ -200,7 +200,9 @@ function fieldValue(data: AWBData, def: FieldDef, awbFull: string, awbLeft: AwbL
     }
     case 'rateGrossTotal': {
       const total = data.rateItems.reduce((s, r) => s + num(r.grossWeight), 0)
-      return total ? String(+total.toFixed(1)) : ''
+      // The total carries as many decimals as the lines it adds up ("148.0", not "148").
+      const decimals = Math.min(2, Math.max(0, ...data.rateItems.map((r) => (String(r.grossWeight ?? '').split(/[.,]/)[1] ?? '').length)))
+      return total ? total.toFixed(decimals) : ''
     }
     case 'rateGrossUnit': {
       const total = data.rateItems.reduce((s, r) => s + num(r.grossWeight), 0)
