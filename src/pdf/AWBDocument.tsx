@@ -67,9 +67,8 @@ const GLYPH = 0.6
  * form never reflows — data is fit to it. The HTML overlay shows the value
  * untruncated while editing.
  */
-function fittedLines(value: string, def: FieldDef): string[] {
-  const perLine = Math.max(1, Math.floor((def.width - 1) / (def.fontSize * GLYPH)))
-  const maxLines = Math.max(1, Math.round(def.height / LEADING))
+function wrapLines(value: string, def: FieldDef, fontSize: number): string[] {
+  const perLine = Math.max(1, Math.floor((def.width - 1) / (fontSize * GLYPH)))
   const out: string[] = []
 
   for (const paragraph of String(value).split('\n')) {
@@ -85,7 +84,29 @@ function fittedLines(value: string, def: FieldDef): string[] {
     }
     out.push(rest)
   }
-  return out.slice(0, maxLines)
+  return out
+}
+
+/** Smallest a name/address block is set before it starts dropping lines. */
+const MIN_FIT_SIZE = 7
+
+/**
+ * A multiline block that runs past its box is set a size down, leading and
+ * all, until it fits — an address that loses its last line (a phone, an email)
+ * is worse than one typed a little smaller. Past MIN_FIT_SIZE it clips.
+ */
+function fittedLines(value: string, def: FieldDef): { lines: string[]; fontSize: number; leading: number } {
+  const lines = wrapLines(value, def, def.fontSize)
+  const maxLines = Math.max(1, Math.round(def.height / LEADING))
+  if (!def.multiline || lines.length <= maxLines) return { lines: lines.slice(0, maxLines), fontSize: def.fontSize, leading: LEADING }
+
+  for (let size = def.fontSize - 0.25; ; size = Math.max(MIN_FIT_SIZE, size - 0.25)) {
+    const leading = LEADING * (size / def.fontSize)
+    // Shrunk blocks fit whole lines strictly: the box is already full to its rule.
+    const fit = Math.max(1, Math.floor((def.height + 1) / leading))
+    const wrapped = wrapLines(value, def, size)
+    if (wrapped.length <= fit || size === MIN_FIT_SIZE) return { lines: wrapped.slice(0, fit), fontSize: size, leading }
+  }
 }
 
 /** Typed values stay black on every copy. The sheet colour belongs to the form. */
@@ -95,14 +116,14 @@ function Field({ def, value }: { def: FieldDef; value: string }) {
   if (!value) return null
   return (
     <View style={[styles.field, { left: def.x, top: def.y, width: def.width, height: def.height, overflow: 'hidden' }]}>
-      {fittedLines(value, def).map((line, i) => (
+      {(({ lines, fontSize, leading }) => lines.map((line, i) => (
         <Text
           key={i}
-          style={{ position: 'absolute', top: i * LEADING, width: def.width, fontSize: def.fontSize, textAlign: def.align ?? 'left', color: DATA_INK, ...(def.bold ? { fontWeight: 700 } : {}) }}
+          style={{ position: 'absolute', top: i * leading, width: def.width, fontSize, textAlign: def.align ?? 'left', color: DATA_INK, ...(def.bold ? { fontWeight: 700 } : {}) }}
         >
           {line}
         </Text>
-      ))}
+      )))(fittedLines(value, def))}
     </View>
   )
 }

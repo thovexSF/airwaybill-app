@@ -7,7 +7,7 @@ export interface FieldPosition {
   height: number;
 }
 
-export const AWB_FIELD_LAYOUT_REV = 17;
+export const AWB_FIELD_LAYOUT_REV = 18;
 
 export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   awbNumberLeft: { top: 2.10, left: 10.0, width: 28, height: 1.8 },
@@ -16,10 +16,12 @@ export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   awbNumberAirport: { top: 2.10, left: 14.1, width: 4.7, height: 1.8 },
   awbNumberSerial: { top: 2.10, left: 19.3, width: 11.5, height: 1.8 },
   awbNumber: { top: 2.10, left: 78.5, width: 15.6, height: 1.8 },
-  issuedBy: { top: 7.71, left: 57.76, width: 36, height: 4.3 },
-  shipperName: { top: 6.91, left: 10.0, width: 28, height: 6.6 },
+  // Bloques de nombre y dirección: hasta el borde real de su recuadro en la hoja
+  // (x 51.71% / 96.41%; fondos en 12.83%, 21.92% y la línea "Copies" en 11.3%).
+  issuedBy: { top: 7.71, left: 57.76, width: 38.2, height: 3.45 },
+  shipperName: { top: 6.95, left: 10.0, width: 41.2, height: 5.7 },
   shipperAccount: { top: 6.7, left: 35.2, width: 16, height: 1.4 },
-  consigneeName: { top: 16.00, left: 10.0, width: 37.5, height: 6.6 },
+  consigneeName: { top: 16.05, left: 10.0, width: 41.2, height: 5.7 },
   consigneeAccount: { top: 15.8, left: 35.2, width: 16, height: 1.4 },
   agentName: { top: 22.97, left: 10.0, width: 41, height: 4.2 },
   agentIata: { top: 29.55, left: 10.0, width: 20.5, height: 1.5 },
