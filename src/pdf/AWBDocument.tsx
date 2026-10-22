@@ -96,9 +96,19 @@ const MIN_FIT_SIZE = 7
  * is worse than one typed a little smaller. Past MIN_FIT_SIZE it clips.
  */
 function fittedLines(value: string, def: FieldDef): { lines: string[]; fontSize: number; leading: number } {
-  const lines = wrapLines(value, def, def.fontSize)
   const maxLines = Math.max(1, Math.round(def.height / LEADING))
-  if (!def.multiline || lines.length <= maxLines) return { lines: lines.slice(0, maxLines), fontSize: def.fontSize, leading: LEADING }
+  const perLine = (size: number) => Math.floor((def.width - 1) / (size * GLYPH))
+
+  // A one-line cell is set smaller rather than cut ("LH778/14-MA").
+  if (!def.multiline) {
+    const longest = Math.max(...String(value).split('\n').map((p) => p.length))
+    let size = def.fontSize
+    while (size > MIN_FIT_SIZE && longest > perLine(size)) size = Math.max(MIN_FIT_SIZE, size - 0.25)
+    return { lines: wrapLines(value, def, size).slice(0, maxLines), fontSize: size, leading: LEADING }
+  }
+
+  const lines = wrapLines(value, def, def.fontSize)
+  if (lines.length <= maxLines) return { lines, fontSize: def.fontSize, leading: LEADING }
 
   for (let size = def.fontSize - 0.25; ; size = Math.max(MIN_FIT_SIZE, size - 0.25)) {
     const leading = LEADING * (size / def.fontSize)
@@ -107,6 +117,21 @@ function fittedLines(value: string, def: FieldDef): { lines: string[]; fontSize:
     const wrapped = wrapLines(value, def, size)
     if (wrapped.length <= fit || size === MIN_FIT_SIZE) return { lines: wrapped.slice(0, fit), fontSize: size, leading }
   }
+}
+
+/**
+ * An other-charge description shares its line with the amount, which is set
+ * flush right; the description stops one character short of wherever that
+ * amount begins, so "COOL CHAIN HANDLING" never runs into "240.00".
+ */
+function chargeDescDef(def: FieldDef, defs: FieldDef[], data: AWBData, awbFull: string, awbLeft: AwbLeft): FieldDef {
+  const m = /^otherCharges\.(\d+)\.description$/.exec(def.key)
+  if (!m) return def
+  const amountDef = defs.find((d) => d.key === `otherCharges.${m[1]}.amount`)
+  if (!amountDef) return def
+  const amount = fieldValue(data, amountDef, awbFull, awbLeft)
+  const amountStart = amountDef.x + amountDef.width - amount.length * amountDef.fontSize * GLYPH
+  return { ...def, width: Math.max(def.fontSize * GLYPH, amountStart - def.x - amountDef.fontSize * GLYPH) }
 }
 
 /** Typed values stay black on every copy. The sheet colour belongs to the form. */
@@ -292,7 +317,7 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
         // the waybill number in its three places and the rate totals — stay the
         // PDF's job even while the overlay is showing everything else.
         if (hideValues && !def.readOnly) return null
-        return <Field key={i} def={def} value={fieldValue(data, def, awbFull, awbLeft)} />
+        return <Field key={i} def={chargeDescDef(def, fieldDefs, data, awbFull, awbLeft)} value={fieldValue(data, def, awbFull, awbLeft)} />
       })}
     </Page>
   )

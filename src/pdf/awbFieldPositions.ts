@@ -7,7 +7,7 @@ export interface FieldPosition {
   height: number;
 }
 
-export const AWB_FIELD_LAYOUT_REV = 19;
+export const AWB_FIELD_LAYOUT_REV = 20;
 
 export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   awbNumberLeft: { top: 2.10, left: 10.0, width: 28, height: 1.8 },
@@ -35,8 +35,9 @@ export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   to3: { top: 35.61, left: 45.4, width: 4.6, height: 1.5 },
   by3: { top: 35.61, left: 50.2, width: 4.2, height: 1.5 },
   destination: { top: 38.64, left: 10.0, width: 20.5, height: 1.6 },
-  flightDate: { top: 38.64, left: 31.14, width: 10.0, height: 1.5 },
-  flightDate2: { top: 38.64, left: 41.24, width: 10.3, height: 1.5 },
+  // Celdas de vuelo/fecha de la hoja: 30.39%–41.11% y 41.11%–51.71%.
+  flightDate: { top: 38.64, left: 30.8, width: 10.1, height: 1.5 },
+  flightDate2: { top: 38.64, left: 41.5, width: 10.0, height: 1.5 },
   handling: { top: 41.00, left: 10.0, width: 72, height: 4.2 },
   sci: { top: 42.5, left: 83.5, width: 11.5, height: 2.2 },
   accounting: { top: 22.97, left: 52.35, width: 41.5, height: 6.9 },
@@ -50,7 +51,8 @@ export const AWB_FIELD_POSITIONS: Record<string, FieldPosition> = {
   otherColl: { top: 35.83, left: 66.4, width: 2.3, height: 1.5 },
   valueCarriage: { top: 35.61, left: 73.82, width: 12, height: 1.5 },
   valueCustoms: { top: 35.61, left: 86.76, width: 10.5, height: 1.5 },
-  insurance: { top: 38.64, left: 56.18, width: 16, height: 1.5 },
+  // Casilla "Amount of Insurance": 51.71%–64.65% (a la derecha empieza el texto INSURANCE).
+  insurance: { top: 38.64, left: 52.2, width: 12.0, height: 1.5 },
   ratePieces: { top: 49.71, left: 11.57, width: 6.2, height: 17.8 },
   // Peso bruto alineado a la derecha contra su regla (22.29%); la unidad va en
   // la columna kg/lb de la hoja (22.29%–23.46%), no pegada al número.
