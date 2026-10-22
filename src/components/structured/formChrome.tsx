@@ -7,6 +7,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { formatCharge } from '../../lib/awbCharges';
 
 export const reqSx = {
   '& .MuiOutlinedInput-root': { bgcolor: '#c8f4f8' },
@@ -199,3 +200,25 @@ export const CrudBar: React.FC<{
     </Button>
   </Box>
 );
+
+/**
+ * Amount box: shows the charge with its decimals ("324.00") and, while focused,
+ * exactly what is being typed — reformatting on every keystroke would fight the cursor.
+ */
+export function MoneyField({ value, onChange, currency, ...rest }: {
+  value: number | string;
+  onChange: (n: number) => void;
+  currency?: string;
+} & Omit<React.ComponentProps<typeof TextField>, 'value' | 'onChange'>) {
+  const [draft, setDraft] = React.useState<string | null>(null);
+  return (
+    <TextField
+      {...rest}
+      inputProps={{ inputMode: 'decimal', style: { textAlign: 'right' }, ...rest.inputProps }}
+      value={draft ?? (formatCharge(value, currency) || '0.00')}
+      onFocus={(e) => { setDraft(formatCharge(value, currency)); rest.onFocus?.(e); }}
+      onChange={(e) => { setDraft(e.target.value); onChange(Number(e.target.value.replace(',', '.')) || 0); }}
+      onBlur={(e) => { setDraft(null); rest.onBlur?.(e); }}
+    />
+  );
+}

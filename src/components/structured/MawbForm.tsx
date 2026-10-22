@@ -27,7 +27,7 @@ import {
   validateAwbCheckDigit,
 } from './types';
 import RateItemDialog from './RateItemDialog';
-import { Fieldset } from './formChrome';
+import { Fieldset, MoneyField } from './formChrome';
 import { splitAwbSerial } from '../../lib/awbCheckDigit';
 
 const MONO = {
@@ -571,23 +571,23 @@ const MawbForm: React.FC<Props> = ({ data, onChange }) => {
                     </Typography>
                   </Grid>
                   <Grid item xs={4}>
-                    <TextField
+                    <MoneyField
                       fullWidth
                       size="small"
                       label="Prepaid"
-                      type="number"
+                      currency={form.currency}
                       value={form[ppd]}
-                      onChange={(e) => set(ppd, Number(e.target.value) as never)}
+                      onChange={(n) => set(ppd, n as never)}
                     />
                   </Grid>
                   <Grid item xs={4}>
-                    <TextField
+                    <MoneyField
                       fullWidth
                       size="small"
                       label="Collect"
-                      type="number"
+                      currency={form.currency}
                       value={form[coll]}
-                      onChange={(e) => set(coll, Number(e.target.value) as never)}
+                      onChange={(n) => set(coll, n as never)}
                     />
                   </Grid>
                 </React.Fragment>
@@ -644,11 +644,11 @@ const MawbForm: React.FC<Props> = ({ data, onChange }) => {
                       />
                     </TableCell>
                     <TableCell>
-                      <TextField
+                      <MoneyField
                         size="small"
-                        type="number"
+                        currency={form.currency}
                         value={c.amount}
-                        onChange={(e) => updateCharge(idx, { amount: Number(e.target.value) })}
+                        onChange={(n) => updateCharge(idx, { amount: n })}
                       />
                     </TableCell>
                     <TableCell>

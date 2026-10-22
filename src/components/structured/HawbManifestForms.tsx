@@ -22,6 +22,7 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { B2B_AGENT_DEFAULTS, emptyRateLine, RateLine, OtherCharge, agentDefaultsForPartner } from './types';
 import RateItemDialog from './RateItemDialog';
+import { MoneyField } from './formChrome';
 
 export interface HawbFormData {
   hawbNumber: string;
@@ -293,8 +294,8 @@ const HawbStructuredForm: React.FC<{ data?: any; onChange: (d: HawbFormData) => 
             ] as const).map(([label, ppd, coll]) => (
               <Grid container spacing={1} key={label} sx={{ mb: 0.5 }} alignItems="center">
                 <Grid item xs={4}><Typography variant="body2">{label}</Typography></Grid>
-                <Grid item xs={4}><TextField fullWidth size="small" label="Prepaid" type="number" value={form[ppd]} onChange={(e) => set(ppd, Number(e.target.value))} /></Grid>
-                <Grid item xs={4}><TextField fullWidth size="small" label="Collect" type="number" value={form[coll]} onChange={(e) => set(coll, Number(e.target.value))} /></Grid>
+                <Grid item xs={4}><MoneyField fullWidth size="small" label="Prepaid" value={form[ppd]} onChange={(n) => set(ppd, n)} /></Grid>
+                <Grid item xs={4}><MoneyField fullWidth size="small" label="Collect" value={form[coll]} onChange={(n) => set(coll, n)} /></Grid>
               </Grid>
             ))}
             <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 2, mb: 1 }}>CC Charges in Destination Currency</Typography>
@@ -331,8 +332,8 @@ const HawbStructuredForm: React.FC<{ data?: any; onChange: (d: HawbFormData) => 
                       }} />
                     </TableCell>
                     <TableCell>
-                      <TextField size="small" type="number" value={c.amount} onChange={(e) => {
-                        const otherCharges = form.otherCharges.map((row, i) => i === idx ? { ...row, amount: Number(e.target.value) } : row);
+                      <MoneyField size="small" value={c.amount} onChange={(n) => {
+                        const otherCharges = form.otherCharges.map((row, i) => i === idx ? { ...row, amount: n } : row);
                         set('otherCharges', otherCharges);
                       }} />
                     </TableCell>
