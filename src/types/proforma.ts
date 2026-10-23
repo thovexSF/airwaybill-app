@@ -53,8 +53,9 @@ export interface ProformaData {
   isDraft: boolean
   /** Set once "AWB" lives inside the references text; older documents kept only the number. */
   awbLabelInline?: boolean
-  /** Language of the printed captions; typed content is translated on request. */
+  /** Language shown and printed; the typed text has one saved version per language. */
   language?: 'en' | 'es'
+  versions?: { en?: Record<string, string>; es?: Record<string, string> }
 }
 
 export const emptyProformaLine = (id: string): ProformaLineItem => ({

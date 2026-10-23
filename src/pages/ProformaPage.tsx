@@ -9,7 +9,7 @@ import {
   B2B_EXPRESS_LOGO,
 } from '../types/proforma'
 import { ProformaDocument } from '../pdf/ProformaDocument'
-import { LINE_ROWS, rawValue, setValue } from '../pdf/proformaLayout'
+import { LINE_ROWS, rawValue, setValue, ProformaLang } from '../pdf/proformaLayout'
 import { translateTexts } from '../lib/translateApi'
 import { ProformaOverlay, LogoMenu } from '../components/ProformaOverlay'
 import { useAuth } from '../auth/AuthContext'
@@ -31,22 +31,38 @@ export function ProformaPage() {
   const [translating, setTranslating] = useState(false)
   const [translateMsg, setTranslateMsg] = useState<string | null>(null)
 
-  // Captions switch at once; what was typed is translated by the server, and
-  // the captions still switch if that fails (e.g. in the demo, signed out).
-  async function toggleLanguage() {
-    const target = data.language === 'es' ? 'en' : 'es'
+  const lang: ProformaLang = data.language === 'es' ? 'es' : 'en'
+  const other: ProformaLang = lang === 'es' ? 'en' : 'es'
+
+  /** The typed text that has a version per language. */
+  const snapshot = (d: ProformaData): Record<string, string> => {
     const keys = [
       'transportDetails', 'paymentTerms', 'notes', 'origin', 'destination',
-      ...data.lineItems.flatMap((_, i) => [`lineItems.${i}.description`, `lineItems.${i}.quantity`]),
+      ...d.lineItems.flatMap((_, i) => [`lineItems.${i}.description`, `lineItems.${i}.quantity`]),
     ]
-    const fields = Object.fromEntries(keys.map(k => [k, rawValue(data, k)]).filter(([, v]) => v.trim()))
+    return Object.fromEntries(keys.map(k => [k, rawValue(d, k)]))
+  }
+  const apply = (d: ProformaData, texts: Record<string, string>) =>
+    Object.entries(texts).reduce<ProformaData>((acc, [k, v]) => setValue(acc, k, v, newRowId), d)
+
+  // Each language is a saved version: the first switch translates and keeps
+  // both; later switches only swap between them. `retranslate` rebuilds the
+  // other version from the current text after it was edited.
+  async function switchLanguage(retranslate = false) {
+    const current = snapshot(data)
+    const saved = data.versions?.[other]
+    if (saved && !retranslate) {
+      setData(d => ({ ...apply(d, saved), language: other, versions: { ...d.versions, [lang]: current } }))
+      return
+    }
     setTranslateMsg(null)
     setTranslating(true)
     try {
-      const out = Object.keys(fields).length ? await translateTexts(fields, target) : {}
-      setData(d => Object.entries(out).reduce<ProformaData>((acc, [k, v]) => setValue(acc, k, v, newRowId), { ...d, language: target }))
+      const toTranslate = Object.fromEntries(Object.entries(current).filter(([, v]) => v.trim()))
+      const out = Object.keys(toTranslate).length ? await translateTexts(toTranslate, other) : {}
+      const translated = { ...current, ...out }
+      setData(d => ({ ...apply(d, translated), language: other, versions: { ...d.versions, [lang]: current, [other]: translated } }))
     } catch (e: any) {
-      setData(d => ({ ...d, language: target }))
       setTranslateMsg(e?.message ?? 'No se pudo traducir el contenido.')
       setTimeout(() => setTranslateMsg(null), 6000)
     } finally {
@@ -76,13 +92,25 @@ export function ProformaPage() {
           <DraftToggle checked={data.isDraft} onChange={set('isDraft')} locked={atLimit} />
           <button
             type="button"
-            title={data.language === 'es' ? 'Traducir la proforma al inglés' : 'Traducir la proforma al español'}
-            onClick={toggleLanguage}
+            title={data.versions?.[other] ? `Ver la versión en ${other === 'es' ? 'español' : 'inglés'}` : `Traducir al ${other === 'es' ? 'español' : 'inglés'} y guardar ambas versiones`}
+            onClick={() => switchLanguage()}
             disabled={translating}
             style={{ background: '#333', border: 'none', color: '#ddd', padding: '0 10px', height: 26, borderRadius: 4, cursor: translating ? 'wait' : 'pointer', fontSize: 11, fontWeight: 700 }}
           >
-            {translating ? 'Traduciendo…' : data.language === 'es' ? 'ES → EN' : 'EN → ES'}
+            {translating ? 'Traduciendo…' : (
+              <><span style={{ color: lang === 'en' ? '#fff' : '#888' }}>EN</span> / <span style={{ color: lang === 'es' ? '#fff' : '#888' }}>ES</span></>
+            )}
           </button>
+          {data.versions?.[other] && !translating && (
+            <button
+              type="button"
+              title={`Volver a traducir al ${other === 'es' ? 'español' : 'inglés'} desde este texto (reemplaza esa versión)`}
+              onClick={() => switchLanguage(true)}
+              style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+            >
+              ↻
+            </button>
+          )}
           {translateMsg && <span style={{ color: '#f3b6b6', fontSize: 11 }}>{translateMsg}</span>}
         </>
       }

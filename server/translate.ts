@@ -10,9 +10,10 @@ export type TranslateTarget = keyof typeof LANG_NAME
 const instructions = (target: TranslateTarget) =>
   `You translate the text fields of an air cargo proforma invoice into ${LANG_NAME[target]}. ` +
   'You receive a JSON object of field keys to texts; reply with a JSON object with exactly the same keys. ' +
-  'Keep company and person names, addresses, codes (Incoterms, AWB and flight numbers, HS codes), numbers, ' +
-  'units and measurements exactly as written. Keep line breaks and letter case (an all-caps field stays all caps). ' +
-  'A field already in the target language, or with nothing to translate, comes back unchanged.'
+  'Translate every descriptive word, using the standard trade and customs terminology of the target language. ' +
+  'Keep company and person names, addresses, codes (Incoterms, AWB and flight numbers, HS codes), numbers with ' +
+  'their original decimal separator, units and measurements exactly as written. Keep line breaks and letter case ' +
+  '(an all-caps field stays all caps). A field with nothing to translate comes back unchanged.'
 
 /** Translates free-text fields; returns only keys it was given. */
 export async function translateFields(fields: Record<string, string>, target: TranslateTarget): Promise<Record<string, string>> {
@@ -21,7 +22,7 @@ export async function translateFields(fields: Record<string, string>, target: Tr
 
   gemini ??= new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
   const model = gemini.getGenerativeModel({
-    model: process.env.TRANSLATE_MODEL || 'gemini-2.5-flash-lite',
+    model: process.env.TRANSLATE_MODEL || 'gemini-2.5-flash',
     generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
   })
   const result = await model.generateContent([{ text: instructions(target) }, { text: JSON.stringify(input) }])
