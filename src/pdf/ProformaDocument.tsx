@@ -1,7 +1,7 @@
 import React from 'react'
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
 import { ProformaData } from '../types/proforma'
-import { LEADING, RED, proformaLayout, printedValue } from './proformaLayout'
+import { LEADING, RED, proformaLayout, printedValue, logoBoxFor } from './proformaLayout'
 
 const s = StyleSheet.create({
   page:      { fontFamily: 'Helvetica', fontSize: 9, backgroundColor: '#fff', position: 'relative' },
@@ -16,7 +16,7 @@ const s = StyleSheet.create({
  *   the only copy of each value on screen. Download/print never set it.
  */
 export function ProformaDocument({ data, hideValues = false }: { data: ProformaData; hideValues?: boolean }) {
-  const layout = proformaLayout(!!data.sellerLogo)
+  const layout = proformaLayout(logoBoxFor(data))
 
   return (
     <Document>
@@ -42,8 +42,9 @@ export function ProformaDocument({ data, hideValues = false }: { data: ProformaD
           <View key={`r${i}`} style={{ position: 'absolute', left: l.x, top: l.y, width: l.w, borderTopWidth: 0.5, borderColor: '#999', borderStyle: 'solid' }} />
         ))}
 
-        {layout.logo && data.sellerLogo && (
-          <Image src={data.sellerLogo} style={{ position: 'absolute', left: layout.logo.x, top: layout.logo.y, width: layout.logo.w, height: layout.logo.h, objectFit: 'contain', objectPosition: 'left' }} />
+        {/* Under the overlay the logo is drawn (and dragged) by the overlay itself. */}
+        {layout.logo && data.sellerLogo && !hideValues && (
+          <Image src={data.sellerLogo} style={{ position: 'absolute', left: layout.logo.x, top: layout.logo.y, width: layout.logo.w, height: layout.logo.h, objectFit: 'contain' }} />
         )}
 
         {layout.fields.filter(f => !hideValues || f.readOnly).map(f => {

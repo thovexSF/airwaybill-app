@@ -18,6 +18,36 @@ const LBL = 14
 const ROW_H = 15
 const LOGO_RATIO = 577 / 238
 
+export interface LogoBox { x: number; y: number; w: number; h: number }
+
+/** The "Issued by" box; the logo lives anywhere inside it below the caption. */
+export const SELLER_BOX = { x: M, y: 56, w: W * 0.48, h: 96 }
+const LOGO_MIN_H = 12
+
+/** Keeps a logo inside the seller box, below its caption, at a usable size. */
+export function clampLogo(b: LogoBox): LogoBox {
+  const minX = SELLER_BOX.x + 2, maxX = SELLER_BOX.x + SELLER_BOX.w - 2
+  const minY = SELLER_BOX.y + LBL, maxY = SELLER_BOX.y + SELLER_BOX.h - 2
+  const ratio = b.w / b.h
+  let h = Math.max(LOGO_MIN_H, Math.min(b.h, maxY - minY, (maxX - minX) / ratio))
+  const w = h * ratio
+  h = w / ratio
+  const x = Math.min(Math.max(b.x, minX), maxX - w)
+  const y = Math.min(Math.max(b.y, minY), maxY - h)
+  return { x, y, w, h }
+}
+
+export function logoBoxFor(data: ProformaData): LogoBox | null {
+  if (!data.sellerLogo) return null
+  const h = 30
+  return clampLogo(data.sellerLogoBox ?? { x: SELLER_BOX.x + PAD, y: SELLER_BOX.y + LBL, w: h * LOGO_RATIO, h })
+}
+
+/** Same size and height, centred across the seller box. */
+export function centeredLogo(b: LogoBox): LogoBox {
+  return clampLogo({ ...b, x: SELLER_BOX.x + (SELLER_BOX.w - b.w) / 2 })
+}
+
 export interface PfBox { x: number; y: number; w: number; h: number; label?: string; fill?: string }
 export interface PfCaption { x: number; y: number; text: string; size?: number; bold?: boolean; align?: 'left' | 'right'; w?: number }
 export interface PfLine { x: number; y: number; w: number }
@@ -38,7 +68,7 @@ export interface ProformaLayout {
   captions: PfCaption[]
   lines: PfLine[]
   fields: PfField[]
-  logo: { x: number; y: number; w: number; h: number } | null
+  logo: LogoBox | null
 }
 
 const COLS = (() => {
@@ -47,7 +77,7 @@ const COLS = (() => {
   return widths.map(w => { const c = { x, w }; x += w; return c })
 })()
 
-export function proformaLayout(hasLogo: boolean): ProformaLayout {
+export function proformaLayout(logo: LogoBox | null): ProformaLayout {
   const boxes: PfBox[] = []
   const captions: PfCaption[] = []
   const lines: PfLine[] = []
@@ -59,10 +89,9 @@ export function proformaLayout(hasLogo: boolean): ProformaLayout {
   const sellerW = W * 0.48
   const rightX = M + sellerW
   const rightW = W - sellerW
-  const seller = box({ x: M, y: 56, w: sellerW, h: 96, label: 'Issued by (seller)' })
-  const logoH = 30
-  const logo = hasLogo ? { x: seller.x + PAD, y: seller.y + LBL, w: logoH * LOGO_RATIO, h: logoH } : null
-  const sellerTop = seller.y + LBL + (logo ? logoH + 4 : 0)
+  const seller = box({ ...SELLER_BOX, label: 'Issued by (seller)' })
+  // The seller's text starts under the logo wherever it was put, keeping at least one line.
+  const sellerTop = Math.min(Math.max(seller.y + LBL, logo ? logo.y + logo.h + 4 : 0), seller.y + seller.h - PAD - LEADING)
   fields.push({ key: 'seller', x: seller.x + PAD, y: sellerTop, w: seller.w - 2 * PAD, h: seller.y + seller.h - PAD - sellerTop, multiline: true })
 
   const date = box({ x: rightX, y: 56, w: rightW / 2, h: 48, label: 'Date' })

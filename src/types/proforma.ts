@@ -20,6 +20,8 @@ export interface ProformaData {
   // Parties
   /** Logo printed in "Issued by": a public path, an uploaded image as a data URL, or '' for none. */
   sellerLogo?: string
+  /** Where the logo sits and how big, in PDF points; absent = the default top-left slot. */
+  sellerLogoBox?: { x: number; y: number; w: number; h: number }
   seller: string
   buyer: string
   shipper: string
