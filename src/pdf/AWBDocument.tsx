@@ -258,7 +258,16 @@ const ASCENT = 0.855
  * `scripts/trace-awb-sheet.py`; the ink and the shaded boxes take the copy's
  * colours, and the copy label at the foot is typeset rather than traced.
  */
-function AwbSheet({ ink, wash, label, footer }: { ink: string; wash: string; label: string; footer: string }) {
+/**
+ * The ticks that split the top-left number into "045 | SCL | 44972362"
+ * (x 14.07% and 18.78% of the sheet, from 1.46% down to the box rule at 3.74%).
+ * A house waybill prints one number there, so on a HAWB they are painted out.
+ */
+const MAWB_NUMBER_TICKS: [number, number][] = [[85.2, 2.2], [113.9, 2.2]]
+const TICK_TOP = 10.8
+const TICK_BOTTOM = 29.3
+
+function AwbSheet({ ink, wash, label, footer, hawb }: { ink: string; wash: string; label: string; footer: string; hawb?: boolean }) {
   const [first, ...rest] = label.split(' (')
   const rows = [first, rest.length ? `(${rest.join(' (')}` : '']
   return (
@@ -269,6 +278,11 @@ function AwbSheet({ ink, wash, label, footer }: { ink: string; wash: string; lab
       <Svg viewBox={`0 0 ${PAGE_WIDTH * 20} ${PAGE_HEIGHT * 20}`} preserveAspectRatio="none" style={styles.sheet}>
         <Path d={SHEET_INK_PATH} fill={ink} fillRule="evenodd" />
       </Svg>
+      {hawb && (
+        <Svg viewBox={`0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}`} preserveAspectRatio="none" style={styles.sheet}>
+          {MAWB_NUMBER_TICKS.map(([x, w], i) => <Rect key={i} x={x} y={TICK_TOP} width={w} height={TICK_BOTTOM - TICK_TOP} fill="#fff" />)}
+        </Svg>
+      )}
       {rows.map((row, i) => row ? (
         <Text
           key={i}
@@ -307,7 +321,7 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
 
   return (
     <Page size={[PAGE_WIDTH, PAGE_HEIGHT]} style={styles.page}>
-      <AwbSheet ink={theme.ink} wash={theme.wash} label={theme.label} footer={theme.footer} />
+      <AwbSheet ink={theme.ink} wash={theme.wash} label={theme.label} footer={theme.footer} hawb={isHawb} />
       {logo ? <Image src={logo} style={styles.logo} /> : null}
 
       {data.isDraft && <Text style={[styles.watermark, { color: theme.ink }]}>DRAFT</Text>}
