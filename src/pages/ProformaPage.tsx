@@ -45,7 +45,19 @@ export function ProformaPage() {
     <DocEditorShell
       data={data}
       renderDocument={(d, opts) => <ProformaDocument data={d} hideValues={opts.hideValues} />}
-      toolbarExtra={<DraftToggle checked={data.isDraft} onChange={set('isDraft')} locked={atLimit} />}
+      toolbarExtra={
+        <>
+          <DraftToggle checked={data.isDraft} onChange={set('isDraft')} locked={atLimit} />
+          <button
+            type="button"
+            title={data.language === 'es' ? 'Imprimir los títulos en inglés' : 'Imprimir los títulos en español'}
+            onClick={() => setData(d => ({ ...d, language: d.language === 'es' ? 'en' : 'es' }))}
+            style={{ background: '#333', border: 'none', color: '#ddd', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
+          >
+            {data.language === 'es' ? 'ES → EN' : 'EN → ES'}
+          </button>
+        </>
+      }
       overlay={pageWidthPx => <ProformaOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />}
       subtitle="Proforma Invoice"
       accent="#5c3a1a"

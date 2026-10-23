@@ -1,7 +1,7 @@
 import React from 'react'
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
 import { ProformaData } from '../types/proforma'
-import { LEADING, RED, proformaLayout, printedValue, logoBoxFor } from './proformaLayout'
+import { LEADING, RED, proformaLayout, printedValue, proformaLabels } from './proformaLayout'
 
 const s = StyleSheet.create({
   page:      { fontFamily: 'Helvetica', fontSize: 9, backgroundColor: '#fff', position: 'relative' },
@@ -16,13 +16,13 @@ const s = StyleSheet.create({
  *   the only copy of each value on screen. Download/print never set it.
  */
 export function ProformaDocument({ data, hideValues = false }: { data: ProformaData; hideValues?: boolean }) {
-  const layout = proformaLayout(logoBoxFor(data))
+  const layout = proformaLayout(data)
 
   return (
     <Document>
       <Page size="LETTER" style={s.page}>
         {data.isDraft && <Text style={s.watermark}>DRAFT</Text>}
-        <Text style={s.title}>PROFORMA INVOICE</Text>
+        <Text style={s.title}>{proformaLabels(data).title}</Text>
 
         {layout.boxes.map((b, i) => (
           <View key={`b${i}`} style={[s.box, { left: b.x, top: b.y, width: b.w, height: b.h, backgroundColor: b.fill }]} />

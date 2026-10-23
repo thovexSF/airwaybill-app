@@ -51,6 +51,8 @@ export interface ProformaData {
 
   // Meta
   isDraft: boolean
+  /** Language of the printed captions; what was typed is never translated. */
+  language?: 'en' | 'es'
 }
 
 export const emptyProformaLine = (id: string): ProformaLineItem => ({
@@ -94,6 +96,7 @@ export const defaultProformaData: ProformaData = {
 }
 
 export const B2B_EXPRESS_LOGO = '/proforma-logos/b2b-express.png'
+export const B2B_SERVICIOS_LOGO = '/proforma-logos/b2b-servicios.png'
 
 export function lineAmount(item: ProformaLineItem): number {
   return (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0)

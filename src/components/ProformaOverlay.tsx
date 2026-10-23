@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
-import { ProformaData, B2B_EXPRESS_LOGO } from '../types/proforma'
-import { PAGE_WIDTH, LEADING, RED, proformaLayout, rawValue, setValue, logoBoxFor, clampLogo, centeredLogo, LogoBox } from '../pdf/proformaLayout'
+import { ProformaData, B2B_EXPRESS_LOGO, B2B_SERVICIOS_LOGO } from '../types/proforma'
+import { PAGE_WIDTH, LEADING, RED, proformaLayout, rawValue, setValue, clampLogo, centeredLogo, LogoBox } from '../pdf/proformaLayout'
 import { newRowId } from '../lib/useDocEditor'
 
 if (typeof document !== 'undefined' && !document.getElementById('proforma-overlay-style')) {
@@ -24,8 +24,8 @@ export function ProformaOverlay({ data, onChange, pageWidthPx }: {
   pageWidthPx: number
 }) {
   const k = pageWidthPx / PAGE_WIDTH
-  const logo = logoBoxFor(data)
-  const layout = proformaLayout(logo)
+  const layout = proformaLayout(data)
+  const logo = layout.logo
   const seller = layout.boxes[0]
 
   return (
@@ -153,6 +153,7 @@ export function LogoMenu({ value, onChange, onCenter, style, menuAlign = 'right'
       {open && (
         <div style={{ position: 'absolute', [menuAlign]: 0, top: '100%', marginTop: 2, background: '#fff', border: '1px solid #ddd', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', minWidth: 160 }}>
           <button type="button" style={item} onClick={() => { onChange(B2B_EXPRESS_LOGO); setOpen(false) }}>B2B Express</button>
+          <button type="button" style={item} onClick={() => { onChange(B2B_SERVICIOS_LOGO); setOpen(false) }}>B2B Servicios</button>
           <button type="button" style={item} onClick={() => fileRef.current?.click()}>Subir logo…</button>
           {value && onCenter && <button type="button" style={item} onClick={() => { onCenter(); setOpen(false) }}>Centrar</button>}
           {value && <button type="button" style={{ ...item, color: '#a00' }} onClick={() => { onChange(''); setOpen(false) }}>Quitar logo</button>}
