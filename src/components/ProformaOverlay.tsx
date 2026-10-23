@@ -46,6 +46,10 @@ export function ProformaOverlay({ data, onChange, pageWidthPx }: {
           className: 'pf-overlay-field',
           value: rawValue(data, f.key),
           placeholder: f.placeholder,
+          // "AWB " is offered when the box is empty, as text the user can keep or replace.
+          onFocus: f.key === 'awbNumber' && !rawValue(data, f.key)
+            ? () => onChange(setValue(data, f.key, 'AWB ', newRowId))
+            : undefined,
           onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
             onChange(setValue(data, f.key, e.target.value, newRowId)),
         }

@@ -138,8 +138,7 @@ export function proformaLayout(data: ProformaData): ProformaLayout {
   fields.push({ key: 'proformaNumber', x: num.x + PAD, y: num.y + LBL + 2, w: num.w - 2 * PAD, h: one, fontSize: 11, bold: true })
 
   const refs = box({ x: rightX, y: 104, w: rightW, h: 48, label: L.refs })
-  captions.push({ x: refs.x + PAD, y: refs.y + LBL + 2, text: 'AWB', size: 7, bold: true })
-  fields.push({ key: 'awbNumber', x: refs.x + PAD + 24, y: refs.y + LBL, w: refs.w - 2 * PAD - 24, h: one })
+  fields.push({ key: 'awbNumber', x: refs.x + PAD, y: refs.y + LBL, w: refs.w - 2 * PAD, h: one, placeholder: 'AWB 045-12345678' })
   fields.push({ key: 'otherReferences', x: refs.x + PAD, y: refs.y + LBL + one + 2, w: refs.w - 2 * PAD, h: one })
 
   // ── Shipper / consignee | buyer ──
@@ -176,18 +175,17 @@ export function proformaLayout(data: ProformaData): ProformaLayout {
   // Every cell is free text: Enter breaks the line and the item's row grows to
   // its tallest cell. One empty row follows the last item to start the next.
   const [desc, qty, rate, tax, amt] = COLS
-  const cellW = { description: desc.w - 8, quantity: qty.w / 2 - 4, unit: qty.w / 2 - 6, unitPrice: rate.w - 8, tax: tax.w - 8 }
+  const cellW = { description: desc.w - 8, quantity: qty.w - 8, unitPrice: rate.w - 8, tax: tax.w - 8 }
   const bodyEnd = bodyY + bodyH - 2
   let y = bodyY + 2
   for (let r = 0; r <= Math.min(data.lineItems.length, LINE_ROWS - 1); r++) {
     const item = data.lineItems[r]
-    const n = item ? Math.max(...(Object.keys(cellW) as (keyof typeof cellW)[]).map(k => wrappedLines(item[k], cellW[k]))) : 1
+    const n = item ? Math.max(...(Object.keys(cellW) as (keyof typeof cellW)[]).map(k => wrappedLines(rawValue(data, `lineItems.${r}.${k}`), cellW[k]))) : 1
     const h = Math.min(n * LEADING + 2, bodyEnd - y)
     if (h < LEADING) break
     const row = (k: keyof ProformaLineItem | 'amount') => `lineItems.${r}.${k}`
     fields.push({ key: row('description'), x: desc.x + 4, y, w: cellW.description, h, multiline: true })
-    fields.push({ key: row('quantity'), x: qty.x + 4, y, w: cellW.quantity, h, align: 'right', multiline: true })
-    fields.push({ key: row('unit'), x: qty.x + qty.w / 2 + 2, y, w: cellW.unit, h, multiline: true })
+    fields.push({ key: row('quantity'), x: qty.x + 4, y, w: cellW.quantity, h, align: 'center', multiline: true })
     fields.push({ key: row('unitPrice'), x: rate.x + 4, y, w: cellW.unitPrice, h, align: 'right', multiline: true })
     fields.push({ key: row('tax'), x: tax.x + 4, y, w: cellW.tax, h, align: 'right', multiline: true })
     fields.push({ key: row('amount'), x: amt.x + 4, y, w: amt.w - 8, h: one, align: 'right', readOnly: true })
@@ -255,26 +253,34 @@ export function printedValue(data: ProformaData, key: string): string {
       const v = item[row[2]].trim()
       return /^-?\d+([.,]\d+)?$/.test(v) ? money(parseFloat(v.replace(',', '.'))) : v
     }
-    return item[row[2] as keyof ProformaLineItem] ?? ''
+    return rawValue(data, key)
   }
   return rawValue(data, key)
 }
 
 export function rawValue(data: ProformaData, key: string): string {
   const row = /^lineItems\.(\d+)\.(.+)$/.exec(key)
-  if (row) return data.lineItems[Number(row[1])]?.[row[2] as keyof ProformaLineItem] ?? ''
-  return String((data as unknown as Record<string, unknown>)[key] ?? '')
+  if (row) {
+    const item = data.lineItems[Number(row[1])]
+    // Quantity is one free-text cell; a unit kept separately by older documents joins it.
+    if (row[2] === 'quantity') return item ? [item.quantity, item.unit].filter(Boolean).join(' ') : ''
+    return item?.[row[2] as keyof ProformaLineItem] ?? ''
+  }
+  const v = String((data as unknown as Record<string, unknown>)[key] ?? '')
+  // Older documents stored the bare number under a fixed "AWB" caption; it now reads as editable text.
+  if (key === 'awbNumber' && !data.awbLabelInline && /^\d/.test(v.trim())) return `AWB ${v.trim()}`
+  return v
 }
 
 export function setValue(data: ProformaData, key: string, value: string, newId: () => string): ProformaData {
   const row = /^lineItems\.(\d+)\.(.+)$/.exec(key)
-  if (!row) return { ...data, [key]: value }
+  if (!row) return { ...data, [key]: value, ...(key === 'awbNumber' ? { awbLabelInline: true } : {}) }
   const index = Number(row[1])
   const items = [...data.lineItems]
   // Typing into an empty row further down the sheet creates the rows above it.
   while (items.length <= index) {
     items.push({ id: newId(), description: '', quantity: '', unit: '', unitPrice: '', tax: '' })
   }
-  items[index] = { ...items[index], [row[2]]: value }
+  items[index] = { ...items[index], [row[2]]: value, ...(row[2] === 'quantity' ? { unit: '' } : {}) }
   return { ...data, lineItems: items }
 }
