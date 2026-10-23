@@ -53,7 +53,7 @@ export interface ProformaData {
   isDraft: boolean
   /** Set once "AWB" lives inside the references text; older documents kept only the number. */
   awbLabelInline?: boolean
-  /** Language of the printed captions; what was typed is printed as typed. */
+  /** Language of the printed captions; typed content is translated on request. */
   language?: 'en' | 'es'
 }
 

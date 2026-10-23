@@ -29,6 +29,7 @@ import { applyEAwbResult, buildFwbFromAwb } from '../src/lib/awbToFwb'
 import type { AWBData } from '../src/types/awb'
 import { buildFwb17 } from '../src/lib/fwbCargoImp'
 import { authenticateUser } from './userAuth'
+import { translateFields } from './translate'
 import { createBufferImportJob, getImportJob } from './importJobs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -708,6 +709,29 @@ app.post('/v1/documents/:id/fwb', async (req, res) => {
     eAwbStatus: nextData.eAwbStatus,
     document: updated,
   })
+})
+
+/** Traduce los textos libres de un documento (proforma) con Gemini, el mismo proveedor de b2b. */
+app.post('/api/translate', async (req, res) => {
+  try {
+    const ctx = await authenticateUser(req.header('authorization') ?? undefined)
+    if (!ctx) return res.status(401).json({ error: 'unauthorized', message: 'Inicia sesión para traducir el contenido.' })
+    const target = req.body?.target
+    const fields = req.body?.fields
+    if ((target !== 'en' && target !== 'es') || !fields || typeof fields !== 'object') {
+      return res.status(400).json({ error: 'invalid_request' })
+    }
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ error: 'translation_unavailable', message: 'La traducción automática no está configurada en el servidor.' })
+    }
+    const clean = Object.fromEntries(
+      Object.entries(fields as Record<string, unknown>).filter(([, v]) => typeof v === 'string').slice(0, 200),
+    ) as Record<string, string>
+    res.json({ fields: await translateFields(clean, target) })
+  } catch (e: any) {
+    console.error('translate failed', e)
+    res.status(502).json({ error: 'translate_failed', message: 'No se pudo traducir el contenido. Intenta de nuevo.' })
+  }
 })
 
 /** Import awbeditor.db / .zip — responde al instante; parse + import en background. */

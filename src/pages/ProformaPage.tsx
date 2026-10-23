@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   defaultProformaData,
   emptyProformaLine,
@@ -9,7 +9,8 @@ import {
   B2B_EXPRESS_LOGO,
 } from '../types/proforma'
 import { ProformaDocument } from '../pdf/ProformaDocument'
-import { LINE_ROWS } from '../pdf/proformaLayout'
+import { LINE_ROWS, rawValue, setValue } from '../pdf/proformaLayout'
+import { translateTexts } from '../lib/translateApi'
 import { ProformaOverlay, LogoMenu } from '../components/ProformaOverlay'
 import { useAuth } from '../auth/AuthContext'
 import { DraftToggle } from '../components/DraftToggle'
@@ -27,6 +28,31 @@ export function ProformaPage() {
     useDocEditor<ProformaData>('proforma', { ...defaultProformaData, sellerLogo: isB2b ? B2B_EXPRESS_LOGO : '' }, '/proforma')
 
   const { subtotal, tax, total } = proformaTotals(data)
+  const [translating, setTranslating] = useState(false)
+  const [translateMsg, setTranslateMsg] = useState<string | null>(null)
+
+  // Captions switch at once; what was typed is translated by the server, and
+  // the captions still switch if that fails (e.g. in the demo, signed out).
+  async function toggleLanguage() {
+    const target = data.language === 'es' ? 'en' : 'es'
+    const keys = [
+      'transportDetails', 'paymentTerms', 'notes', 'origin', 'destination',
+      ...data.lineItems.flatMap((_, i) => [`lineItems.${i}.description`, `lineItems.${i}.quantity`]),
+    ]
+    const fields = Object.fromEntries(keys.map(k => [k, rawValue(data, k)]).filter(([, v]) => v.trim()))
+    setTranslateMsg(null)
+    setTranslating(true)
+    try {
+      const out = Object.keys(fields).length ? await translateTexts(fields, target) : {}
+      setData(d => Object.entries(out).reduce<ProformaData>((acc, [k, v]) => setValue(acc, k, v, newRowId), { ...d, language: target }))
+    } catch (e: any) {
+      setData(d => ({ ...d, language: target }))
+      setTranslateMsg(e?.message ?? 'No se pudo traducir el contenido.')
+      setTimeout(() => setTranslateMsg(null), 6000)
+    } finally {
+      setTranslating(false)
+    }
+  }
 
   const updateLine = (id: string, key: keyof ProformaLineItem, value: string) =>
     setData(d => ({ ...d, lineItems: d.lineItems.map(l => l.id === id ? { ...l, [key]: value } : l) }))
@@ -50,12 +76,14 @@ export function ProformaPage() {
           <DraftToggle checked={data.isDraft} onChange={set('isDraft')} locked={atLimit} />
           <button
             type="button"
-            title={data.language === 'es' ? 'Imprimir los títulos en inglés' : 'Imprimir los títulos en español'}
-            onClick={() => setData(d => ({ ...d, language: d.language === 'es' ? 'en' : 'es' }))}
-            style={{ background: '#333', border: 'none', color: '#ddd', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
+            title={data.language === 'es' ? 'Traducir la proforma al inglés' : 'Traducir la proforma al español'}
+            onClick={toggleLanguage}
+            disabled={translating}
+            style={{ background: '#333', border: 'none', color: '#ddd', padding: '0 10px', height: 26, borderRadius: 4, cursor: translating ? 'wait' : 'pointer', fontSize: 11, fontWeight: 700 }}
           >
-            {data.language === 'es' ? 'ES → EN' : 'EN → ES'}
+            {translating ? 'Traduciendo…' : data.language === 'es' ? 'ES → EN' : 'EN → ES'}
           </button>
+          {translateMsg && <span style={{ color: '#f3b6b6', fontSize: 11 }}>{translateMsg}</span>}
         </>
       }
       overlay={pageWidthPx => <ProformaOverlay data={data} onChange={setData} pageWidthPx={pageWidthPx} />}
