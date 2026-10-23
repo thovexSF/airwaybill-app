@@ -8,7 +8,7 @@ import {
   OrgProfile, ProfileErrors, fillDocumentDefaults, normalizeProfile, useOrgProfile, validateProfile,
 } from '../lib/orgProfile'
 
-const ACCENT = '#8B0000'
+const ACCENT = 'var(--red)'
 const STEPS = ['company', 'docs', 'eawb', 'done'] as const
 
 export function OnboardingFlow({ onClose, onOpenEawb }: { onClose: () => void; onOpenEawb: () => void }) {

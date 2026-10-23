@@ -233,7 +233,7 @@ export function LoginPage() {
           {mode === 'code' && codeSent && (
             <p style={{ textAlign: 'center', margin: '10px 0 0' }}>
               <button type="button" disabled={cooldown > 0 || loading} onClick={() => handleSendCode()}
-                style={{ background: 'none', border: 0, color: cooldown > 0 ? '#999' : '#8b0000', cursor: cooldown > 0 ? 'default' : 'pointer', fontSize: 13 }}>
+                style={{ background: 'none', border: 0, color: cooldown > 0 ? '#999' : 'var(--red)', cursor: cooldown > 0 ? 'default' : 'pointer', fontSize: 13 }}>
                 {cooldown > 0 ? t('auth.login.code.resendIn', { s: cooldown }) : t('auth.login.code.resend')}
               </button>
             </p>
@@ -241,11 +241,11 @@ export function LoginPage() {
 
           <p style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '10px 0 0' }}>
             <button type="button" onClick={() => switchMode(mode === 'password' ? 'code' : 'password')}
-              style={{ background: 'none', border: 0, padding: 0, fontSize: 13, color: '#8b0000', cursor: 'pointer', textAlign: 'left' }}>
+              style={{ background: 'none', border: 0, padding: 0, fontSize: 13, color: 'var(--red)', cursor: 'pointer', textAlign: 'left' }}>
               {mode === 'password' ? t('auth.login.code.link') : t('auth.login.code.usePassword')}
             </button>
             {mode === 'password' && (
-              <Link to="/forgot-password" style={{ fontSize: 13, color: '#8b0000' }}>
+              <Link to="/forgot-password" style={{ fontSize: 13, color: 'var(--red)' }}>
                 {t('auth.login.forgotPassword')}
               </Link>
             )}

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { ProformaData, B2B_EXPRESS_LOGO, B2B_SERVICIOS_LOGO } from '../types/proforma'
-import { PAGE_WIDTH, LEADING, RED, proformaLayout, rawValue, setValue, clampLogo, centeredLogo, LogoBox } from '../pdf/proformaLayout'
+import { PAGE_WIDTH, LEADING, proformaLayout, rawValue, setValue, clampLogo, centeredLogo, LogoBox } from '../pdf/proformaLayout'
 import { newRowId } from '../lib/useDocEditor'
 
 if (typeof document !== 'undefined' && !document.getElementById('proforma-overlay-style')) {
@@ -8,10 +8,10 @@ if (typeof document !== 'undefined' && !document.getElementById('proforma-overla
   s.id = 'proforma-overlay-style'
   s.textContent = `
     .pf-overlay-field:hover { background: rgba(139,0,0,0.04) !important; }
-    .pf-overlay-field:focus { outline: 1.5px solid ${RED} !important; background: #fff !important; z-index: 2; }
+    .pf-overlay-field:focus { outline: 1.5px solid var(--red) !important; background: #fff !important; z-index: 2; }
     .pf-overlay-field::placeholder { color: #ccc; }
     .pf-logo { outline: 1px dashed transparent; }
-    .pf-logo:hover, .pf-logo.dragging { outline-color: ${RED}; }
+    .pf-logo:hover, .pf-logo.dragging { outline-color: var(--red); }
     .pf-logo .pf-logo-handle { opacity: 0; }
     .pf-logo:hover .pf-logo-handle, .pf-logo.dragging .pf-logo-handle { opacity: 1; }`
   document.head.appendChild(s)
@@ -121,7 +121,7 @@ function MovableLogo({ src, box, k, onChange }: {
       <div
         className="pf-logo-handle"
         onPointerDown={e => start(e, 'resize')}
-        style={{ position: 'absolute', right: -5, bottom: -5, width: 10, height: 10, background: '#fff', border: `1.5px solid ${RED}`, borderRadius: 2, cursor: 'nwse-resize' }}
+        style={{ position: 'absolute', right: -5, bottom: -5, width: 10, height: 10, background: '#fff', border: `1.5px solid var(--red)`, borderRadius: 2, cursor: 'nwse-resize' }}
       />
     </div>
   )
@@ -150,7 +150,7 @@ export function LogoMenu({ value, onChange, onCenter, style, menuAlign = 'right'
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: `1px solid ${RED}`, background: '#fff', color: RED, cursor: 'pointer' }}
+        style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: `1px solid var(--red)`, background: '#fff', color: "var(--red)", cursor: 'pointer' }}
       >
         Logo ▾
       </button>

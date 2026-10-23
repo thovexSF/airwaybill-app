@@ -6,7 +6,7 @@ import {
   getFieldDefs, setNestedField,
 } from '../pdf/awbLayout'
 
-const RED = '#8B0000'
+const RED = 'var(--red)'
 
 const BOOLEAN_KEYS = new Set<string>(['wtValPPD', 'wtValCOLL', 'otherPPD', 'otherCOLL'])
 

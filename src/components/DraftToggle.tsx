@@ -14,7 +14,7 @@ export function DraftToggle({ checked, onChange, locked }: {
         checked={checked || !!locked}
         disabled={locked}
         onChange={e => onChange(e.target.checked)}
-        style={{ accentColor: '#c0392b', margin: 0 }}
+        style={{ accentColor: 'var(--red-light)', margin: 0 }}
       />
       DRAFT
     </label>

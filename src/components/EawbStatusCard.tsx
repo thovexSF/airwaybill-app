@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { AgreementRow, fmtAsOf, listAgreements, registryList, useRegistryCheck } from '../lib/eawbAgreement'
 import { useOrgProfile } from '../lib/orgProfile'
 
-const ACCENT = '#8b0000'
+const ACCENT = 'var(--red)'
 
 /** Estado del e-AWB Agreement de la empresa en Configuración: lista de IATA primero, luego la solicitud propia. */
 export function EawbStatusCard() {

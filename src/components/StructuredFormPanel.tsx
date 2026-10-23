@@ -15,7 +15,7 @@ import {
 
 const theme = createTheme({
   palette: {
-    primary: { main: '#8b0000' },
+    primary: { main: 'var(--red)' },
   },
   typography: {
     fontSize: 12,

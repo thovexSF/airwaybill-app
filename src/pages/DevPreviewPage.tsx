@@ -57,13 +57,13 @@ export function DevPreviewPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f0f0f0', fontFamily: 'system-ui' }}>
       {/* toolbar */}
-      <div style={{ background: '#8B0000', color: '#fff', padding: '8px 16px', display: 'flex', gap: 12, alignItems: 'center', fontSize: 13 }}>
+      <div style={{ background: 'var(--red)', color: '#fff', padding: '8px 16px', display: 'flex', gap: 12, alignItems: 'center', fontSize: 13 }}>
         <strong>DEV PREVIEW</strong>
         <span style={{ opacity: 0.6 }}>|</span>
         <span>Zoom:</span>
         {[0.6, 0.8, 1.0, 1.25, 1.5].map(z => (
           <button key={z} onClick={() => setZoom(z)}
-            style={{ background: zoom === z ? '#fff' : 'transparent', color: zoom === z ? '#8B0000' : '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 4, padding: '2px 8px', cursor: 'pointer', fontSize: 12 }}>
+            style={{ background: zoom === z ? '#fff' : 'transparent', color: zoom === z ? 'var(--red)' : '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 4, padding: '2px 8px', cursor: 'pointer', fontSize: 12 }}>
             {z}x
           </button>
         ))}
@@ -77,7 +77,7 @@ export function DevPreviewPage() {
         </button>
         {pdfUrl && (
           <a href={pdfUrl} download="dev-preview.pdf"
-            style={{ background: '#fff', color: '#8B0000', borderRadius: 4, padding: '2px 10px', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+            style={{ background: '#fff', color: 'var(--red)', borderRadius: 4, padding: '2px 10px', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
             Download PDF
           </a>
         )}

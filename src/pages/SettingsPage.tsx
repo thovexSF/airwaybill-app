@@ -225,7 +225,7 @@ export function SettingsPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f4f4f4', fontFamily: 'Segoe UI, system-ui, sans-serif' }}>
       {/* Topbar */}
-      <div style={{ background: '#8b0000', color: '#fff', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: 'var(--red)', color: '#fff', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Link to="/my-awbs" style={{ fontWeight: 800, fontSize: 16, color: '#fff', textDecoration: 'none' }}>✈ AIRWAYBILL APP</Link>
         </div>
@@ -249,13 +249,13 @@ export function SettingsPage() {
         ) : (
           <form onSubmit={handleSave}>
             <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginBottom: 20, border: '1px solid #e8dcdc' }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>{t('settings.shipper')}</h2>
+              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--red)', marginBottom: 20 }}>{t('settings.shipper')}</h2>
               {field(t('settings.shipperName'), 'shipper_name_and_address', 'Empresa S.A.\nAv. Principal 123\nSantiago, Chile', true)}
               {field(t('settings.shipperAccount'), 'shipper_account_number', 'Ej: 12345678')}
             </div>
 
             <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginBottom: 20, border: '1px solid #e8dcdc' }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>{t('settings.carrier')}</h2>
+              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--red)', marginBottom: 20 }}>{t('settings.carrier')}</h2>
               {field(t('settings.carrierName'), 'carrier_name', 'Ej: LATAM CARGO')}
               {field(t('settings.carrierAddress'), 'carrier_address', 'Ej: Av. Presidente Riesco 5711, Santiago')}
               <div style={{ marginBottom: 16 }}>
@@ -296,7 +296,7 @@ export function SettingsPage() {
             </div>
 
             <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginBottom: 20, border: '1px solid #e8dcdc' }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>{t('settings.agent')}</h2>
+              <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--red)', marginBottom: 20 }}>{t('settings.agent')}</h2>
               {field(t('settings.issuingAgent'), 'issuing_carrier_agent', 'Ej: Pacific Freight Agency')}
               {field(t('settings.departureAirport'), 'airport_of_departure', 'Ej: SANTIAGO DE CHILE (SCL/ZRH)')}
               {field(t('settings.awbPrefix'), 'awb_prefix', 'Ej: 999')}
@@ -306,7 +306,7 @@ export function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                style={{ background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
               >
                 {saving ? t('common.saving') : t('settings.saveChanges')}
               </button>
@@ -323,7 +323,7 @@ export function SettingsPage() {
 
         {/* Subscription section */}
         <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginTop: 32, border: '1px solid #e8dcdc' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 20 }}>{t('settings.subscription')}</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--red)', marginBottom: 20 }}>{t('settings.subscription')}</h2>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <div style={{ fontSize: 13, color: '#666' }}>{t('settings.currentPlan')}</div>
@@ -332,7 +332,7 @@ export function SettingsPage() {
             {plan === 'free' ? (
               <a
                 href="/pricing"
-                style={{ background: '#8b0000', color: '#fff', padding: '9px 20px', borderRadius: 8, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
+                style={{ background: 'var(--red)', color: '#fff', padding: '9px 20px', borderRadius: 8, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
               >
                 {t('settings.upgradePlan')}
               </a>
@@ -354,7 +354,7 @@ export function SettingsPage() {
         <EawbStatusCard />
 
         <div style={{ background: '#fff', borderRadius: 10, padding: 24, marginTop: 32, border: '1px solid #e8dcdc' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#8b0000', marginBottom: 8 }}>{t('settings.apiKeys')}</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--red)', marginBottom: 8 }}>{t('settings.apiKeys')}</h2>
           <p style={{ fontSize: 13, color: '#666', marginBottom: 20 }}>{t('settings.apiKeysSub')}</p>
 
           {newSecret && (
@@ -390,7 +390,7 @@ export function SettingsPage() {
               type="button"
               disabled={creatingKey || !orgId}
               onClick={handleCreateApiKey}
-              style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+              style={{ background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
             >
               {creatingKey ? t('common.saving') : t('settings.apiKeyCreate')}
             </button>

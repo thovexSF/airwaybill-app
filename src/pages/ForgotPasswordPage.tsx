@@ -35,7 +35,7 @@ export function ForgotPasswordPage() {
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>📧</div>
             <p style={{ fontWeight: 700, marginBottom: 8 }}>{t('auth.forgotPassword.sent')}</p>
-            <Link to="/login" style={{ display: 'inline-block', marginTop: 20, color: '#8b0000', fontWeight: 600, fontSize: 14 }}>
+            <Link to="/login" style={{ display: 'inline-block', marginTop: 20, color: 'var(--red)', fontWeight: 600, fontSize: 14 }}>
               {t('auth.forgotPassword.backToLogin')}
             </Link>
           </div>

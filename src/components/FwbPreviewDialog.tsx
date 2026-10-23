@@ -73,7 +73,7 @@ export function FwbPreviewDialog({ open, onClose, data, onGenerated }: Props) {
 
         <div className="form-dialog-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {result?.errors?.length ? (
-            <div style={{ background: '#fdecea', color: '#8b0000', padding: 10, borderRadius: 6, fontSize: 13 }}>
+            <div style={{ background: '#fdecea', color: 'var(--red)', padding: 10, borderRadius: 6, fontSize: 13 }}>
               {result.errors.map((e) => (
                 <div key={e}>{e}</div>
               ))}

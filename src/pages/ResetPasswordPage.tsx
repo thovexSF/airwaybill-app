@@ -41,7 +41,7 @@ export function ResetPasswordPage() {
             <div style={{ fontSize: 32, marginBottom: 12 }}>🔑</div>
             <p>Verificando link de recuperación…</p>
             <p style={{ fontSize: 13, marginTop: 12 }}>
-              Si llegaste aquí por error, <Link to="/login" style={{ color: '#8b0000' }}>vuelve al login</Link>.
+              Si llegaste aquí por error, <Link to="/login" style={{ color: 'var(--red)' }}>vuelve al login</Link>.
             </p>
           </div>
         </div>

@@ -43,7 +43,7 @@ export function DemoPickerPage() {
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px 64px' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ display: 'inline-block', background: '#fbeaea', color: '#8b0000', fontSize: 12, fontWeight: 700, padding: '5px 14px', borderRadius: 20, marginBottom: 14 }}>
+          <div style={{ display: 'inline-block', background: '#fbeaea', color: 'var(--red)', fontSize: 12, fontWeight: 700, padding: '5px 14px', borderRadius: 20, marginBottom: 14 }}>
             {t('demo.modeLabel')}
           </div>
           <h1 style={{ fontSize: 30, fontWeight: 800, color: '#1a1a1a', margin: '0 0 10px' }}>

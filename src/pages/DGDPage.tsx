@@ -248,7 +248,7 @@ export function DGDPage() {
       </div>
 
       {/* Action bar */}
-      <div style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+      <div className="editor-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
         {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Generating…</span>}
         {saveMsg && <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{saveMsg}</span>}
         {!demo && (
@@ -368,12 +368,12 @@ export function DGDPage() {
                   {sigState === 'valid' ? (
                     <div style={{ fontSize: 12, color: '#2f7d32', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                       <span>Signed {data.signatureProof?.signedAt.slice(0, 16).replace('T', ' ')} UTC</span>
-                      <button type="button" className="btn-example" style={{ color: '#8b0000', background: 'none' }} onClick={() => setData(d => clearSignature(d))}>Remove</button>
+                      <button type="button" className="btn-example" style={{ color: 'var(--red)', background: 'none' }} onClick={() => setData(d => clearSignature(d))}>Remove</button>
                     </div>
                   ) : profile.signatureUrl ? (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                       <button type="button" className="btn-download" style={{ fontSize: 12, padding: '6px 14px' }} onClick={signNow}>Sign with my signature</button>
-                      {sigState === 'modified' && <span style={{ fontSize: 11, color: '#8b0000' }}>The declaration changed after it was signed. Sign again.</span>}
+                      {sigState === 'modified' && <span style={{ fontSize: 11, color: 'var(--red)' }}>The declaration changed after it was signed. Sign again.</span>}
                     </div>
                   ) : (
                     <span style={{ fontSize: 12, color: '#777' }}>No signature saved. Upload one in Settings, under Company profile.</span>
@@ -421,7 +421,7 @@ export function DGDPage() {
             <button
               onClick={() => setOverlayMode(m => !m)}
               title="Type directly on the sheet"
-              style={{ background: overlayMode ? '#8b0000' : '#333', border: 'none', color: overlayMode ? '#fff' : '#aaa', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
+              style={{ background: overlayMode ? 'var(--red)' : '#333', border: 'none', color: overlayMode ? '#fff' : '#aaa', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
             >
               {overlayMode ? 'Editing on sheet' : 'Edit on sheet'}
             </button>

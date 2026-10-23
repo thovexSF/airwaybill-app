@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { fetchAdminOverview, openAdminDocumentPdf, openAdminDocumentJson, AdminOverview, AdminAgreementRow, fetchAdminAgreements, advanceAgreement, RegistryMeta, fetchRegistryMeta, uploadRegistryCsv } from '../lib/adminApi'
 import { STATUS_LABEL, IATA_REGISTERED_REPORT_URL, iataPrefillUrl } from '../lib/eawbAgreement'
 
-const ACCENT = '#8B0000'
+const ACCENT = 'var(--red)'
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '—'

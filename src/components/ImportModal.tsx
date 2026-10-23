@@ -112,7 +112,7 @@ export function ImportModal({ onClose, onDone }: Props) {
       >
         <div
           style={{
-            background: '#8b0000',
+            background: 'var(--red)',
             borderRadius: '10px 10px 0 0',
             padding: '14px 20px',
             display: 'flex',
@@ -148,7 +148,7 @@ export function ImportModal({ onClose, onDone }: Props) {
               <button
                 onClick={() => inputRef.current?.click()}
                 style={{
-                  background: '#8b0000',
+                  background: 'var(--red)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 6,
@@ -168,7 +168,7 @@ export function ImportModal({ onClose, onDone }: Props) {
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
                 <span style={{ fontWeight: 700, fontSize: 14 }}>{rows.length} registros encontrados</span>
-                <span style={{ background: '#8b0000', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4 }}>
+                <span style={{ background: 'var(--red)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4 }}>
                   {awbCount} AWB
                 </span>
                 {hawbCount > 0 && (
@@ -195,7 +195,7 @@ export function ImportModal({ onClose, onDone }: Props) {
                         <td style={{ padding: '5px 10px' }}>
                           <span
                             style={{
-                              background: r.isHawb ? '#1a3a5c' : '#8b0000',
+                              background: r.isHawb ? '#1a3a5c' : 'var(--red)',
                               color: '#fff',
                               fontSize: 9,
                               fontWeight: 700,
@@ -243,7 +243,7 @@ export function ImportModal({ onClose, onDone }: Props) {
               <div style={{ background: '#f0f0f0', borderRadius: 8, height: 12, overflow: 'hidden', maxWidth: 400, margin: '0 auto' }}>
                 <div
                   style={{
-                    background: '#8b0000',
+                    background: 'var(--red)',
                     height: '100%',
                     width: `${progress}%`,
                     transition: 'width 0.4s',
@@ -302,7 +302,7 @@ export function ImportModal({ onClose, onDone }: Props) {
           {step === 'done' ? (
             <button
               onClick={onClose}
-              style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 6, padding: '9px 24px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+              style={{ background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 6, padding: '9px 24px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
             >
               Ver mis documentos
             </button>
@@ -316,7 +316,7 @@ export function ImportModal({ onClose, onDone }: Props) {
               </button>
               <button
                 onClick={handleImport}
-                style={{ background: '#8b0000', color: '#fff', border: 'none', borderRadius: 6, padding: '9px 24px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                style={{ background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 6, padding: '9px 24px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
               >
                 Importar {rows.length} registros →
               </button>

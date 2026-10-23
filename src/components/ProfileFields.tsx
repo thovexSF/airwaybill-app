@@ -5,7 +5,7 @@ import { OrgProfile, ProfileErrors } from '../lib/orgProfile'
 
 export type ProfileSection = 'company' | 'docs' | 'eawb'
 
-const ACCENT = '#8B0000'
+const ACCENT = 'var(--red)'
 const input: React.CSSProperties = { width: '100%', padding: '9px 11px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, boxSizing: 'border-box', background: '#fff' }
 
 function Head({ children, gap }: { children: React.ReactNode; gap?: boolean }) {

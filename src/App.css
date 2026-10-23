@@ -668,3 +668,9 @@ html[data-partner-embed="1"] .doc-hub-table th {
 .hub-bar-signout:hover { color: #fff; }
 @media (max-width: 900px) { .hub-bar-name { display: none; } }
 @media (max-width: 640px) { .hub-bar-sep { display: none; } .hub-bar-right { gap: 10px; } }
+
+/* Tema B2B (embebido o theme=b2b): la interfaz va en naranjo y negro; cada
+   documento conserva sus propios colores. Las barras traen su color inline,
+   de ahí el !important. */
+html[data-partner-theme="b2b"] .topbar,
+html[data-partner-theme="b2b"] .editor-bar { background: #111 !important; }

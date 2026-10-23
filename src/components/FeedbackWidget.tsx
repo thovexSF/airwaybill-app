@@ -87,7 +87,7 @@ export function FeedbackWidget() {
           zIndex: 900,
           borderRadius: 24,
           border: 'none',
-          background: '#8b0000',
+          background: 'var(--red)',
           color: '#fff',
           fontSize: 13,
           fontWeight: 700,
@@ -135,7 +135,7 @@ export function FeedbackWidget() {
             }}
           >
             <div style={{
-              background: '#8b0000',
+              background: 'var(--red)',
               borderRadius: '10px 10px 0 0',
               padding: '14px 20px',
               display: 'flex',
@@ -172,7 +172,7 @@ export function FeedbackWidget() {
                   <p style={{ margin: '0 0 4px', fontSize: 13, color: '#555', lineHeight: 1.5 }}>
                     {t('feedback.subtitle')}
                   </p>
-                  <p style={{ margin: '0 0 12px', fontSize: 11, color: '#8b0000', fontWeight: 600 }}>
+                  <p style={{ margin: '0 0 12px', fontSize: 11, color: 'var(--red)', fontWeight: 600 }}>
                     {t('feedback.directNote')}
                   </p>
 
@@ -249,7 +249,7 @@ export function FeedbackWidget() {
                       type="submit"
                       disabled={step === 'sending'}
                       style={{
-                        background: '#8b0000',
+                        background: 'var(--red)',
                         color: '#fff',
                         border: 'none',
                         borderRadius: 6,

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ProfileFields } from './ProfileFields'
 import { ProfileErrors, fillDocumentDefaults, logoToDataUrl, normalizeProfile, signatureToDataUrl, useOrgProfile, validateProfile } from '../lib/orgProfile'
 
-const ACCENT = '#8b0000'
+const ACCENT = 'var(--red)'
 
 /** Mismo perfil que el onboarding, editable siempre desde Configuración (usuarios existentes incluidos). */
 export function CompanyProfileForm() {

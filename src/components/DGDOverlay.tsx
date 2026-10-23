@@ -70,7 +70,7 @@ export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onA
         .dgdo-opt:hover { background: rgba(60,120,255,0.12); }
         .dgdo-x { position: absolute; background: none; border: 0; padding: 0; color: #b00; cursor: pointer; line-height: 1; opacity: 0.35; }
         .dgdo-x:hover { opacity: 1; }
-        .dgdo-sign { position: absolute; background: rgba(139,0,0,0.04); border: 1px dashed rgba(139,0,0,0.45); color: #8b0000; font-family: Helvetica, Arial, sans-serif; font-weight: 700; cursor: pointer; padding: 0; border-radius: 3px; }
+        .dgdo-sign { position: absolute; background: rgba(139,0,0,0.04); border: 1px dashed rgba(139,0,0,0.45); color: var(--red); font-family: Helvetica, Arial, sans-serif; font-weight: 700; cursor: pointer; padding: 0; border-radius: 3px; }
         .dgdo-sign:hover { background: rgba(139,0,0,0.1); }
       `}</style>
 

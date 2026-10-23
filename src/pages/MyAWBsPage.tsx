@@ -349,7 +349,7 @@ export function MyAWBsPage() {
             textDecoration: 'none', color: '#222',
           }}>
             <span style={{ fontSize: 14 }}><b>{t('onboarding.banner.title')}</b> {t('onboarding.banner.sub')}</span>
-            <span style={{ color: '#8B0000', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('onboarding.banner.button')} →</span>
+            <span style={{ color: 'var(--red)', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('onboarding.banner.button')} →</span>
           </a>
         )}
         {!profileIncomplete && !profileLoading && !hasAgreement && iataRegistry?.status !== 'registered' && (
@@ -359,7 +359,7 @@ export function MyAWBsPage() {
             textDecoration: 'none', color: '#222',
           }}>
             <span style={{ fontSize: 14 }}><b>{t('eawbPromo.title')}</b> {t('eawbPromo.sub')}</span>
-            <span style={{ color: '#8B0000', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('eawbPromo.button')} →</span>
+            <span style={{ color: 'var(--red)', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('eawbPromo.button')} →</span>
           </a>
         )}
         <div className="doc-hub-tabs" role="tablist" aria-label={t('myAwbs.docTypes')}>

@@ -218,7 +218,7 @@ export function DocEditorShell<T>({
       </div>
 
       {/* ── Action bar ── */}
-      <div style={{ background: '#122845', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+      <div className="editor-bar" style={{ background: '#122845', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
         {!demo && plan === 'free' && docLimit !== null && (
           <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
             {docsUsedThisMonth}/{docLimit} {t('editor.freeDocs')}
@@ -289,7 +289,7 @@ export function DocEditorShell<T>({
                 </button>
                 <button
                   onClick={() => setOverlayMode(v => { if (v) setShowForm(true); return !v })}
-                  style={{ background: overlayMode ? '#8B0000' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}
+                  style={{ background: overlayMode ? 'var(--red)' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}
                 >
                   {overlayMode ? '✎ Editando sobre el PDF' : '✎ Editar sobre el PDF'}
                 </button>

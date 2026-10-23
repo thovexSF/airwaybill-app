@@ -10,7 +10,7 @@ import {
   listAgreements, requestAgreement, uploadSignedAgreement,
 } from '../lib/eawbAgreement'
 
-const ACCENT = '#8B0000'
+const ACCENT = 'var(--red)'
 
 export function EawbAgreementFlow({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation()
