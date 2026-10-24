@@ -17,6 +17,7 @@ import { DocEditorModal } from '../components/DocEditorModal'
 import { HUB_DOC_TYPES, DocTypeMeta, docTypeMeta, docTypeAvailable, DOC_CATEGORIES } from '../lib/docTypes'
 import { isAdminUiUser } from '../lib/adminUi'
 import { usePostHog } from '@posthog/react'
+import { isPartnerEmbed } from '../lib/partnerTheme'
 
 type ViewMode = 'cards' | 'table'
 type StatusFilter = 'all' | 'final' | 'draft'
@@ -92,6 +93,7 @@ export function MyAWBsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const tabFromUrl = searchParams.get('tab') || 'awb'
+  const isB2bPartner = isPartnerEmbed() || document.documentElement.getAttribute('data-partner-theme') === 'b2b'
   const activeMeta = HUB_DOC_TYPES.find((d) => d.type === tabFromUrl) || HUB_DOC_TYPES[0]
 
   const [docs, setDocs] = useState<AWBDocument[]>([])
@@ -424,7 +426,8 @@ export function MyAWBsPage() {
             <span style={{ color: 'var(--red)', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('onboarding.banner.button')} →</span>
           </a>
         )}
-        {!profileIncomplete && !profileLoading && !hasAgreement && iataRegistry?.status !== 'registered' && (
+        {/* B2B already issues eAWB; the e-AWB Agreement pitch is for the platform's own customers. */}
+        {!isB2bPartner && !profileIncomplete && !profileLoading && !hasAgreement && iataRegistry?.status !== 'registered' && (
           <a href="?modal=eawb" onClick={(e) => { e.preventDefault(); openModal('eawb') }} style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
             background: '#faf8f8', border: '1px solid #e8dcdc', borderRadius: 10, padding: '12px 16px', marginBottom: 16,
