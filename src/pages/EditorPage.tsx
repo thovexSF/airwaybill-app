@@ -69,7 +69,6 @@ export function EditorPage() {
   const [zoom, setZoom] = useState<number>(initialZoom())
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [downloading, setDownloading] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [downloadCountedAt, setDownloadCountedAt] = useState<string | null>(null)
   // Free plan, allowance spent: documents still download, but always with the DRAFT watermark.
@@ -87,6 +86,16 @@ export function EditorPage() {
   const [draft, setDraft] = useState<AWBData | null>(null)
   const [pageWidthPx, setPageWidthPx] = useState(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const previewScrollRef = useRef<HTMLDivElement>(null)
+  const savedScroll = useRef(0)
+  const restorePending = useRef(false)
+  /** The viewer rebuilds when the sheet changes; once the last page has painted, put the reader back. */
+  const restoreScroll = (pageIndex: number) => {
+    if (restorePending.current && pageIndex === numPages - 1 && previewScrollRef.current) {
+      previewScrollRef.current.scrollTop = savedScroll.current
+      restorePending.current = false
+    }
+  }
   const dragRef = useRef(false)
   const pageWrapRef = useRef<HTMLDivElement | null>(null)
   const draftKey = `awb-draft-${user?.id || 'anon'}`
@@ -187,17 +196,28 @@ export function EditorPage() {
     if (!currentId) localStorage.setItem(draftKey, JSON.stringify(data))
   }, [data, draftKey, currentId])
 
+  // What the preview draws. Editing on the sheet leaves the typed values to the overlay, so the
+  // sheet only needs rebuilding when what it draws by itself changes (waybill number, carrier
+  // logo, copy, totals, draft mark); rebuilding on every keystroke reset the scroll position.
+  const previewKey = overlayMode
+    ? JSON.stringify(['sheet', renderData.docType, renderData.awbPrefix, renderData.awbSerial, renderData.awbAirportCode,
+        renderData.airportOfDeparture, renderData.hawbNumber, renderData.isDraft, renderData.copyNumber,
+        (renderData.rateItems ?? []).map(r => [r.pieces, r.grossWeight, r.weightUnit, r.total]), pdfScale])
+    : JSON.stringify(['full', renderData, pdfScale])
+
   // Debounced PDF regeneration
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => regenerate(renderData, pdfScale), 400)
+    timerRef.current = setTimeout(() => regenerate(renderData, pdfScale), overlayMode ? 150 : 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, pdfScale, overlayMode, atLimit])
+  }, [previewKey])
 
   async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
     setGenerating(true)
     try {
       const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} />).toBlob()
+      savedScroll.current = previewScrollRef.current?.scrollTop ?? 0
+      restorePending.current = true
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {
@@ -235,23 +255,6 @@ export function EditorPage() {
     }
     setSaving(false)
     return null
-  }
-
-  /**
-   * Always renders a fresh PDF that carries the values. The preview blob cannot
-   * be reused: while the overlay is up it is deliberately the blank sheet, with
-   * every value drawn by the HTML inputs instead.
-   */
-  async function downloadPdfFile() {
-    const blob = await pdf(<AWBDocument data={renderData} userScale={pdfScale} withConditions />).toBlob()
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${isHawb ? 'HAWB' : 'AWB'}_${awbFull}.pdf`
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
 
   /** Once the free allowance is spent the file is still delivered, watermarked; we only track the event. */
@@ -309,22 +312,6 @@ export function EditorPage() {
     return countPdfDownload('copies')
   }
 
-  async function handleDownloadPdf() {
-    if (!pdfUrl || downloading || planLoading) return
-    if (!withinQuota()) return
-
-    setSaveMsg(null)
-    setDownloading(true)
-    await downloadPdfFile()
-    try {
-      await countPdfDownload('download')
-    } catch {
-      setSaveMsg(t('editor.downloadError'))
-      setTimeout(() => setSaveMsg(null), 5000)
-    } finally {
-      setDownloading(false)
-    }
-  }
 
   /**
    * Every user edit goes through here so the carrier block can follow the AWB
@@ -412,9 +399,7 @@ export function EditorPage() {
           >
             {saving ? t('editor.saving') : t('editor.saveDoc')}
           </button>
-          <button className="btn-example" type="button" onClick={() => setCopiesOpen(true)}>
-            🖨 {t('editor.copies')}
-          </button>
+
           {data.docType !== 'hawb' && (
             <>
               <EawbSuggestionsButton data={data} onApply={applyData} />
@@ -423,14 +408,10 @@ export function EditorPage() {
               </button>
             </>
           )}
-          {pdfUrl && (
-            <button className="btn-download" type="button" onClick={handleDownloadPdf} disabled={downloading || planLoading}>
-              {downloading ? t('editor.downloading') : t('editor.downloadPdf')}
-            </button>
-          )}
-          <Link to="/settings" className="btn-download" style={{ gap: 4 }}>
-            {t('common.settings')}
-          </Link>
+          {/* One way out: the copies dialog previews, prints and downloads (and counts the free quota). */}
+          <button className="btn-download" type="button" onClick={() => setCopiesOpen(true)}>
+            🖨 {t('editor.print')}
+          </button>
         </div>
       </div>
 
@@ -451,10 +432,10 @@ export function EditorPage() {
               <div className="mobile-pdf-strip">
                 {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, flex: 1 }}>{t('editor.generating')}</span>}
                 {pdfUrl && (
-                  <button className="btn-download" type="button" onClick={handleDownloadPdf} disabled={downloading || planLoading}
+                  <button className="btn-download" type="button" onClick={() => setCopiesOpen(true)}
                     style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '10px 16px' }}
                   >
-                    {downloading ? t('editor.downloading') : t('editor.downloadPdf')}
+                    🖨 {t('editor.print')}
                   </button>
                 )}
                 {!pdfUrl && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1, textAlign: 'center' }}>Generando PDF…</span>}
@@ -508,13 +489,13 @@ export function EditorPage() {
                 onClick={() => setOverlayMode(m => !m)}
                 style={{ background: overlayMode ? 'var(--red)' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
               >
-                {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}
+                {overlayMode ? `☰ ${t('editor.openForm')}` : `✎ ${t('editor.editOnPdf')}`}
               </button>
             )}
             {generating && <span style={{ color: '#888', fontSize: 11, marginLeft: 8 }}>{t('editor.updating')}</span>}
           </div>
           {pdfBlob ? (
-            <div style={{ overflow: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div ref={previewScrollRef} style={{ overflow: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
               <Document
                 file={pdfBlob}
                 onLoadSuccess={({ numPages }) => setNumPages(numPages)}
@@ -529,7 +510,7 @@ export function EditorPage() {
                         renderTextLayer={false}
                         renderAnnotationLayer={false}
                         loading={null}
-                        onRenderSuccess={updatePageWidth}
+                        onRenderSuccess={() => { updatePageWidth(); restoreScroll(0) }}
                       />
                       {pageWidthPx > 0 && <AWBOverlay data={data} onChange={applyData} pageWidthPx={pageWidthPx} />}
                     </div>
@@ -540,6 +521,7 @@ export function EditorPage() {
                       scale={zoom * 1.5}
                       renderTextLayer={false}
                       renderAnnotationLayer={false}
+                      onRenderSuccess={() => restoreScroll(i)}
                     />
                   )
                 ))}

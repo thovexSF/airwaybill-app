@@ -108,7 +108,10 @@ function fittedLines(value: string, def: FieldDef): { lines: string[]; fontSize:
   }
 
   const lines = wrapLines(value, def, def.fontSize)
-  if (lines.length <= maxLines) return { lines, fontSize: def.fontSize, leading: LEADING }
+  // Only whole lines count: a last line hanging below the box ran over the next rule
+  // (the fourth line of Handling Information did).
+  const fitsWhole = Math.max(1, Math.floor((def.height + 1) / LEADING))
+  if (lines.length <= fitsWhole) return { lines, fontSize: def.fontSize, leading: LEADING }
 
   for (let size = def.fontSize - 0.25; ; size = Math.max(MIN_FIT_SIZE, size - 0.25)) {
     const leading = LEADING * (size / def.fontSize)

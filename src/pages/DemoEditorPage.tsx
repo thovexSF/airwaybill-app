@@ -190,7 +190,7 @@ export function DemoEditorPage() {
                 onClick={() => setOverlayMode(m => !m)}
                 style={{ background: overlayMode ? 'var(--red)' : '#333', border: 'none', color: '#fff', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
               >
-                {overlayMode ? '✎ Editing on PDF' : '☰ Use form instead'}
+                {overlayMode ? `☰ ${t('editor.openForm')}` : `✎ ${t('editor.editOnPdf')}`}
               </button>
             )}
           </div>
