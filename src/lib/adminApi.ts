@@ -127,7 +127,7 @@ async function adminFetch(path: string, init?: RequestInit) {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   })
   const body = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(body.error || `Error ${res.status}`)
+  if (!res.ok) throw new Error(body.message || body.error || `Error ${res.status}`)
   return body
 }
 
@@ -137,6 +137,23 @@ export async function fetchAdminAgreements(): Promise<AdminAgreementRow[]> {
 
 export async function advanceAgreement(id: string, opts: { reject?: boolean; note?: string; action?: 'iata_check' } = {}) {
   return adminFetch(`/v1/admin/eawb-agreements/${id}/status`, { method: 'POST', body: JSON.stringify(opts) })
+}
+
+export interface AdminEawbChannel {
+  airline_prefix: string
+  airline_name: string
+  destination_email: string
+  type_b_address: string | null
+  active: boolean
+  notes: string | null
+}
+
+export async function fetchEawbChannels(): Promise<{ channels: AdminEawbChannel[]; mailbox: string; typeBOrigin: string | null }> {
+  return adminFetch('/v1/admin/eawb-channels')
+}
+
+export async function saveEawbChannel(c: AdminEawbChannel) {
+  return adminFetch(`/v1/admin/eawb-channels/${c.airline_prefix}`, { method: 'PUT', body: JSON.stringify(c) })
 }
 
 export interface RegistryMeta { as_of: string; uploaded_at: string; row_count: number }

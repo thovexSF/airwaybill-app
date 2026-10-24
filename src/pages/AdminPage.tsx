@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchAdminOverview, openAdminDocumentPdf, openAdminDocumentJson, AdminOverview, AdminAgreementRow, fetchAdminAgreements, advanceAgreement, RegistryMeta, fetchRegistryMeta, uploadRegistryCsv } from '../lib/adminApi'
+import { fetchAdminOverview, openAdminDocumentPdf, openAdminDocumentJson, AdminOverview, AdminAgreementRow, fetchAdminAgreements, advanceAgreement, RegistryMeta, fetchRegistryMeta, uploadRegistryCsv, AdminEawbChannel, fetchEawbChannels, saveEawbChannel } from '../lib/adminApi'
 import { STATUS_LABEL, IATA_REGISTERED_REPORT_URL, iataPrefillUrl } from '../lib/eawbAgreement'
 
 const ACCENT = 'var(--red)'
@@ -108,6 +108,7 @@ export function AdminPage() {
 
       <AgreementsSection rows={agreements} reload={reloadAgreements} />
       <RegistrySection />
+      <EawbChannelsSection />
 
       <Section title="Organizaciones" subtitle="Uso de PDF de por vida vs. límite del plan (free: 3 documentos, no por mes)">
         <TableScroll>
@@ -377,6 +378,61 @@ function RegistrySection() {
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = '' }} />
       {busy && <span style={{ fontSize: 12, marginLeft: 8 }}>Cargando…</span>}
       {msg && <p style={{ fontSize: 12, margin: '6px 0 0' }}>{msg}</p>}
+    </Section>
+  )
+}
+
+const EMPTY_CHANNEL: AdminEawbChannel = { airline_prefix: '', airline_name: '', destination_email: '', type_b_address: '', active: true, notes: '' }
+
+function EawbChannelsSection() {
+  const [data, setData] = useState<{ channels: AdminEawbChannel[]; mailbox: string; typeBOrigin: string | null } | null>(null)
+  const [edit, setEdit] = useState<AdminEawbChannel | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+  const load = () => fetchEawbChannels().then(setData).catch((e) => setMsg(e.message))
+  useEffect(() => { load() }, [])
+
+  async function save() {
+    if (!edit) return
+    setMsg(null)
+    try { await saveEawbChannel(edit); setEdit(null); load() } catch (e: any) { setMsg(e.message) }
+  }
+  const field = (k: keyof AdminEawbChannel, placeholder: string, width = 150) => (
+    <input value={String(edit?.[k] ?? '')} placeholder={placeholder} style={{ width, fontSize: 12, padding: 4 }}
+      disabled={k === 'airline_prefix' && Boolean(data?.channels.some(c => c.airline_prefix === edit?.airline_prefix))}
+      onChange={(e) => setEdit(s => s && ({ ...s, [k]: e.target.value }))} />
+  )
+
+  return (
+    <Section title="Canales eAWB por aerolínea"
+      subtitle={`Las MAWB de todos los clientes se envían por correo desde la casilla de la plataforma${data ? ` (${data.mailbox})` : ''} a la casilla que asigna cada aerolínea; sus respuestas FMA/FNA/FSU vuelven a esa casilla. Sin canal, el cliente solo puede descargar el FWB.`}>
+      {data && (
+        <table style={tableStyle}>
+          <thead><tr><Th>Prefijo</Th><Th>Aerolínea</Th><Th>Casilla de destino</Th><Th>Type B</Th><Th>Activo</Th><Th></Th></tr></thead>
+          <tbody>
+            {data.channels.map((c) => (
+              <tr key={c.airline_prefix}>
+                <Td>{c.airline_prefix}</Td><Td>{c.airline_name || '—'}</Td><Td>{c.destination_email}</Td>
+                <Td>{c.type_b_address || '—'}</Td><Td>{c.active ? 'Sí' : 'No'}</Td>
+                <Td><button onClick={() => setEdit({ ...c, type_b_address: c.type_b_address ?? '', notes: c.notes ?? '' })}>Editar</button></Td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {data && !data.typeBOrigin && (
+        <p style={{ fontSize: 11, color: '#888', margin: '6px 0 0' }}>Sin EAWB_TYPEB_ORIGIN: los FWB se envían sin encabezado Type B, que es lo que esperan la mayoría de las casillas.</p>
+      )}
+      {edit ? (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+          {field('airline_prefix', '045', 50)}{field('airline_name', 'LATAM Cargo')}{field('destination_email', 'fwb@aerolinea.com', 220)}
+          {field('type_b_address', 'SCLFMLA (opcional)', 130)}
+          <label style={{ fontSize: 12 }}><input type="checkbox" checked={edit.active} onChange={(e) => setEdit({ ...edit, active: e.target.checked })} /> activo</label>
+          <button onClick={save}>Guardar</button><button onClick={() => setEdit(null)}>Cancelar</button>
+        </div>
+      ) : (
+        <button style={{ marginTop: 10 }} onClick={() => setEdit({ ...EMPTY_CHANNEL })}>+ Agregar aerolínea</button>
+      )}
+      {msg && <p style={{ fontSize: 12, color: ACCENT, margin: '6px 0 0' }}>{msg}</p>}
     </Section>
   )
 }

@@ -3,12 +3,16 @@ import type { AWBData } from '../types/awb'
 import { applyEAwbResult, buildFwbFromAwb } from '../lib/awbToFwb'
 import type { FwbBuildResult } from '../lib/fwbCargoImp'
 import { splitAwbSerial } from '../lib/awbCheckDigit'
+import { EawbChannel, EawbMessage, eawbState, getEawbChannel, listEawbMessages, sendEawb } from '../lib/eawbMessaging'
 
 interface Props {
   open: boolean
   onClose: () => void
   data: AWBData
   onGenerated: (next: AWBData) => void
+  /** Saves the document and returns its id; the server sends what is saved. */
+  saveFirst?: () => Promise<string | null>
+  documentId?: string | null
 }
 
 function downloadTxt(filename: string, content: string) {
@@ -21,8 +25,38 @@ function downloadTxt(filename: string, content: string) {
   URL.revokeObjectURL(url)
 }
 
-export function FwbPreviewDialog({ open, onClose, data, onGenerated }: Props) {
+export function FwbPreviewDialog({ open, onClose, data, onGenerated, saveFirst, documentId }: Props) {
   const [result, setResult] = useState<FwbBuildResult | null>(null)
+  const [channel, setChannel] = useState<EawbChannel | null>(null)
+  const [messages, setMessages] = useState<EawbMessage[]>([])
+  const [sending, setSending] = useState(false)
+  const [sendMsg, setSendMsg] = useState<string | null>(null)
+  const prefix = (data.awbPrefix ?? '').replace(/\D/g, '').padStart(3, '0')
+
+  useEffect(() => {
+    if (!open) return
+    setSendMsg(null)
+    getEawbChannel(prefix).then(setChannel).catch(() => setChannel(null))
+    if (documentId) listEawbMessages(documentId).then(setMessages).catch(() => setMessages([]))
+    else setMessages([])
+  }, [open, prefix, documentId])
+
+  async function send() {
+    if (!saveFirst) return
+    setSending(true)
+    setSendMsg(null)
+    try {
+      const id = await saveFirst()
+      if (!id) throw new Error('No se pudo guardar la AWB antes de enviarla.')
+      await sendEawb(id)
+      setMessages(await listEawbMessages(id))
+    } catch (e: any) {
+      setSendMsg(e?.message ?? 'No se pudo enviar la eAWB.')
+    } finally {
+      setSending(false)
+    }
+  }
+  const state = eawbState(messages)
 
   const awbLabel = useMemo(() => {
     const p = data.awbPrefix?.replace(/\D/g, '')
@@ -86,9 +120,24 @@ export function FwbPreviewDialog({ open, onClose, data, onGenerated }: Props) {
               ))}
             </div>
           ) : null}
-          {result?.ok && (
-            <div style={{ fontSize: 12, color: '#666' }}>
-              Estado eAWB: generated — se guarda con el documento al Guardar
+          {data.docType !== 'hawb' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13 }}>
+              {state && <span style={{ fontWeight: 700, color: state.color, background: state.bg, borderRadius: 12, padding: '3px 10px' }}>{state.label}</span>}
+              {!channel && <span style={{ color: '#666' }}>Esta aerolínea todavía no recibe eAWB por la plataforma: descarga el FWB.</span>}
+              {sendMsg && <span style={{ color: '#a00' }}>{sendMsg}</span>}
+            </div>
+          )}
+          {messages.length > 0 && (
+            <div style={{ border: '1px solid #eee', borderRadius: 6, fontSize: 12 }}>
+              {messages.map(m => (
+                <details key={m.id} style={{ padding: '6px 10px', borderBottom: '1px solid #f2f2f2' }}>
+                  <summary style={{ cursor: 'pointer' }}>
+                    {new Date(m.created_at).toLocaleString()} · {m.direction === 'out' ? '→ enviado' : '← recibido'} {m.message_type}
+                    {m.status_code ? ` ${m.status_code}` : ''}{m.error ? ` — ${m.error}` : ''}
+                  </summary>
+                  <pre style={{ margin: '6px 0 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444' }}>{m.body}</pre>
+                </details>
+              ))}
             </div>
           )}
           {result?.message ? (
@@ -129,6 +178,17 @@ export function FwbPreviewDialog({ open, onClose, data, onGenerated }: Props) {
           >
             Descargar FWB
           </button>
+          {channel && saveFirst && data.docType !== 'hawb' && (
+            <button
+              type="button"
+              className="form-dialog-btn primary"
+              disabled={!result?.ok || sending}
+              title={`Guarda la AWB y envía el FWB a ${channel.airline_name || channel.airline_prefix}`}
+              onClick={send}
+            >
+              {sending ? 'Enviando…' : `Enviar a ${channel.airline_name || channel.airline_prefix}`}
+            </button>
+          )}
         </div>
       </div>
     </div>

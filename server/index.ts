@@ -30,6 +30,8 @@ import type { AWBData } from '../src/types/awb'
 import { buildFwb17 } from '../src/lib/fwbCargoImp'
 import { authenticateUser } from './userAuth'
 import { translateFields } from './translate'
+import { EAWB_FROM, fetchReceivedEmail, parseAirlineReply, sendEawbMail, typeBEnvelope, verifyResendWebhook, type EawbChannel } from './eawb'
+import { splitAwbSerial } from '../src/lib/awbCheckDigit'
 import { createBufferImportJob, getImportJob } from './importJobs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -45,7 +47,8 @@ app.disable('x-powered-by')
 // (B2B) blocks as mixed content — the iframe then never loads.
 app.set('trust proxy', true)
 app.use(cors({ origin: true }))
-app.use(express.json({ limit: '4mb' }))
+// The raw body is kept for webhooks whose signature covers the exact bytes.
+app.use(express.json({ limit: '4mb', verify: (req, _res, buf) => { (req as any).rawBody = buf } }))
 
 app.use((_req, res, next) => {
   // Allow B2B (and other partners) to embed the SPA in an iframe.
@@ -709,6 +712,129 @@ app.post('/v1/documents/:id/fwb', async (req, res) => {
     eAwbStatus: nextData.eAwbStatus,
     document: updated,
   })
+})
+
+// ── eAWB por SMTP ──────────────────────────────────────────────────────────
+
+const awbNumberOf = (d: AWBData) => {
+  const prefix = String(d.awbPrefix ?? '').replace(/\D/g, '').padStart(3, '0')
+  const serial = d.awbSerial ? splitAwbSerial(d.awbSerial).serial : ''
+  return prefix !== '000' && serial ? { prefix, number: `${prefix}-${serial}` } : null
+}
+
+/** Transmite el FWB de una MAWB guardada a su aerolínea por el canal configurado. */
+app.post('/api/eawb/send', async (req, res) => {
+  try {
+    const ctx = await authenticateUser(req.header('authorization') ?? undefined)
+    if (!ctx) return res.status(401).json({ error: 'unauthorized', message: 'Inicia sesión para enviar la eAWB.' })
+    const documentId = String(req.body?.documentId ?? '')
+    const { data: row } = await ctx.supabase
+      .from('awb_documents').select('id, organization_id, data').eq('id', documentId).maybeSingle()
+    if (!row || row.organization_id !== ctx.organizationId) {
+      return res.status(404).json({ error: 'not_found', message: 'Guarda la AWB antes de enviarla.' })
+    }
+    const data = row.data as AWBData
+    if (data.docType === 'hawb') return res.status(400).json({ error: 'hawb', message: 'Las HAWB viajan como FHL junto a su MAWB; envía la MAWB.' })
+    const awb = awbNumberOf(data)
+    if (!awb) return res.status(400).json({ error: 'awb_number', message: 'La AWB no tiene prefijo y número.' })
+
+    const admin = adminClient()
+    const { data: channel } = await admin
+      .from('eawb_channels').select('airline_prefix, airline_name, destination_email, type_b_address')
+      .eq('airline_prefix', awb.prefix).eq('active', true).maybeSingle()
+    if (!channel) return res.status(409).json({ error: 'no_channel', message: 'Esta aerolínea todavía no está habilitada para eAWB en la plataforma.' })
+
+    const built = buildFwbFromAwb(data)
+    if (!built.ok) return res.status(400).json({ error: 'invalid_fwb', message: built.errors.join(' · '), errors: built.errors })
+
+    const body = typeBEnvelope(built.message, channel as EawbChannel)
+    const base = {
+      organization_id: ctx.organizationId, document_id: row.id, awb_number: awb.number, airline_prefix: awb.prefix,
+      direction: 'out', message_type: 'FWB', counterpart: channel.destination_email, subject: `FWB ${awb.number}`, body,
+    }
+    try {
+      const providerId = await sendEawbMail(channel as EawbChannel, awb.number, body)
+      const { data: msg } = await admin.from('eawb_messages').insert({ ...base, provider_id: providerId ?? null }).select().single()
+      res.json({ ok: true, message: msg, airline: channel.airline_name })
+    } catch (e: any) {
+      await admin.from('eawb_messages').insert({ ...base, error: e?.message || String(e) })
+      res.status(502).json({ error: 'send_failed', message: `No se pudo enviar: ${e?.message || e}` })
+    }
+  } catch (e: any) {
+    console.error('eawb send failed', e)
+    res.status(500).json({ error: 'send_failed', message: e?.message || String(e) })
+  }
+})
+
+/**
+ * Webhook "email.received" de Resend para la casilla eAWB. Cada respuesta de la
+ * aerolínea se asigna al último FWB enviado con ese número de AWB.
+ */
+app.post('/api/eawb/inbound', async (req, res) => {
+  const raw: Buffer | undefined = (req as any).rawBody
+  const headers = { 'svix-id': req.header('svix-id'), 'svix-timestamp': req.header('svix-timestamp'), 'svix-signature': req.header('svix-signature') }
+  if (!raw || !verifyResendWebhook(raw, headers)) return res.status(401).json({ error: 'bad_signature' })
+  if (req.body?.type !== 'email.received') return res.json({ ignored: true })
+  try {
+    const mail = await fetchReceivedEmail(String(req.body.data?.email_id ?? ''))
+    const reply = parseAirlineReply(mail.text)
+    const admin = adminClient()
+    const { data: sent } = reply.awbNumber
+      ? await admin.from('eawb_messages').select('organization_id, document_id, airline_prefix')
+          .eq('awb_number', reply.awbNumber).eq('direction', 'out').order('created_at', { ascending: false }).limit(1).maybeSingle()
+      : { data: null }
+    await admin.from('eawb_messages').insert({
+      organization_id: sent?.organization_id ?? null,
+      document_id: sent?.document_id ?? null,
+      awb_number: reply.awbNumber ?? '',
+      airline_prefix: sent?.airline_prefix ?? reply.awbNumber?.slice(0, 3) ?? null,
+      direction: 'in',
+      message_type: reply.type,
+      status_code: reply.statusCode,
+      counterpart: mail.from,
+      subject: mail.subject,
+      body: mail.text,
+      error: reply.error,
+      provider_id: String(req.body.data?.email_id ?? ''),
+    })
+    res.json({ ok: true, matched: Boolean(sent), type: reply.type })
+  } catch (e: any) {
+    console.error('eawb inbound failed', e)
+    // 500 makes Resend retry the delivery.
+    res.status(500).json({ error: 'inbound_failed' })
+  }
+})
+
+/** Backoffice: canales eAWB por aerolínea. */
+app.get('/v1/admin/eawb-channels', async (req, res) => {
+  const auth = await requireAdmin(req.header('authorization') ?? undefined)
+  if ('error' in auth) return res.status(auth.error).json({ error: 'admin_denied' })
+  const { data, error } = await auth.supabase.from('eawb_channels').select('*').order('airline_prefix')
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ channels: data, mailbox: EAWB_FROM(), typeBOrigin: process.env.EAWB_TYPEB_ORIGIN || null })
+})
+
+app.put('/v1/admin/eawb-channels/:prefix', async (req, res) => {
+  const auth = await requireAdmin(req.header('authorization') ?? undefined)
+  if ('error' in auth) return res.status(auth.error).json({ error: 'admin_denied' })
+  const prefix = req.params.prefix
+  const b = req.body ?? {}
+  if (!/^\d{3}$/.test(prefix) || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(b.destination_email ?? ''))) {
+    return res.status(400).json({ error: 'invalid', message: 'Prefijo de 3 dígitos y correo de destino válido.' })
+  }
+  const typeB = String(b.type_b_address ?? '').trim().toUpperCase()
+  if (typeB && !/^[A-Z0-9]{7}$/.test(typeB)) return res.status(400).json({ error: 'invalid', message: 'La dirección Type B tiene 7 caracteres.' })
+  const { data, error } = await auth.supabase.from('eawb_channels').upsert({
+    airline_prefix: prefix,
+    airline_name: String(b.airline_name ?? '').trim(),
+    destination_email: String(b.destination_email).trim(),
+    type_b_address: typeB || null,
+    active: b.active !== false,
+    notes: b.notes ? String(b.notes) : null,
+    updated_at: new Date().toISOString(),
+  }).select().single()
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ channel: data })
 })
 
 /** Traduce los textos libres de un documento (proforma) con Gemini, el mismo proveedor de b2b. */

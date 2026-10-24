@@ -205,7 +205,7 @@ export function EditorPage() {
     setGenerating(false)
   }
 
-  async function handleSave() {
+  async function handleSave(): Promise<string | null> {
     setSaving(true)
     setSaveMsg(null)
     try {
@@ -227,10 +227,13 @@ export function EditorPage() {
       setTimeout(() => setSaveMsg(null), 2500)
       ;(window as any).clarity?.('event', 'awb_saved')
       posthog?.capture('awb_saved', { doc_type: payload.docType ?? 'awb', doc_id: doc.id, is_new: !currentId })
+      setSaving(false)
+      return doc.id
     } catch {
       setSaveMsg(t('editor.saveError'))
     }
     setSaving(false)
+    return null
   }
 
   /**
@@ -472,6 +475,8 @@ export function EditorPage() {
           data={data}
           onClose={() => setFwbOpen(false)}
           onGenerated={(next) => applyData(next)}
+          saveFirst={handleSave}
+          documentId={currentId}
         />
         <FormDialog
           open={formDialogOpen}
