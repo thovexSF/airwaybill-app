@@ -24,7 +24,7 @@ const COUNTRIES: [RegExp, string][] = [
   [/\b(FRANCE|FRANCIA)\b/, 'FR'], [/\b(ITALY|ITALIA)\b/, 'IT'], [/\b(NETHERLANDS|HOLANDA|PAISES BAJOS)\b/, 'NL'],
   [/\b(UNITED KINGDOM|UK|REINO UNIDO|ENGLAND)\b/, 'GB'], [/\b(FALKLAND|MALVINAS)\b/, 'FK'],
   [/\bCHINA\b/, 'CN'], [/\b(JAPAN|JAP[OÓ]N)\b/, 'JP'], [/\b(SOUTH KOREA|COREA)\b/, 'KR'],
-  [/\bAUSTRALIA\b/, 'AU'], [/\b(NEW ZEALAND|NUEVA ZELANDA)\b/, 'NZ'], [/\bSINGAPORE\b/, 'SG'],
+  [/\bAUSTRALIA\b/, 'AU'], [/\b(NEW ZEALAND|NUEVA ZELANDA)\b/, 'NZ'], [/\bSINGAP(ORE|UR)\b/, 'SG'], [/\bHONG KONG\b/, 'HK'],
   [/\b(SOUTH AFRICA|SUDAFRICA)\b/, 'ZA'], [/\bINDIA\b/, 'IN'], [/\bISRAEL\b/, 'IL'],
 ]
 
@@ -88,7 +88,8 @@ export function parseParty(block: string | undefined, fallbackCountry = ''): Fwb
     postCode ||= /\s(\d{4,8})\s*$/.exec(line)?.[1] ?? ''
     // A city-state line ("SINGAPORE") is both the country and the place.
     place = placeOf(line.replace(/\s\d{4,8}\s*$/, ''))
-    cityState = cleanPlace(line.replace(/\d+/g, ''))
+    const bare = cleanPlace(line.replace(/\d+/g, ''))
+    if (/^(SINGAPORE|SINGAPUR|HONG KONG|MONACO|M[OÓ]NACO|MACAU|MACAO|LUXEMBOURG|LUXEMBURGO|GIBRALTAR|VATICAN)$/.test(bare)) cityState = bare
     // Drop a second line that only repeats the country.
     for (let k = rest.length - 1; k >= 0; k--) {
       if (COUNTRIES.some(([re]) => re.test(rest[k])) && cleanPlace(rest[k]).replace(/[^A-Z]/g, '').length <= 15 && !/\d/.test(rest[k])) rest.splice(k, 1)
