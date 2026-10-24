@@ -1,0 +1,11 @@
+# Email Worker for eawb@airwaybill.app — see eawb-email-worker.js.
+#   npx wrangler@3 deploy --config cloudflare/wrangler.toml
+# EAWB_INBOUND_SECRET is a Worker secret (same value as in Railway), never stored here.
+name = "eawb-inbound"
+main = "eawb-email-worker.js"
+compatibility_date = "2026-10-01"
+account_id = "49664638b63920ac680aae1f49b58bb3"
+workers_dev = false
+
+[vars]
+INBOUND_URL = "https://airwaybill.app/api/eawb/inbound/cloudflare"
