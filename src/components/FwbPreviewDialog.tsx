@@ -105,7 +105,7 @@ export function FwbPreviewDialog({ open, onClose, data, onGenerated, saveFirst, 
           </button>
         </div>
 
-        <div className="form-dialog-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="form-dialog-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16 }}>
           {result?.errors?.length ? (
             <div style={{ background: '#fdecea', color: 'var(--red)', padding: 10, borderRadius: 6, fontSize: 13 }}>
               {result.errors.map((e) => (

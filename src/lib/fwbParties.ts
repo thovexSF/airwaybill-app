@@ -44,6 +44,9 @@ const PHONE = /(?:\b(?:PH|TEL|TELF|FONO|PHONE|CEL)\b\.?\s*:?\s*|(?<![\w])\+)(\+?
 const EMAIL = /\S+@\S+\.\S+|\bE-?MAIL\b/i
 const POSTCODE = /\b(?:ZC|CP|C\.P\.|ZIP|POSTAL CODE|COD(?:IGO)? POSTAL)\s*:?\s*([A-Z0-9][A-Z0-9 -]{2,9})/i
 
+/** A street with its number followed by the city on the same line: "SARMIENTO 846 PUNTA ARENAS". */
+const AFTER_NUMBER = /^(.*\d+[A-Z]?)\s+([A-Z][A-Z .'-]{2,})$/
+
 /** Strips a tax id or phone that shares a line with other text ("B2B EXPRESS S.A. RUT: 99.515.150-2"). */
 function stripTagged(line: string): string {
   return line.replace(TAX_ID, '').replace(PHONE, '').replace(/\s*[,/]\s*$/, '').replace(/\s{2,}/g, ' ').trim()
@@ -75,7 +78,11 @@ export function parseParty(block: string | undefined, fallbackCountry = ''): Fwb
     if (tailCode) postCode ||= tailCode[1]
     const notCountry = (p: string) => p && !COUNTRIES.some(([re]) => re.test(p))
     const dashed = line.split(/\s+-\s+/)
-    if (dashed.length > 1) return dashed.map(cleanPlace).filter(notCountry).pop() ?? ''
+    if (dashed.length > 1) {
+      const last = dashed.filter(p => notCountry(cleanPlace(p))).pop() ?? ''
+      // "SARMIENTO 846 PUNTA ARENAS - CHILE": the city is what follows the street number.
+      return cleanPlace(AFTER_NUMBER.exec(last)?.[2] ?? last)
+    }
     return line.split(/,\s*/).map(cleanPlace).filter(notCountry)[0] ?? ''
   }
 
@@ -112,7 +119,8 @@ export function parseParty(block: string | undefined, fallbackCountry = ''): Fwb
   if (!place && rest.length > 1 && !/\d/.test(rest[rest.length - 1])) place = placeOf(rest.pop()!)
   if (!place && rest.length === 1 && / - /.test(rest[0])) {
     place = placeOf(rest[0])
-    rest[0] = rest[0].split(/\s+-\s+/)[0]
+    const before = rest[0].split(/\s+-\s+/)[0]
+    rest[0] = AFTER_NUMBER.test(before) ? before.replace(AFTER_NUMBER, '$1') : before
   }
   if (!place) place = cityState
   const street = rest.join(', ')
