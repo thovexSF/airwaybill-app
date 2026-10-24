@@ -41,6 +41,7 @@ export function CopiesDialog({
   const [paneWidth, setPaneWidth] = useState(520)
   const genRef = useRef(0)
   const previewRef = useRef<HTMLDivElement>(null)
+  const printingRef = useRef(false)
 
   const copies = useMemo(
     () => AWB_COPIES.filter((c) => selected.includes(c.key)).map((c) => c.key),
@@ -129,16 +130,64 @@ export function CopiesDialog({
   }
 
   async function handlePrint() {
-    if (!copies.length) return
-    if (needsAuthorize() && !(await authorize!())) return
-    const url = URL.createObjectURL(await currentBlob())
-    // A dedicated window so the browser's own print dialog owns the job; some
-    // mobile browsers refuse to open a blob, in which case the tab never
-    // appears and the user still has the Download button.
-    const w = window.open(url, '_blank')
-    if (!w) { setError(t('copies.popupBlocked')); return }
-    w.addEventListener('load', () => { try { w.print() } catch { /* user can print from the viewer */ } })
-    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    if (!copies.length || printingRef.current) return
+    printingRef.current = true
+    if (needsAuthorize() && !(await authorize!())) { printingRef.current = false; return }
+    let url: string
+    try {
+      url = URL.createObjectURL(await currentBlob())
+    } catch {
+      printingRef.current = false
+      setError(t('copies.error'))
+      return
+    }
+    // A new tab never reaches print(): Chrome's PDF viewer doesn't fire `load`
+    // and ignores print() from the opener, so the user is left on the file.
+    // An iframe in this page loads as a document we can print.
+    const iframe = document.createElement('iframe')
+    iframe.setAttribute('aria-hidden', 'true')
+    iframe.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;opacity:0;pointer-events:none'
+    iframe.src = url
+    document.body.appendChild(iframe)
+
+    let cleaned = false
+    const cleanup = () => {
+      if (cleaned) return
+      cleaned = true
+      printingRef.current = false
+      iframe.remove()
+      URL.revokeObjectURL(url)
+    }
+
+    const printFrame = () => {
+      const win = iframe.contentWindow
+      if (!win) { cleanup(); setError(t('copies.popupBlocked')); return }
+      try {
+        win.focus()
+        win.print()
+      } catch {
+        iframe.remove()
+        const w = window.open(url, '_blank')
+        if (!w) { cleanup(); setError(t('copies.popupBlocked')); return }
+        const kick = () => { try { w.focus(); w.print() } catch { /* the tab stays so they can print from the viewer */ } }
+        w.addEventListener('load', kick)
+        setTimeout(kick, 500)
+        setTimeout(cleanup, 60_000)
+        return
+      }
+      win.addEventListener('afterprint', () => setTimeout(cleanup, 200), { once: true })
+      setTimeout(cleanup, 120_000)
+    }
+
+    let started = false
+    const start = () => {
+      if (started) return
+      started = true
+      // The PDF plugin ignores print() in the same turn as load.
+      setTimeout(printFrame, 200)
+    }
+    iframe.addEventListener('load', start)
+    setTimeout(start, 3000)
   }
 
   return (
