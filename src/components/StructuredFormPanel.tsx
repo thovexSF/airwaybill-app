@@ -13,9 +13,14 @@ import {
   mawbFormToAwbData,
 } from '../lib/awbStructuredBridge'
 
-const theme = createTheme({
+// MUI derives hover and contrast shades from this colour, so it needs a real
+// value, not var(--red): read what the page resolved (orange under the B2B theme).
+const brandColor = () =>
+  (typeof document !== 'undefined' && getComputedStyle(document.documentElement).getPropertyValue('--red').trim()) || '#8B0000'
+
+const makeTheme = () => createTheme({
   palette: {
-    primary: { main: 'var(--red)' },
+    primary: { main: brandColor() },
   },
   typography: {
     fontSize: 12,
@@ -60,6 +65,7 @@ export function StructuredFormPanel({ data, onChange, documentKey }: Props) {
   const key = documentKey || (data.docType === 'hawb' ? data.hawbNumber : `${data.awbPrefix}-${data.awbSerial}`) || 'new'
   const mawbEntity = useMemo(() => awbDataToMawbEntity(data, documentKey), [data, documentKey])
   const hawbEntity = useMemo(() => awbDataToHawbEntity(data, documentKey), [data, documentKey])
+  const theme = useMemo(makeTheme, [])
 
   if (data.docType === 'hawb') {
     return (
