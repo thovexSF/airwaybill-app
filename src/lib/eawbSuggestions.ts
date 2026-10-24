@@ -3,6 +3,13 @@ import { awbDataToFwbInput } from './awbToFwb'
 import { destinationOf, originOf, parseFlights, validateAwbCheckDigitFwb } from './fwbCargoImp'
 import { parseAgentCode, parseParty } from './fwbParties'
 import { splitAwbSerial } from './awbCheckDigit'
+import { awbFieldFit } from '../pdf/AWBDocument'
+
+const BOX_NAME: Record<string, string> = {
+  shipperNameAndAddress: 'Shipper', consigneeNameAndAddress: 'Consignee', agentNameAndCity: 'Agente emisor',
+  accountingInformation: 'Accounting Information', handlingInformation: 'Handling Information',
+  carrierAddress: 'Issued by (dirección de la aerolínea)', 'rateItems.0.natureAndQuantity': 'Naturaleza y cantidad',
+}
 
 export interface AwbSuggestion {
   /** 'error' stops a FWB from being built; 'warn' would get it rejected or misread; 'tip' tidies it. */
@@ -20,8 +27,19 @@ const num = (v: unknown) => Number(String(v ?? '').replace(',', '.')) || 0
  * otherwise reach the airline wrong.
  */
 export function eawbSuggestions(data: AWBData): AwbSuggestion[] {
-  if (data.docType === 'hawb') return []
   const out: AwbSuggestion[] = []
+
+  // The printed sheet: text that does not fit its box is cut (or set smaller).
+  for (const f of awbFieldFit(data)) {
+    const name = BOX_NAME[f.key] ?? f.key
+    if (f.printed < f.lines) {
+      out.push({ level: 'warn', field: name, message: `Tiene ${f.lines} líneas y en la guía caben ${f.printed}: se cortará${f.lines - f.printed > 1 ? 'n las últimas' : ' la última'}. Junta líneas o quita las vacías.` })
+    } else if (f.shrunk) {
+      out.push({ level: 'tip', field: name, message: 'No cabe con la letra normal y se imprime un poco más chica. Junta líneas o quita las vacías para mantener el tamaño.' })
+    }
+  }
+
+  if (data.docType === 'hawb') return out
   const input = awbDataToFwbInput(data)
 
   const prefix = String(data.awbPrefix ?? '').replace(/\D/g, '')

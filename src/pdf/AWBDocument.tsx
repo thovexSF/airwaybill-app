@@ -88,7 +88,9 @@ function wrapLines(value: string, def: FieldDef, fontSize: number): string[] {
 }
 
 /** Smallest a name/address block is set before it starts dropping lines. */
-const MIN_FIT_SIZE = 7
+// 8.3pt is as far as a block shrinks: enough for a sixth line in the shipper or consignee
+// box, still comfortable to read. Anything longer is clipped and flagged in the editor.
+const MIN_FIT_SIZE = 8.3
 
 /**
  * A multiline block that runs past its box is set a size down, leading and
@@ -157,6 +159,21 @@ function Field({ def, value }: { def: FieldDef; value: string }) {
 }
 
 const num = (v: unknown) => Number(String(v ?? '').replace(',', '.')) || 0
+
+export interface FieldFit { key: string; lines: number; printed: number; shrunk: boolean }
+
+/** How each free-text block fits its box on the sheet: shrunk, and how many lines get cut. */
+export function awbFieldFit(data: AWBData): FieldFit[] {
+  const awbLeft: AwbLeft = { single: '', prefix: '', airport: '', serial: '' }
+  return getFieldDefs(data.rateItems.length, data.otherCharges.length)
+    .filter((def) => def.multiline && !def.readOnly)
+    .map((def) => {
+      const value = fieldValue(data, def, '', awbLeft)
+      if (!value) return { key: def.key, lines: 0, printed: 0, shrunk: false }
+      const fit = fittedLines(value, def)
+      return { key: def.key, lines: wrapLines(value, def, fit.fontSize).length, printed: fit.lines.length, shrunk: fit.fontSize < def.fontSize }
+    })
+}
 
 
 

@@ -400,9 +400,9 @@ export function EditorPage() {
             {saving ? t('editor.saving') : t('editor.saveDoc')}
           </button>
 
+          <EawbSuggestionsButton data={data} onApply={applyData} />
           {data.docType !== 'hawb' && (
             <>
-              <EawbSuggestionsButton data={data} onApply={applyData} />
               <button className="btn-example" type="button" onClick={() => setFwbOpen(true)} title="Generar FWB/17 (eAWB)">
                 eAWB / FWB
               </button>

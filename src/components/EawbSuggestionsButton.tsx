@@ -21,7 +21,6 @@ export function EawbSuggestionsButton({ data, onApply }: { data: AWBData; onAppl
     return () => window.removeEventListener('mousedown', close)
   }, [open])
 
-  if (data.docType === 'hawb') return null
   const blocking = items.filter(i => i.level !== 'tip').length
   const label = items.length === 0 ? '✓ eAWB OK' : blocking ? `⚠ ${blocking} por corregir` : `💡 ${items.length} sugerencias`
   const bg = items.length === 0 ? '#2f7d32' : blocking ? '#b26a00' : 'rgba(255,255,255,0.15)'
@@ -32,7 +31,7 @@ export function EawbSuggestionsButton({ data, onApply }: { data: AWBData; onAppl
         type="button"
         className="btn-example"
         onClick={() => setOpen(o => !o)}
-        title="Revisión de la guía según el estándar eAWB (FWB) de las aerolíneas"
+        title={data.docType === 'hawb' ? 'Revisión de la guía: lo que no cabe en la hoja' : 'Revisión de la guía según el estándar eAWB (FWB) de las aerolíneas'}
         style={{ background: bg, fontWeight: 700 }}
       >
         {label}
