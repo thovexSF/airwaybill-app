@@ -47,7 +47,8 @@ export async function sendEawb(documentId: string): Promise<void> {
 
 /** Where a document stands, from its last message: the airline's reply wins over our send. */
 export function eawbState(messages: EawbMessage[]): { label: string; color: string; bg: string } | null {
-  const last = messages[0]
+  // Mail that is not a Cargo-IMP reply (a bounce, a person writing back) says nothing about acceptance.
+  const last = messages.find(m => m.direction === 'out' || ['FMA', 'FNA', 'FSU'].includes(m.message_type))
   if (!last) return null
   if (last.direction === 'out') {
     return last.error
@@ -56,5 +57,5 @@ export function eawbState(messages: EawbMessage[]): { label: string; color: stri
   }
   if (last.message_type === 'FNA') return { label: 'Rechazada por la aerolínea', color: '#a00', bg: '#fdecea' }
   if (last.message_type === 'FSU') return { label: `Estado ${last.status_code ?? ''}`.trim(), color: '#1f5f99', bg: '#e8f1fb' }
-  return { label: 'Aceptada por la aerolínea', color: '#2f7d32', bg: '#eaf6ea' }
+  return { label: 'Aceptada por la aerolínea (FMA)', color: '#2f7d32', bg: '#eaf6ea' }
 }
