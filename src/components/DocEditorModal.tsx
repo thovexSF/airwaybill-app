@@ -1,8 +1,15 @@
-import React, { useEffect } from 'react'
+import React, { Suspense, useEffect, useRef } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { MemoryRouter } from 'react-router-dom'
+import { PostHogProvider } from '@posthog/react'
+import { AuthProvider } from '../auth/AuthContext'
+import { posthogClient } from '../lib/analytics'
+import { EditorRoutes } from '../App'
 
 /**
- * Large dialog hosting an editor page in an iframe (same origin / session).
- * Keeps the document hub underneath instead of navigating to full-screen editor.
+ * Large dialog hosting a document editor over the hub. The editor runs in its
+ * own React root with a memory router: same page, same loaded code and session,
+ * so opening a document no longer boots the whole app again inside an iframe.
  */
 export function DocEditorModal({
   open,
@@ -47,7 +54,7 @@ export function DocEditorModal({
           </button>
         </div>
         <div className="form-dialog-body doc-editor-modal-body">
-          <iframe title={title} src={src} className="doc-editor-modal-frame" />
+          <InlineEditor path={src} />
         </div>
         <div className="form-dialog-actions">
           <button type="button" className="form-dialog-btn" onClick={onClose}>
@@ -57,4 +64,27 @@ export function DocEditorModal({
       </div>
     </div>
   )
+}
+
+/** A separate root, since a router cannot sit inside the hub's own router. */
+function InlineEditor({ path }: { path: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!ref.current) return
+    const root: Root = createRoot(ref.current)
+    root.render(
+      <PostHogProvider client={posthogClient}>
+        <AuthProvider>
+          <MemoryRouter initialEntries={[path]}>
+            <Suspense fallback={<div className="hub-inline-editor-loading">Cargando editor…</div>}>
+              <EditorRoutes />
+            </Suspense>
+          </MemoryRouter>
+        </AuthProvider>
+      </PostHogProvider>,
+    )
+    // Unmount after the current render pass; React warns when a root unmounts during one.
+    return () => { setTimeout(() => root.unmount(), 0) }
+  }, [path])
+  return <div ref={ref} className="hub-inline-editor" />
 }

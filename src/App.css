@@ -354,6 +354,12 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
 .doc-editor-modal-body {
   display: flex; flex-direction: column; padding: 0; overflow: hidden;
 }
+.hub-inline-editor { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #fff; }
+.hub-inline-editor .app { height: 100%; }
+.hub-inline-editor .topbar,
+.hub-inline-editor .partner-hide-in-embed { display: none !important; }
+.hub-inline-editor .preview-panel > div[style*="overflow"] { padding: 10px !important; }
+.hub-inline-editor-loading { padding: 24px; color: #888; font-size: 13px; }
 .doc-editor-modal-frame {
   flex: 1 1 auto; width: 100%; height: 100%; min-height: 0;
   border: none; background: #fff;

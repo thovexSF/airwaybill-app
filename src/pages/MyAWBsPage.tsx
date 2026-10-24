@@ -15,7 +15,6 @@ import { LangSwitcher } from '../components/LangSwitcher'
 import { ImportModal } from '../components/ImportModal'
 import { DocEditorModal } from '../components/DocEditorModal'
 import { HUB_DOC_TYPES, DocTypeMeta, docTypeMeta, docTypeAvailable, DOC_CATEGORIES } from '../lib/docTypes'
-import { withHubModal } from '../lib/partnerTheme'
 import { isAdminUiUser } from '../lib/adminUi'
 import { usePostHog } from '@posthog/react'
 
@@ -111,7 +110,7 @@ export function MyAWBsPage() {
 
   function openEditor(path: string, title: string) {
     setEditorTitle(title)
-    setEditorSrc(withHubModal(path))
+    setEditorSrc(path)
     setEditorOpen(true)
   }
 

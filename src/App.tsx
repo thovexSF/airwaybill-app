@@ -41,6 +41,27 @@ function AppFeedbackWidget() {
   return <FeedbackWidget />
 }
 
+/**
+ * The document editors, for the hub's dialog: rendered in place (own memory
+ * router) instead of loading the whole app again in an iframe.
+ */
+export function EditorRoutes() {
+  return (
+    <Routes>
+      <Route path="/editor" element={<ProtectedRoute><EditorPage /></ProtectedRoute>} />
+      <Route path="/dgd" element={<ProtectedRoute><DGDPage /></ProtectedRoute>} />
+      <Route path="/manifest" element={<ProtectedRoute><ManifestPage /></ProtectedRoute>} />
+      <Route path="/neppex" element={<ProtectedRoute><NeppexPage /></ProtectedRoute>} />
+      <Route path="/label" element={<ProtectedRoute><LabelPage /></ProtectedRoute>} />
+      <Route path="/proforma" element={<ProtectedRoute><ProformaPage /></ProtectedRoute>} />
+      <Route path="/bl" element={<ProtectedRoute><BLPage /></ProtectedRoute>} />
+      <Route path="/bl-manifest" element={<ProtectedRoute><BLManifestPage /></ProtectedRoute>} />
+      <Route path="/imo-dgd" element={<ProtectedRoute><IMODGDPage /></ProtectedRoute>} />
+      <Route path="*" element={<div style={{ padding: 24, color: '#666' }}>Documento no disponible.</div>} />
+    </Routes>
+  )
+}
+
 export default function App() {
   return (
     <BrowserRouter>

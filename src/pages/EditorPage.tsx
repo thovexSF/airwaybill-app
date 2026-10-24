@@ -32,7 +32,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 /** Ancho inicial del panel formulario (~58% en modal hub, ~52% en editor full). */
 function initialFormWidth(): number {
   if (typeof window === 'undefined') return 640
-  const hub = document.documentElement.getAttribute('data-hub-modal') === '1'
+  const hub = document.documentElement.getAttribute('data-hub-modal') === '1' || !!document.querySelector('.hub-inline-editor')
   const ratio = hub ? 0.62 : 0.52
   return Math.min(920, Math.max(440, Math.round(window.innerWidth * ratio)))
 }
