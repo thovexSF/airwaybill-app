@@ -42,10 +42,16 @@ function countryOf(text: string): string {
 const TAX_ID = /\b(RUT|R\.U\.T\.?|CUIT|CUIL|RUC|NIT|CNPJ|TAX ?ID|VAT|EIN|DNI)\b\.?\s*:?\s*([0-9][0-9.\-]*[0-9K])/i
 const PHONE = /(?:\b(?:PH|TEL|TELF|FONO|PHONE|CEL)\b\.?\s*:?\s*|(?<![\w])\+)(\+?[\d][\d\s\-()]{5,})/i
 const EMAIL = /\S+@\S+\.\S+|\bE-?MAIL\b/i
-const POSTCODE = /\b(?:ZC|CP|C\.P\.|ZIP|POSTAL CODE|COD(?:IGO)? POSTAL)\s*:?\s*([A-Z0-9][A-Z0-9 -]{2,9})/i
+const POSTCODE = /\b(?:ZC|ZP|CP|C\.P\.|ZIP|POSTAL CODE|COD(?:IGO)? POSTAL)\s*:?\s*([A-Z0-9][A-Z0-9 -]{2,9})/i
 
 /** A street with its number followed by the city on the same line: "SARMIENTO 846 PUNTA ARENAS". */
-const AFTER_NUMBER = /^(.*\d+[A-Z]?)\s+([A-Z][A-Z .'-]{2,})$/
+const AFTER_NUMBER = /^(.*\d+[A-Z]?)\s*,?\s+([A-Z][A-Z .'-]{2,})$/
+
+/** Lines that name a person to ask for or bank details, not part of the address. */
+const CONTACT_LINE = /^(ATT|ATTN|ATA|A\/A|ATENCI[OÓ]N|ATTENTION|CONTACT|CONTACTO|BANK|BANCO|SWIFT|IBAN)\b/
+
+/** US style last line: "PORT HUENEME CBC BASE CA 93043". */
+const US_CITY = /^(.+?)\s+([A-Z]{2})\s+(\d{5})(?:-\d{4})?$/
 
 /** Strips a tax id or phone that shares a line with other text ("B2B EXPRESS S.A. RUT: 99.515.150-2"). */
 function stripTagged(line: string): string {
@@ -53,15 +59,18 @@ function stripTagged(line: string): string {
 }
 
 export function parseParty(block: string | undefined, fallbackCountry = ''): FwbParty {
-  const lines = String(block ?? '').toUpperCase().split('\n').map(l => l.trim()).filter(Boolean)
+  // Cargo-IMP is plain ASCII: accents, typographic dashes and stray acute marks go.
+  const lines = String(block ?? '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f\u00b4]/g, '')
+    .replace(/[\u2013\u2014]/g, '-').split('\n').map(l => l.trim()).filter(Boolean)
   const all = lines.join(' ')
   const taxMatch = TAX_ID.exec(all)
   const phoneMatch = PHONE.exec(all)
-  const post = POSTCODE.exec(all)?.[1]?.trim() ?? ''
+  // Per line, so a postcode never runs into the next line's first word.
+  const post = lines.map(l => POSTCODE.exec(l)?.[1]?.trim().split(/\s+/)[0]).find(Boolean) ?? ''
 
   const name = stripTagged(lines[0] ?? '')
   const rest = lines.slice(1)
-    .filter(l => !EMAIL.test(l))
+    .filter(l => !EMAIL.test(l) && !CONTACT_LINE.test(l))
     .map(stripTagged)
     .map(l => l.replace(POSTCODE, '').replace(/\s*[,/]\s*$/, '').trim())
     .filter(Boolean)
@@ -72,6 +81,7 @@ export function parseParty(block: string | undefined, fallbackCountry = ''): Fwb
   if (pcIdx >= 0) postCode ||= rest.splice(pcIdx, 1)[0]
 
   const cleanPlace = (p: string) => p.replace(/[^A-Z .'-]/g, ' ').replace(/\s{2,}/g, ' ').trim()
+    .replace(/^(?:CIUDAD|CUIDAD|CITY OF)\s+DE\s+|^CITY OF\s+/, '').replace(/^[ .'-]+|[ .'-]+$/g, '')
   // "QUILICURA - SANTIAGO" → the city after the dash; "GODOY CRUZ, MENDOZA, 5501" → the first part, postcode last.
   const placeOf = (line: string) => {
     const tailCode = /,\s*(\d{4,8})\s*$/.exec(line)
@@ -91,8 +101,16 @@ export function parseParty(block: string | undefined, fallbackCountry = ''): Fwb
   let cityState = ''
   const countryIdx = rest.findIndex(l => COUNTRIES.some(([re]) => re.test(l)))
   if (countryIdx >= 0) {
-    const line = rest.splice(countryIdx, 1)[0]
+    let line = rest.splice(countryIdx, 1)[0]
     postCode ||= /\s(\d{4,8})\s*$/.exec(line)?.[1] ?? ''
+    // "APOQUINDO 6419, OFICINA 102, LAS CONDES, SANTIAGO, CHILE": the city is the part before the
+    // country, and what comes before it is the street.
+    const parts = line.split(/\s*,\s*/)
+    const ci = parts.findIndex(p => COUNTRIES.some(([re]) => re.test(p)))
+    if (ci >= 2 && parts.slice(0, ci - 1).some(p => /\d/.test(p))) {
+      rest.unshift(parts.slice(0, ci - 1).join(', '))
+      line = parts.slice(ci - 1).join(', ')
+    }
     // A city-state line ("SINGAPORE") is both the country and the place.
     place = placeOf(line.replace(/\s\d{4,8}\s*$/, ''))
     const bare = cleanPlace(line.replace(/\d+/g, ''))
@@ -100,6 +118,14 @@ export function parseParty(block: string | undefined, fallbackCountry = ''): Fwb
     // Drop a second line that only repeats the country.
     for (let k = rest.length - 1; k >= 0; k--) {
       if (COUNTRIES.some(([re]) => re.test(rest[k])) && cleanPlace(rest[k]).replace(/[^A-Z]/g, '').length <= 15 && !/\d/.test(rest[k])) rest.splice(k, 1)
+    }
+  }
+  if (!place) {
+    const us = rest.findIndex(l => US_CITY.test(l))
+    if (us >= 0) {
+      const [, city, , zip] = US_CITY.exec(rest.splice(us, 1)[0])!
+      postCode ||= zip
+      place = cleanPlace(city)
     }
   }
   // European style "65479 RAUNHEIM": postcode, then city.
@@ -123,13 +149,21 @@ export function parseParty(block: string | undefined, fallbackCountry = ''): Fwb
     rest[0] = AFTER_NUMBER.test(before) ? before.replace(AFTER_NUMBER, '$1') : before
   }
   if (!place) place = cityState
+  // Last resort: "CARRIL RODRIGUEZ PENA 4581, MAIPU" — the town after the street's comma.
+  if (!place && rest.length) {
+    const tail = rest[rest.length - 1].split(/\s*,\s*/)
+    if (tail.length > 1 && !/\d/.test(tail[tail.length - 1])) {
+      place = cleanPlace(tail.pop()!)
+      rest[rest.length - 1] = tail.join(', ')
+    }
+  }
   const street = rest.join(', ')
 
   return {
     name,
     street,
     place,
-    country: countryOf(all) || fallbackCountry,
+    country: countryOf(all) || (US_CITY.test(lines[lines.length - 1] ?? '') ? 'US' : '') || fallbackCountry,
     postCode,
     phone: phoneMatch ? phoneMatch[1].replace(/[^\d+]/g, '') : '',
     taxId: taxMatch ? `${taxMatch[1].replace(/\./g, '').toUpperCase()} ${taxMatch[2]}` : '',
