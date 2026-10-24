@@ -27,6 +27,25 @@ function newDocPath(meta: DocTypeMeta): string {
   return meta.route
 }
 
+type TableCol = 'awb' | 'shipper' | 'consignee' | 'route' | 'pcs' | 'weight' | 'prepaid' | 'eawb' | 'status' | 'date'
+type ColPrefs = { order: TableCol[]; widths: Partial<Record<TableCol, number>> }
+const DEFAULT_COL_ORDER: TableCol[] = ['awb', 'shipper', 'consignee', 'route', 'pcs', 'weight', 'prepaid', 'eawb', 'status', 'date']
+const DEFAULT_COL_WIDTH: Record<TableCol, number> = {
+  awb: 130, shipper: 200, consignee: 200, route: 110, pcs: 60, weight: 90, prepaid: 90, eawb: 90, status: 80, date: 110,
+}
+const COL_PREFS_KEY = 'doc-hub-table-columns'
+
+function loadColPrefs(): ColPrefs {
+  try {
+    const saved = JSON.parse(localStorage.getItem(COL_PREFS_KEY) || 'null') as ColPrefs | null
+    // A saved order is kept only while it names exactly today's columns.
+    if (saved && saved.order?.length === DEFAULT_COL_ORDER.length && DEFAULT_COL_ORDER.every((k) => saved.order.includes(k))) {
+      return { order: saved.order, widths: saved.widths ?? {} }
+    }
+  } catch { /* unreadable or blocked storage */ }
+  return { order: [...DEFAULT_COL_ORDER], widths: {} }
+}
+
 const PLAN_LABEL: Record<string, string> = { free: 'Gratis', starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' }
 
 const icon = (d: string) => (
@@ -286,6 +305,47 @@ export function MyAWBsPage() {
     URL.revokeObjectURL(url)
   }
 
+  // Table columns: order and widths are the viewer's own, kept in this browser.
+  const colLabel: Record<TableCol, string> = {
+    awb: t('myAwbs.colAwb'), shipper: t('myAwbs.colShipper'), consignee: t('myAwbs.colConsignee'),
+    route: t('myAwbs.colRoute'), pcs: t('myAwbs.colPcs'), weight: t('myAwbs.colWeight'),
+    prepaid: t('myAwbs.colPrepaid'), eawb: t('myAwbs.colEawb'), status: t('myAwbs.colStatus'), date: t('myAwbs.colDate'),
+  }
+  const [colPrefs, setColPrefs] = useState<ColPrefs>(loadColPrefs)
+  const [dragCol, setDragCol] = useState<TableCol | null>(null)
+  const [dropCol, setDropCol] = useState<TableCol | null>(null)
+  const colOrder = colPrefs.order
+  const colWidth = (k: TableCol) => colPrefs.widths[k] ?? DEFAULT_COL_WIDTH[k]
+  const colsCustomized = colOrder.join() !== DEFAULT_COL_ORDER.join() || Object.keys(colPrefs.widths).length > 0
+  const savePrefs = (next: ColPrefs) => {
+    setColPrefs(next)
+    try { localStorage.setItem(COL_PREFS_KEY, JSON.stringify(next)) } catch { /* private mode */ }
+  }
+  const moveCol = (from: TableCol, to: TableCol) => {
+    if (from === to) return
+    const order = colOrder.filter((k) => k !== from)
+    order.splice(order.indexOf(to) + (colOrder.indexOf(from) < colOrder.indexOf(to) ? 1 : 0), 0, from)
+    savePrefs({ ...colPrefs, order })
+  }
+  const startResize = (e: React.MouseEvent, k: TableCol) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const x0 = e.clientX, w0 = colWidth(k)
+    let latest = colPrefs
+    const onMove = (ev: MouseEvent) => {
+      latest = { ...latest, widths: { ...latest.widths, [k]: Math.max(50, Math.round(w0 + ev.clientX - x0)) } }
+      setColPrefs(latest)
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      savePrefs(latest)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+  const resetCols = () => savePrefs({ order: [...DEFAULT_COL_ORDER], widths: {} })
+
   const SortIcon = ({ col }: { col: typeof sortCol }) =>
     sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'
 
@@ -536,27 +596,34 @@ export function MyAWBsPage() {
 
           {view === 'table' && filtered.length > 0 && (
             <div className="doc-hub-table-wrap">
-              <table className="doc-hub-table">
+              <table className="doc-hub-table" style={{ tableLayout: 'fixed', width: 44 + colOrder.reduce((w, k) => w + colWidth(k), 0) }}>
+                <colgroup>
+                  <col style={{ width: 44 }} />
+                  {colOrder.map((k) => <col key={k} style={{ width: colWidth(k) }} />)}
+                </colgroup>
                 <thead>
                   <tr>
                     <th className="sticky-left doc-hub-row-num">{t('myAwbs.colNum')}</th>
-                    {(
-                      [
-                        ['awb', t('myAwbs.colAwb')],
-                        ['shipper', t('myAwbs.colShipper')],
-                        ['consignee', t('myAwbs.colConsignee')],
-                        ['route', t('myAwbs.colRoute')],
-                        ['pcs', t('myAwbs.colPcs')],
-                        ['weight', t('myAwbs.colWeight')],
-                        ['prepaid', t('myAwbs.colPrepaid')],
-                        ['eawb', t('myAwbs.colEawb')],
-                        ['status', t('myAwbs.colStatus')],
-                        ['date', t('myAwbs.colDate')],
-                      ] as [typeof sortCol, string][]
-                    ).map(([col, label]) => (
-                      <th key={col} onClick={() => handleSort(col)}>
-                        {label}
-                        <SortIcon col={col} />
+                    {colOrder.map((k) => (
+                      <th
+                        key={k}
+                        draggable
+                        className={`doc-hub-th${dragCol === k ? ' dragging' : ''}${dropCol === k && dragCol !== k ? ' drop' : ''}`}
+                        onDragStart={(e) => { setDragCol(k); e.dataTransfer.effectAllowed = 'move' }}
+                        onDragOver={(e) => { e.preventDefault(); if (dropCol !== k) setDropCol(k) }}
+                        onDragEnd={() => { setDragCol(null); setDropCol(null) }}
+                        onDrop={(e) => { e.preventDefault(); if (dragCol) moveCol(dragCol, k); setDragCol(null); setDropCol(null) }}
+                        onClick={() => handleSort(k)}
+                        title={t('myAwbs.colDragHint', 'Arrastra para mover · borde derecho para ajustar el ancho')}
+                      >
+                        <span className="doc-hub-th-label">{colLabel[k]}<SortIcon col={k} /></span>
+                        <span
+                          className="doc-hub-col-resize"
+                          onMouseDown={(e) => startResize(e, k)}
+                          onClick={(e) => e.stopPropagation()}
+                          draggable={false}
+                          onDragStart={(e) => { e.preventDefault(); e.stopPropagation() }}
+                        />
                       </th>
                     ))}
                   </tr>
@@ -564,6 +631,18 @@ export function MyAWBsPage() {
                 <tbody>
                   {filtered.map((doc, i) => {
                     const r = rowOf(doc)
+                    const cell: Record<TableCol, React.ReactNode> = {
+                      awb: <td className="strong">{r.awbNum}</td>,
+                      shipper: <td className="ellipsis">{r.shipper}</td>,
+                      consignee: <td className="ellipsis">{r.consignee}</td>,
+                      route: <td className="ellipsis">{r.route}</td>,
+                      pcs: <td>{r.pcs > 0 ? r.pcs : '—'}</td>,
+                      weight: <td>{r.weight > 0 ? `${r.weight} kg` : '—'}</td>,
+                      prepaid: <td>{r.prepaid > 0 ? r.prepaid.toFixed(2) : '—'}</td>,
+                      eawb: <td>{r.eawb ? <span className={`doc-hub-status eawb-${r.eawb}`}>{r.eawb}</span> : '—'}</td>,
+                      status: <td><span className={`doc-hub-status ${doc.status}`}>{doc.status}</span></td>,
+                      date: <td className="muted">{fmt(doc.updated_at)}</td>,
+                    }
                     return (
                       <tr
                         key={doc.id}
@@ -571,20 +650,7 @@ export function MyAWBsPage() {
                         onClick={() => openEditor(r.editPath, r.awbNum)}
                       >
                         {rowNumCell(i + 1, doc.id)}
-                        <td className="strong">{r.awbNum}</td>
-                        <td className="ellipsis">{r.shipper}</td>
-                        <td className="ellipsis">{r.consignee}</td>
-                        <td>{r.route}</td>
-                        <td>{r.pcs > 0 ? r.pcs : '—'}</td>
-                        <td>{r.weight > 0 ? `${r.weight} kg` : '—'}</td>
-                        <td>{r.prepaid > 0 ? r.prepaid.toFixed(2) : '—'}</td>
-                        <td>
-                          {r.eawb ? <span className={`doc-hub-status eawb-${r.eawb}`}>{r.eawb}</span> : '—'}
-                        </td>
-                        <td>
-                          <span className={`doc-hub-status ${doc.status}`}>{doc.status}</span>
-                        </td>
-                        <td className="muted">{fmt(doc.updated_at)}</td>
+                        {colOrder.map((k) => <React.Fragment key={k}>{cell[k]}</React.Fragment>)}
                       </tr>
                     )
                   })}
@@ -593,6 +659,11 @@ export function MyAWBsPage() {
               <div className="doc-hub-footer">
                 {filtered.length} {activeMeta.badge}
                 {docs.length !== filtered.length ? ` · ${docs.length} total` : ''}
+                {colsCustomized && (
+                  <button type="button" className="doc-hub-cols-reset" onClick={resetCols}>
+                    {t('myAwbs.resetColumns', 'Restablecer columnas')}
+                  </button>
+                )}
               </div>
             </div>
           )}

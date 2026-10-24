@@ -684,3 +684,19 @@ html[data-partner-embed="1"] .doc-hub-table th {
    de ahí el !important. */
 html[data-partner-theme="b2b"] .topbar,
 html[data-partner-theme="b2b"] .editor-bar { background: #111 !important; }
+
+/* Tabla del hub: columnas movibles (arrastrando el encabezado) y de ancho ajustable. */
+.doc-hub-table th.doc-hub-th { position: relative; cursor: grab; user-select: none; overflow: hidden; }
+.doc-hub-table th.doc-hub-th.dragging { opacity: 0.4; }
+.doc-hub-table th.doc-hub-th.drop { box-shadow: inset 3px 0 0 #fff; }
+.doc-hub-th-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 6px; }
+.doc-hub-col-resize {
+  position: absolute; top: 0; right: 0; width: 7px; height: 100%; cursor: col-resize;
+}
+.doc-hub-col-resize:hover, .doc-hub-col-resize:active { background: rgba(255, 255, 255, 0.55); }
+.doc-hub-table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-hub-table .ellipsis { max-width: none; }
+.doc-hub-cols-reset {
+  margin-left: 12px; background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--red); font-size: 12px; text-decoration: underline;
+}
