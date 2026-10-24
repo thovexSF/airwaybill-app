@@ -10,6 +10,9 @@ import crypto from 'node:crypto'
  *   EAWB_FROM            sender and reply mailbox (default eawb@airwaybill.app)
  *   EAWB_TYPEB_ORIGIN    the platform's own Type B address, when one is assigned
  *   EAWB_WEBHOOK_SECRET  signing secret of the Resend "email.received" webhook
+ *   EAWB_INBOUND_SECRET  shared key of the Cloudflare Email Worker
+ *                        (cloudflare/eawb-email-worker.js), the free way in:
+ *                        airwaybill.app already receives mail through Cloudflare Email Routing
  */
 
 export const EAWB_FROM = () => process.env.EAWB_FROM || 'eawb@airwaybill.app'

@@ -32,6 +32,8 @@ import { authenticateUser } from './userAuth'
 import { translateFields } from './translate'
 import { EAWB_FROM, fetchReceivedEmail, parseAirlineReply, sendEawbMail, typeBEnvelope, verifyResendWebhook, type EawbChannel } from './eawb'
 import { splitAwbSerial } from '../src/lib/awbCheckDigit'
+import crypto from 'node:crypto'
+import PostalMime from 'postal-mime'
 import { createBufferImportJob, getImportJob } from './importJobs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -776,34 +778,64 @@ app.post('/api/eawb/inbound', async (req, res) => {
   if (!raw || !verifyResendWebhook(raw, headers)) return res.status(401).json({ error: 'bad_signature' })
   if (req.body?.type !== 'email.received') return res.json({ ignored: true })
   try {
-    const mail = await fetchReceivedEmail(String(req.body.data?.email_id ?? ''))
-    const reply = parseAirlineReply(mail.text)
-    const admin = adminClient()
-    const { data: sent } = reply.awbNumber
-      ? await admin.from('eawb_messages').select('organization_id, document_id, airline_prefix')
-          .eq('awb_number', reply.awbNumber).eq('direction', 'out').order('created_at', { ascending: false }).limit(1).maybeSingle()
-      : { data: null }
-    await admin.from('eawb_messages').insert({
-      organization_id: sent?.organization_id ?? null,
-      document_id: sent?.document_id ?? null,
-      awb_number: reply.awbNumber ?? '',
-      airline_prefix: sent?.airline_prefix ?? reply.awbNumber?.slice(0, 3) ?? null,
-      direction: 'in',
-      message_type: reply.type,
-      status_code: reply.statusCode,
-      counterpart: mail.from,
-      subject: mail.subject,
-      body: mail.text,
-      error: reply.error,
-      provider_id: String(req.body.data?.email_id ?? ''),
-    })
-    res.json({ ok: true, matched: Boolean(sent), type: reply.type })
+    const emailId = String(req.body.data?.email_id ?? '')
+    const mail = await fetchReceivedEmail(emailId)
+    res.json(await recordAirlineReply({ ...mail, providerId: emailId }))
   } catch (e: any) {
     console.error('eawb inbound failed', e)
     // 500 makes Resend retry the delivery.
     res.status(500).json({ error: 'inbound_failed' })
   }
 })
+
+/**
+ * Entrada desde un Email Worker de Cloudflare (Email Routing de airwaybill.app):
+ * el Worker reenvía el correo crudo con la clave compartida EAWB_INBOUND_SECRET.
+ */
+app.post('/api/eawb/inbound/cloudflare', express.text({ type: () => true, limit: '5mb' }), async (req, res) => {
+  const secret = process.env.EAWB_INBOUND_SECRET
+  const given = req.header('x-eawb-secret') ?? ''
+  if (!secret || given.length !== secret.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(secret))) {
+    return res.status(401).json({ error: 'bad_secret' })
+  }
+  try {
+    const raw = typeof req.body === 'string' ? req.body : String((req as any).rawBody ?? '')
+    const email = await PostalMime.parse(raw)
+    const text = email.text || String(email.html ?? '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')
+    res.json(await recordAirlineReply({
+      text, from: email.from?.address ?? '', subject: email.subject ?? '', providerId: email.messageId ?? null,
+    }))
+  } catch (e: any) {
+    console.error('eawb inbound (cloudflare) failed', e)
+    res.status(500).json({ error: 'inbound_failed' })
+  }
+})
+
+/** Guarda una respuesta de aerolínea y la asigna al último FWB enviado con ese número de AWB. */
+async function recordAirlineReply(mail: { text: string; from: string; subject: string; providerId: string | null }) {
+  const reply = parseAirlineReply(mail.text)
+  const admin = adminClient()
+  const { data: sent } = reply.awbNumber
+    ? await admin.from('eawb_messages').select('organization_id, document_id, airline_prefix')
+        .eq('awb_number', reply.awbNumber).eq('direction', 'out').order('created_at', { ascending: false }).limit(1).maybeSingle()
+    : { data: null }
+  const { error } = await admin.from('eawb_messages').insert({
+    organization_id: sent?.organization_id ?? null,
+    document_id: sent?.document_id ?? null,
+    awb_number: reply.awbNumber ?? '',
+    airline_prefix: sent?.airline_prefix ?? reply.awbNumber?.slice(0, 3) ?? null,
+    direction: 'in',
+    message_type: reply.type,
+    status_code: reply.statusCode,
+    counterpart: mail.from,
+    subject: mail.subject,
+    body: mail.text,
+    error: reply.error,
+    provider_id: mail.providerId,
+  })
+  if (error) throw new Error(error.message)
+  return { ok: true, matched: Boolean(sent), type: reply.type, awb: reply.awbNumber }
+}
 
 /** Backoffice: canales eAWB por aerolínea. */
 app.get('/v1/admin/eawb-channels', async (req, res) => {
