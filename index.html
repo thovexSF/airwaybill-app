@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=5" />
+    <script>
+      // A page kept from before a deploy asks for scripts that no longer exist and
+      // stays blank; reload it once to pick up the current build.
+      window.addEventListener('error', function (e) {
+        var t = e.target
+        if (!t || t.tagName !== 'SCRIPT' || t.type !== 'module') return
+        try {
+          if (sessionStorage.getItem('stale-build-reload')) return
+          sessionStorage.setItem('stale-build-reload', '1')
+        } catch (_) { return }
+        location.reload()
+      }, true)
+    </script>
     <title>Airwaybill App — Free Air Waybill Generator | IATA Format</title>
     <meta name="description" content="Generate professional Air Waybill (AWB) documents in IATA format. Free online AWB generator for freight forwarders and cargo agents. Download PDF instantly." />
     <meta name="keywords" content="air waybill generator, AWB generator, IATA air waybill, freight forwarder tools, cargo AWB, air waybill PDF" />

@@ -967,11 +967,18 @@ app.get('/api/import/awbeditor/:jobId', async (req, res) => {
 
 // SPA: serve built assets; fall through to index.html for client routes
 app.use('/assets', express.static(path.join(DIST, 'assets'), { index: false, maxAge: '1y', immutable: true }))
+// A missing asset (a chunk of a previous build) is a 404 nobody may cache. Falling
+// through to index.html answered 200 text/html, which Cloudflare kept for hours
+// under the .js URL and left the app blank.
+app.use('/assets', (_req, res) => {
+  res.status(404).set('Cache-Control', 'no-store').type('text/plain').send('Not found')
+})
 app.use(express.static(DIST, { index: false, maxAge: '1h' }))
 // Express 5 / path-to-regexp: bare '*' is invalid; use a named splat.
 app.get('/{*path}', (req, res, next) => {
   if (req.path.startsWith('/v1/') || req.path.startsWith('/api/')) return next()
-  res.sendFile(path.join(DIST, 'index.html'), err => {
+  // index.html names the current build's chunks, so it is never served from a cache.
+  res.sendFile(path.join(DIST, 'index.html'), { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } }, err => {
     if (err) res.status(404).send('Build missing — run npm run build')
   })
 })
