@@ -492,10 +492,16 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
   padding: 8px 12px 12px; background: #fff; border: 1px solid #e3e3ea; border-radius: 12px;
 }
 .doc-hub-group-tabs { display: flex; gap: 8px; }
+.doc-hub-brand {
+  font-size: 15px; font-weight: 800; color: #222; margin: 0 2px 8px; letter-spacing: 0.2px;
+}
+.doc-hub-brand span { font-weight: 600; color: var(--red); }
 .doc-hub-cat {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #888;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #444;
   padding: 0 2px; white-space: nowrap;
 }
+.doc-hub-cat svg { color: #444; }
 .doc-hub-tab {
   flex: 0 0 120px; width: 120px; position: relative; display: inline-flex; align-items: center;
   justify-content: center; gap: 6px;
@@ -504,9 +510,11 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
   letter-spacing: 0.3px; white-space: nowrap;
   transition: filter 0.12s, background 0.12s, box-shadow 0.12s;
 }
-.doc-hub-tab:hover { filter: brightness(0.96); }
+.doc-hub-tab { background: #fff; color: #333; border-color: var(--red); }
+.doc-hub-tab:hover { background: #fff6f0; }
 .doc-hub-tab.active {
-  filter: none;
+  background: var(--red); color: #fff; border-color: var(--red);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
   z-index: 1;
 }
 .doc-hub-tab-label {
@@ -515,7 +523,9 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
   text-overflow: ellipsis;
   max-width: 100%;
 }
+.doc-hub-tab.active .doc-hub-tab-count { background: #fff; color: var(--red); }
 .doc-hub-tab-count {
+  background: var(--red); color: #fff;
   position: absolute; top: -7px; right: -6px;
   font-size: 10px; font-weight: 700; line-height: 1;
   min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px;

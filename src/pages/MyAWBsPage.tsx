@@ -27,6 +27,22 @@ function newDocPath(meta: DocTypeMeta): string {
   return meta.route
 }
 
+const PLAN_LABEL: Record<string, string> = { free: 'Gratis', starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' }
+
+const icon = (d: string) => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={d} />
+  </svg>
+)
+
+/** Line icons for the document categories: plane, ship, document. */
+const CATEGORY_ICON: Record<string, React.ReactNode> = {
+  air: icon('M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z'),
+  maritime: icon('M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6M12 10v4M12 2v3'),
+  invoice: icon('M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2zM14 2v6h6M16 13H8M16 17H8M10 9H8'),
+  eawb: icon('M4 4h16v16H4zM4 9h16M9 4v16'),
+}
+
 export function MyAWBsPage() {
   const { t } = useTranslation()
   const posthog = usePostHog()
@@ -359,13 +375,16 @@ export function MyAWBsPage() {
             <span style={{ color: 'var(--red)', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>{t('eawbPromo.button')} →</span>
           </a>
         )}
+        <div className="doc-hub-brand">
+          Airwaybill App <span>· Plan {PLAN_LABEL[plan] ?? plan}</span>
+        </div>
         <div className="doc-hub-tabs" role="tablist" aria-label={t('myAwbs.docTypes')}>
           {DOC_CATEGORIES.map((cat) => {
             const tabs = HUB_DOC_TYPES.filter((dt) => cat.types.includes(dt.type) && !profileLoading && docTypeAvailable(dt, profile.country, counts[dt.type] || 0))
             if (!tabs.length) return null
             return (
               <div key={cat.key} className="doc-hub-group">
-                <div className="doc-hub-cat">{t(cat.labelKey)}</div>
+                <div className="doc-hub-cat">{CATEGORY_ICON[cat.key]}{t(cat.labelKey)}</div>
                 <div className="doc-hub-group-tabs">
                   {tabs.map((dt) => {
                     const active = dt.type === activeMeta.type
@@ -377,23 +396,12 @@ export function MyAWBsPage() {
                       role="tab"
                       aria-selected={active}
                       className={`doc-hub-tab${active ? ' active' : ''}`}
-                      style={{
-                        background: active ? dt.color : '#fff',
-                        color: active ? '#fff' : dt.color,
-                        borderColor: active ? dt.color : `${dt.color}55`,
-                        boxShadow: active ? `0 2px 6px ${dt.color}55` : undefined,
-                      }}
+
                       onClick={() => setTab(dt.type)}
                     >
                       <span className="doc-hub-tab-label">{dt.badge}</span>
                       {n > 0 && (
-                        <span
-                          className="doc-hub-tab-count"
-                          style={{
-                            background: active ? '#fff' : dt.color,
-                            color: active ? dt.color : '#fff',
-                          }}
-                        >
+                        <span className="doc-hub-tab-count">
                           {n}
                         </span>
                       )}
