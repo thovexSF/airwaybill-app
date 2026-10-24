@@ -518,3 +518,60 @@ export function buildFwb17(raw: FwbInput | Record<string, unknown>): FwbBuildRes
     ok: true,
   }
 }
+
+/**
+ * FHL/4 for one house waybill of a consolidation, sent alongside the master's
+ * FWB. One message per HAWB, which every carrier accepts (some reject several
+ * houses in one FHL).
+ */
+export function buildFhl4(masterRaw: FwbInput, houseRaw: FwbInput, hawbNumber: string): FwbBuildResult {
+  const master = normalizeFwbInput(masterRaw)
+  const house = normalizeFwbInput(houseRaw)
+  const errors: string[] = []
+  const warnings: string[] = []
+
+  const parts = parseAwbParts(master)
+  const mOrigin = originOf(master), mDest = destinationOf(master)
+  const hwb = String(hawbNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12)
+  if (!parts) errors.push('La MAWB no tiene número válido')
+  if (!mOrigin || !mDest) errors.push('La MAWB no tiene origen y destino con código IATA')
+  if (!hwb) errors.push('La HAWB no tiene número')
+
+  const hOrigin = originOf(house) || mOrigin
+  const hDest = destinationOf(house) || mDest
+  const lines = house.rateLines?.length ? house.rateLines : []
+  const hPieces = lines.reduce((s, l) => s + (Number(l.pieces) || 0), 0) || Number(house.numberOfPieces) || 0
+  const hWeight = lines.reduce((s, l) => s + (Number(l.grossWeight) || 0), 0) || Number(house.grossWeight) || 0
+  if (!(hPieces > 0) || !(hWeight > 0)) errors.push(`HAWB ${hawbNumber}: faltan piezas o peso`)
+
+  const shipper = partyOf(house.shipperNameAndAddress)
+  const consignee = partyOf(house.consigneeNameAndAddress)
+  if (!shipper.name || !consignee.name) errors.push(`HAWB ${hawbNumber}: falta shipper o consignee`)
+  if (!shipper.country) warnings.push(`HAWB ${hawbNumber}: no se reconoce el país del shipper`)
+  if (!consignee.country) warnings.push(`HAWB ${hawbNumber}: no se reconoce el país del consignee`)
+  if (errors.length) return { message: '', errors, warnings, ok: false }
+
+  const mPieces = Math.round(Number(master.numberOfPieces) || 0)
+  const mWeight = Number(master.grossWeight) || 0
+  const wu = String(house.weightUnit || master.weightUnit || 'K').toUpperCase().startsWith('L') ? 'L' : 'K'
+  const { goods } = goodsAndDims(lines.map(l => l.natureAndQuantity).filter(Boolean).join(' ') || house.natureAndQuantityOfGoods || '')
+
+  const out: string[] = ['FHL/4']
+  out.push(`MBI/${parts!.number}${mOrigin}${mDest}/T${mPieces}${wu}${formatNum(mWeight)}`)
+  out.push(`HBS/${hwb}/${hOrigin}${hDest}/${Math.round(hPieces)}/${wu}${formatNum(hWeight)}//${lineClean(goods || 'CONSOLIDATED', 15)}`)
+  const txt = wrapWords(goods, 65, 9)
+  txt.forEach((l, k) => out.push(k === 0 ? `TXT/${l}` : `/${l}`))
+  const oci = ([['SHP', shipper], ['CNE', consignee]] as const)
+    .filter(([, p]) => p.taxId && p.country)
+    .map(([role, p]) => `/${p.country}/${role}/T/${lineClean(p.taxId.replace(/[\s.]/g, ''), 35)}`)
+  oci.forEach((l, k) => out.push(k === 0 ? `OCI${l}` : l))
+  out.push(...partySegment('SHP', house.shipperAccountNumber, shipper, hOrigin!))
+  out.push(...partySegment('CNE', house.consigneeAccountNumber, consignee, hDest!))
+  const currency = cleanImp(String(house.currency || master.currency || 'USD'), 3) || 'USD'
+  const pc = ppCc(house.chgsCode, house.weightValuationCharges)
+  const insRaw = cleanImp(String(house.insuranceAmount || ''), 11)
+  const ins = !insRaw || /^(NIL|NONE|N\/A|0)$/.test(insRaw) ? 'XXX' : insRaw
+  out.push(`CVD/${currency}/${pc}/${cleanImp(String(house.valueForCarriage || 'NVD'), 12) || 'NVD'}/${cleanImp(String(house.valueForCustoms || 'NCV'), 12) || 'NCV'}/${ins}`)
+
+  return { message: out.join('\n'), errors: [], warnings, ok: true }
+}

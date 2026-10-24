@@ -1,4 +1,6 @@
 import { supabase } from './supabase'
+import type { AWBData } from '../types/awb'
+import { hawbBelongsTo } from './awbToFwb'
 
 export interface EawbChannel {
   airline_prefix: string
@@ -32,7 +34,16 @@ export async function listEawbMessages(documentId: string): Promise<EawbMessage[
   return (data as EawbMessage[] | null) ?? []
 }
 
-export async function sendEawb(documentId: string): Promise<void> {
+/** House waybills that name this master in their "MAWB reference". */
+export async function listHouses(prefix: string, serial: string): Promise<AWBData[]> {
+  if (!serial) return []
+  const { data } = await supabase
+    .from('awb_documents').select('data')
+    .eq('data->>docType', 'hawb').ilike('data->>mawbReference', `%${serial}%`)
+  return ((data ?? []) as { data: AWBData }[]).map(r => r.data).filter(h => hawbBelongsTo(h, prefix, serial))
+}
+
+export async function sendEawb(documentId: string): Promise<{ fhl: { hawb: string; ok: boolean; error?: string }[] }> {
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
   if (!token) throw new Error('Inicia sesión para enviar la eAWB.')
@@ -43,6 +54,7 @@ export async function sendEawb(documentId: string): Promise<void> {
   })
   const body = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(body.message || 'No se pudo enviar la eAWB.')
+  return { fhl: body.fhl ?? [] }
 }
 
 /** What each Cargo-IMP message is, for people who never read one. */

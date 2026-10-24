@@ -25,7 +25,7 @@ import { adminClient, authenticateApiKey, effectivePlan } from './partnerAuth'
 import { requireAdmin } from './adminAuth'
 import { lookupIataRegistry, registryMeta, replaceRegistry } from './iataRegistry'
 import { renderDocumentPdf } from './renderPdf'
-import { applyEAwbResult, buildFwbFromAwb } from '../src/lib/awbToFwb'
+import { applyEAwbResult, buildFhlFromAwbs, buildFwbFromAwb, hawbBelongsTo } from '../src/lib/awbToFwb'
 import type { AWBData } from '../src/types/awb'
 import { buildFwb17 } from '../src/lib/fwbCargoImp'
 import { authenticateUser } from './userAuth'
@@ -756,12 +756,39 @@ app.post('/api/eawb/send', async (req, res) => {
     }
     try {
       const providerId = await sendEawbMail(channel as EawbChannel, awb.number, body)
-      const { data: msg } = await admin.from('eawb_messages').insert({ ...base, provider_id: providerId ?? null }).select().single()
-      res.json({ ok: true, message: msg, airline: channel.airline_name })
+      await admin.from('eawb_messages').insert({ ...base, provider_id: providerId ?? null })
     } catch (e: any) {
       await admin.from('eawb_messages').insert({ ...base, error: e?.message || String(e) })
-      res.status(502).json({ error: 'send_failed', message: `No se pudo enviar: ${e?.message || e}` })
+      return res.status(502).json({ error: 'send_failed', message: `No se pudo enviar: ${e?.message || e}` })
     }
+
+    // A consolidation: one FHL per house waybill that names this master, after the FWB.
+    const serial = awb.number.slice(4)
+    const { data: houseRows } = await ctx.supabase
+      .from('awb_documents').select('id, data')
+      .eq('organization_id', ctx.organizationId).eq('data->>docType', 'hawb').ilike('data->>mawbReference', `%${serial}%`)
+    const houses = (houseRows ?? []).filter(h => hawbBelongsTo(h.data as AWBData, awb.prefix, serial))
+    const fhl: { hawb: string; ok: boolean; error?: string }[] = []
+    for (const h of houses) {
+      const house = h.data as AWBData
+      const built = buildFhlFromAwbs(data, house)
+      const subject = `FHL ${awb.number} / ${house.hawbNumber}`
+      if (!built.ok) {
+        fhl.push({ hawb: house.hawbNumber || '', ok: false, error: built.errors.join(' · ') })
+        continue
+      }
+      const text = typeBEnvelope(built.message, channel as EawbChannel)
+      const row = { ...base, message_type: 'FHL', subject, body: text }
+      try {
+        const id = await sendEawbMail(channel as EawbChannel, `${awb.number} / ${house.hawbNumber}`, text, 'FHL')
+        await admin.from('eawb_messages').insert({ ...row, provider_id: id ?? null })
+        fhl.push({ hawb: house.hawbNumber || '', ok: true })
+      } catch (e: any) {
+        await admin.from('eawb_messages').insert({ ...row, error: e?.message || String(e) })
+        fhl.push({ hawb: house.hawbNumber || '', ok: false, error: e?.message || String(e) })
+      }
+    }
+    res.json({ ok: true, airline: channel.airline_name, fhl })
   } catch (e: any) {
     console.error('eawb send failed', e)
     res.status(500).json({ error: 'send_failed', message: e?.message || String(e) })

@@ -14,7 +14,7 @@ import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { ImportModal } from '../components/ImportModal'
 import { DocEditorModal } from '../components/DocEditorModal'
-import { DOC_TYPES, HUB_DOC_TYPES, DocTypeMeta, docTypeMeta, docTypeAvailable, DOC_CATEGORIES } from '../lib/docTypes'
+import { HUB_DOC_TYPES, DocTypeMeta, docTypeMeta, docTypeAvailable, DOC_CATEGORIES } from '../lib/docTypes'
 import { withHubModal } from '../lib/partnerTheme'
 import { isAdminUiUser } from '../lib/adminUi'
 import { usePostHog } from '@posthog/react'
@@ -70,7 +70,6 @@ export function MyAWBsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [sortCol, setSortCol] = useState<'awb' | 'shipper' | 'consignee' | 'route' | 'weight' | 'pcs' | 'prepaid' | 'eawb' | 'status' | 'date'>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [ediOpen, setEdiOpen] = useState(false)
   const [editorOpen, setEditorOpen] = useState(false)
   const [editorSrc, setEditorSrc] = useState('')
   const [editorTitle, setEditorTitle] = useState('')
@@ -274,8 +273,6 @@ export function MyAWBsPage() {
   const SortIcon = ({ col }: { col: typeof sortCol }) =>
     sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'
 
-  const ediByTab: Record<string, string[]> = { awb: ['fwb', 'ffr'], hawb: ['fhl'] }
-  const ediTypes = DOC_TYPES.filter((d) => ediByTab[activeMeta.type]?.includes(d.type))
 
   const emptyHints: Record<string, string> = {
     awb: 'No hay MAWB registrados.',
@@ -432,32 +429,6 @@ export function MyAWBsPage() {
                 ↑ {t('myAwbs.import')}
               </button>
             )}
-            {ediTypes.length > 0 && <div style={{ position: 'relative' }}>
-              <button type="button" className="doc-hub-btn" onClick={() => setEdiOpen((o) => !o)}>
-                EDI ▾
-              </button>
-              {ediOpen && (
-                <>
-                  <div className="doc-hub-menu-backdrop" onClick={() => setEdiOpen(false)} />
-                  <div className="doc-hub-menu">
-                    {ediTypes.map((dt) => (
-                      <button
-                        key={dt.type}
-                        type="button"
-                        className="doc-hub-menu-item"
-                        onClick={() => {
-                          setEdiOpen(false)
-                          openEditor(dt.route, dt.badge)
-                        }}
-                      >
-                        <span style={{ background: dt.color }}>{dt.badge}</span>
-                        {dt.name}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>}
             <button
               type="button"
               className="doc-hub-btn primary"

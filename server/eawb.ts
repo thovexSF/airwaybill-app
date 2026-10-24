@@ -38,7 +38,7 @@ export function typeBEnvelope(body: string, channel: EawbChannel, now = new Date
   return `QK ${dest}\n.${origin} ${stamp}\n${body}`
 }
 
-export async function sendEawbMail(channel: EawbChannel, awbNumber: string, text: string) {
+export async function sendEawbMail(channel: EawbChannel, awbNumber: string, text: string, kind: 'FWB' | 'FHL' = 'FWB') {
   const key = process.env.RESEND_API_KEY
   if (!key) throw new Error('RESEND_API_KEY no está configurada en el servidor')
   const from = EAWB_FROM()
@@ -49,7 +49,7 @@ export async function sendEawbMail(channel: EawbChannel, awbNumber: string, text
       from: `Airwaybill eAWB <${from}>`,
       to: channel.destination_email,
       reply_to: from,
-      subject: `FWB ${awbNumber}`,
+      subject: `${kind} ${awbNumber}`,
       // Gateways parse the plain-text body line by line; no HTML part.
       text,
     }),

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import type { AWBData } from '../types/awb'
-import { applyEAwbResult, buildFwbFromAwb } from '../lib/awbToFwb'
+import { applyEAwbResult, buildFhlFromAwbs, buildFwbFromAwb } from '../lib/awbToFwb'
 import type { FwbBuildResult } from '../lib/fwbCargoImp'
 import { splitAwbSerial } from '../lib/awbCheckDigit'
-import { EawbChannel, EawbMessage, FSU_MEANING, MESSAGE_MEANING, eawbState, getEawbChannel, listEawbMessages, sendEawb } from '../lib/eawbMessaging'
+import { EawbChannel, EawbMessage, FSU_MEANING, MESSAGE_MEANING, eawbState, getEawbChannel, listEawbMessages, listHouses, sendEawb } from '../lib/eawbMessaging'
 
 interface Props {
   open: boolean
@@ -31,6 +31,7 @@ export function FwbPreviewDialog({ open, onClose, data, onGenerated, saveFirst, 
   const [messages, setMessages] = useState<EawbMessage[]>([])
   const [sending, setSending] = useState(false)
   const [sendMsg, setSendMsg] = useState<string | null>(null)
+  const [houses, setHouses] = useState<AWBData[]>([])
   const prefix = (data.awbPrefix ?? '').replace(/\D/g, '').padStart(3, '0')
 
   useEffect(() => {
@@ -39,6 +40,8 @@ export function FwbPreviewDialog({ open, onClose, data, onGenerated, saveFirst, 
     getEawbChannel(prefix).then(setChannel).catch(() => setChannel(null))
     if (documentId) listEawbMessages(documentId).then(setMessages).catch(() => setMessages([]))
     else setMessages([])
+    const serial = data.awbSerial ? splitAwbSerial(data.awbSerial).serial : ''
+    if (data.docType !== 'hawb') listHouses(prefix, serial).then(setHouses).catch(() => setHouses([]))
   }, [open, prefix, documentId])
 
   async function send() {
@@ -48,8 +51,10 @@ export function FwbPreviewDialog({ open, onClose, data, onGenerated, saveFirst, 
     try {
       const id = await saveFirst()
       if (!id) throw new Error('No se pudo guardar la AWB antes de enviarla.')
-      await sendEawb(id)
+      const { fhl } = await sendEawb(id)
       setMessages(await listEawbMessages(id))
+      const failed = fhl.filter(f => !f.ok)
+      if (failed.length) setSendMsg(`FWB enviado, pero no se enviaron ${failed.length} FHL: ${failed.map(f => `${f.hawb} (${f.error})`).join('; ')}`)
     } catch (e: any) {
       setSendMsg(e?.message ?? 'No se pudo enviar la eAWB.')
     } finally {
@@ -128,6 +133,27 @@ export function FwbPreviewDialog({ open, onClose, data, onGenerated, saveFirst, 
             </div>
           )}
           {state && <div style={{ fontSize: 12, color: '#555', marginTop: -4 }}>{state.detail}</div>}
+          {houses.length > 0 && (
+            <div style={{ border: '1px solid #eee', borderRadius: 6, fontSize: 12, padding: '6px 10px' }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                Consolidación: {houses.length} HAWB — junto al FWB se envía un FHL por cada una
+              </div>
+              {houses.map(h => {
+                const fhl = buildFhlFromAwbs(data, h)
+                return (
+                  <details key={h.hawbNumber} style={{ padding: '3px 0' }}>
+                    <summary style={{ cursor: 'pointer' }}>
+                      HAWB <b>{h.hawbNumber}</b>{' '}
+                      {fhl.ok
+                        ? <span style={{ color: '#2f7d32' }}>FHL listo{fhl.warnings.length ? ` · ${fhl.warnings.join(' · ')}` : ''}</span>
+                        : <span style={{ color: '#a00' }}>no se puede armar: {fhl.errors.join(' · ')}</span>}
+                    </summary>
+                    {fhl.ok && <pre style={{ margin: '6px 0 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444' }}>{fhl.message}</pre>}
+                  </details>
+                )
+              })}
+            </div>
+          )}
           {messages.length > 0 && (
             <div style={{ border: '1px solid #eee', borderRadius: 6, fontSize: 12 }}>
               {messages.map(m => (

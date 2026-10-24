@@ -1,6 +1,6 @@
 import type { AWBData } from '../types/awb'
 import type { FwbInput } from './fwbCargoImp'
-import { buildFwb17, type FwbBuildResult } from './fwbCargoImp'
+import { buildFwb17, buildFhl4, type FwbBuildResult } from './fwbCargoImp'
 import { splitAwbSerial } from './awbCheckDigit'
 
 /** Map editor AWBData → FwbInput for FWB/17. */
@@ -74,6 +74,15 @@ export function awbDataToFwbInput(data: AWBData): FwbInput {
 
 export function buildFwbFromAwb(data: AWBData): FwbBuildResult {
   return buildFwb17(awbDataToFwbInput(data))
+}
+
+export function buildFhlFromAwbs(master: AWBData, house: AWBData): FwbBuildResult {
+  return buildFhl4(awbDataToFwbInput(master), awbDataToFwbInput(house), house.hawbNumber || '')
+}
+
+/** Whether a HAWB names this master in its "MAWB reference" ("MAWB 045-21564970", "045 21564970"). */
+export function hawbBelongsTo(house: AWBData, prefix: string, serial: string): boolean {
+  return String(house.mawbReference ?? '').replace(/\D/g, '').endsWith(`${prefix}${serial}`)
 }
 
 export function applyEAwbResult(data: AWBData, result: FwbBuildResult): AWBData {
