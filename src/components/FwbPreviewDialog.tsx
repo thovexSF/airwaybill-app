@@ -3,7 +3,7 @@ import type { AWBData } from '../types/awb'
 import { applyEAwbResult, buildFwbFromAwb } from '../lib/awbToFwb'
 import type { FwbBuildResult } from '../lib/fwbCargoImp'
 import { splitAwbSerial } from '../lib/awbCheckDigit'
-import { EawbChannel, EawbMessage, eawbState, getEawbChannel, listEawbMessages, sendEawb } from '../lib/eawbMessaging'
+import { EawbChannel, EawbMessage, FSU_MEANING, MESSAGE_MEANING, eawbState, getEawbChannel, listEawbMessages, sendEawb } from '../lib/eawbMessaging'
 
 interface Props {
   open: boolean
@@ -127,13 +127,20 @@ export function FwbPreviewDialog({ open, onClose, data, onGenerated, saveFirst, 
               {sendMsg && <span style={{ color: '#a00' }}>{sendMsg}</span>}
             </div>
           )}
+          {state && <div style={{ fontSize: 12, color: '#555', marginTop: -4 }}>{state.detail}</div>}
           {messages.length > 0 && (
             <div style={{ border: '1px solid #eee', borderRadius: 6, fontSize: 12 }}>
               {messages.map(m => (
                 <details key={m.id} style={{ padding: '6px 10px', borderBottom: '1px solid #f2f2f2' }}>
                   <summary style={{ cursor: 'pointer' }}>
-                    {new Date(m.created_at).toLocaleString()} · {m.direction === 'out' ? '→ enviado' : '← recibido'} {m.message_type}
-                    {m.status_code ? ` ${m.status_code}` : ''}{m.error ? ` — ${m.error}` : ''}
+                    {new Date(m.created_at).toLocaleString()} · {m.direction === 'out' ? '→ enviado' : '← recibido'} <b>{m.message_type}</b>
+                    {m.status_code ? ` ${m.status_code}` : ''}
+                    <span style={{ color: '#777' }}>
+                      {' — '}{m.message_type === 'FSU' && m.status_code && FSU_MEANING[m.status_code]
+                        ? `estado: ${FSU_MEANING[m.status_code]}`
+                        : MESSAGE_MEANING[m.message_type] ?? 'correo sin formato de aerolínea'}
+                    </span>
+                    {m.error ? <span style={{ color: '#a00' }}> · {m.error}</span> : null}
                   </summary>
                   <pre style={{ margin: '6px 0 0', whiteSpace: 'pre-wrap', fontSize: 11, color: '#444' }}>{m.body}</pre>
                 </details>
