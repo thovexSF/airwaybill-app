@@ -81,8 +81,19 @@ export function parseParty(block: string | undefined, fallbackCountry = ''): Fwb
 
   // The line naming the country (often "CITY - COUNTRY" or "CITY, COUNTRY") gives the place.
   let place = ''
+  let cityState = ''
   const countryIdx = rest.findIndex(l => COUNTRIES.some(([re]) => re.test(l)))
-  if (countryIdx >= 0) place = placeOf(rest.splice(countryIdx, 1)[0])
+  if (countryIdx >= 0) {
+    const line = rest.splice(countryIdx, 1)[0]
+    postCode ||= /\s(\d{4,8})\s*$/.exec(line)?.[1] ?? ''
+    // A city-state line ("SINGAPORE") is both the country and the place.
+    place = placeOf(line.replace(/\s\d{4,8}\s*$/, ''))
+    cityState = cleanPlace(line.replace(/\d+/g, ''))
+    // Drop a second line that only repeats the country.
+    for (let k = rest.length - 1; k >= 0; k--) {
+      if (COUNTRIES.some(([re]) => re.test(rest[k])) && cleanPlace(rest[k]).replace(/[^A-Z]/g, '').length <= 15 && !/\d/.test(rest[k])) rest.splice(k, 1)
+    }
+  }
   // European style "65479 RAUNHEIM": postcode, then city.
   if (!place) {
     const eu = rest.findIndex(l => /^\d{4,6}\s+[A-Z][A-Z .'-]+$/.test(l))
@@ -102,6 +113,7 @@ export function parseParty(block: string | undefined, fallbackCountry = ''): Fwb
     place = placeOf(rest[0])
     rest[0] = rest[0].split(/\s+-\s+/)[0]
   }
+  if (!place) place = cityState
   const street = rest.join(', ')
 
   return {

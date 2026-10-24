@@ -139,12 +139,12 @@ function airportCodes(display?: string): string[] {
   return paren ? paren[1].split(/\s*[\/\-]\s*/) : []
 }
 
-function originOf(input: FwbInput): string | undefined {
+export function originOf(input: FwbInput): string | undefined {
   return extractAirportCode(input.airportOfDeparture) || extractAirportCode(input.departureDisplay)
 }
 
 /** Destination as typed, else the second code of "(SCL/MDZ)", else the last routed airport. */
-function destinationOf(input: FwbInput): string | undefined {
+export function destinationOf(input: FwbInput): string | undefined {
   const origin = originOf(input)
   const direct = extractAirportCode(input.airportOfDestination) || extractAirportCode(input.destinationDisplay)
   if (direct) return direct
@@ -221,7 +221,7 @@ function flightToken(flight?: string, date?: string): string | null {
   return f
 }
 
-function parseFlights(input: FwbInput): string[] {
+export function parseFlights(input: FwbInput): string[] {
   const out: string[] = []
   const a = flightToken(input.flightNumber, input.flightDate)
   const b = flightToken(input.flightNumber2, input.flightDate2)

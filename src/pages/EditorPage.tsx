@@ -9,6 +9,7 @@ import { StructuredFormPanel } from '../components/StructuredFormPanel'
 import { FormDialog } from '../components/FormDialog'
 import { CopiesDialog } from '../components/CopiesDialog'
 import { FwbPreviewDialog } from '../components/FwbPreviewDialog'
+import { EawbSuggestionsButton } from '../components/EawbSuggestionsButton'
 import { AWBOverlay } from '../components/AWBOverlay'
 import { AWBDocument } from '../pdf/AWBDocument'
 import { AWBData, defaultAWBData } from '../types/awb'
@@ -415,9 +416,12 @@ export function EditorPage() {
             🖨 {t('editor.copies')}
           </button>
           {data.docType !== 'hawb' && (
-            <button className="btn-example" type="button" onClick={() => setFwbOpen(true)} title="Generar FWB/17 (eAWB)">
-              eAWB / FWB
-            </button>
+            <>
+              <EawbSuggestionsButton data={data} onApply={applyData} />
+              <button className="btn-example" type="button" onClick={() => setFwbOpen(true)} title="Generar FWB/17 (eAWB)">
+                eAWB / FWB
+              </button>
+            </>
           )}
           {pdfUrl && (
             <button className="btn-download" type="button" onClick={handleDownloadPdf} disabled={downloading || planLoading}>

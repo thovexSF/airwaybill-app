@@ -16,6 +16,7 @@ import { exampleAWB } from '../data/example'
 import { LangSwitcher } from '../components/LangSwitcher'
 import '../App.css'
 import { usePostHog } from '@posthog/react'
+import { EawbSuggestionsButton } from '../components/EawbSuggestionsButton'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -167,6 +168,7 @@ export function DemoEditorPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{t('editor.generating')}</span>}
+          <EawbSuggestionsButton data={data} onApply={applyData} />
           <button type="button" className="btn-example" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.copies')}
           </button>
