@@ -12,9 +12,11 @@ export type FeedbackResult =
   | { ok: true; id: string }
   | { ok: false; error: string }
 
+const MIN_FEEDBACK_CHARS = 12
+
 export async function submitFeedback(payload: FeedbackPayload): Promise<FeedbackResult> {
   const text = payload.text.trim()
-  if (text.length < 3) {
+  if (text.length < MIN_FEEDBACK_CHARS) {
     return { ok: false, error: 'too_short' }
   }
 
