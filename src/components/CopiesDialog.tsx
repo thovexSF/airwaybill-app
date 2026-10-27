@@ -21,6 +21,7 @@ export function CopiesDialog({
   authorize,
   fileName,
   allowDownload = true,
+  showBrandStamp = true,
 }: {
   open: boolean
   data: AWBData
@@ -29,6 +30,7 @@ export function CopiesDialog({
   fileName: string
   /** The public demo previews and prints the copies but does not hand out files. */
   allowDownload?: boolean
+  showBrandStamp?: boolean
 }) {
   const { t } = useTranslation()
   const [selected, setSelected] = useState<string[]>(DEFAULT_COPIES)
@@ -84,7 +86,7 @@ export function CopiesDialog({
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
-          const next = await pdf(<AWBCopiesDocument data={data} copies={copies} sides={sides} />).toBlob()
+          const next = await pdf(<AWBCopiesDocument data={data} copies={copies} sides={sides} showBrandStamp={showBrandStamp} />).toBlob()
           if (id !== genRef.current) return
           setBlob(next)
           setError(null)
@@ -98,7 +100,7 @@ export function CopiesDialog({
       })()
     }, 300)
     return () => window.clearTimeout(timer)
-  }, [open, data, copies, sides, t])
+  }, [open, data, copies, sides, showBrandStamp, t])
 
   if (!open) return null
 
@@ -110,7 +112,7 @@ export function CopiesDialog({
 
   /** Renders the current selection once, for whatever the caller does next. */
   async function currentBlob(): Promise<Blob> {
-    return blob ?? pdf(<AWBCopiesDocument data={data} copies={copies} sides={sides} />).toBlob()
+    return blob ?? pdf(<AWBCopiesDocument data={data} copies={copies} sides={sides} showBrandStamp={showBrandStamp} />).toBlob()
   }
 
   // The contract alone carries none of the waybill's data, so it costs no quota.

@@ -215,7 +215,7 @@ export function EditorPage() {
   async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
     setGenerating(true)
     try {
-      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} />).toBlob()
+      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} showBrandStamp={false} />).toBlob()
       savedScroll.current = previewScrollRef.current?.scrollTop ?? 0
       restorePending.current = true
       setPdfBlob(blob)
@@ -419,7 +419,7 @@ export function EditorPage() {
       {atLimit && (
         <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{t('editor.limitBanner')}</span>
-          <Link to="/pricing" style={{ fontWeight: 700, color: 'var(--red)', textDecoration: 'none' }}>{t('editor.upgradeNow')}</Link>
+          <Link to="/pricing?source=watermark_limit&intent=remove_watermark" style={{ fontWeight: 700, color: 'var(--red)', textDecoration: 'none' }}>{t('editor.upgradeNow')}</Link>
         </div>
       )}
 
@@ -454,6 +454,7 @@ export function EditorPage() {
           onClose={() => setCopiesOpen(false)}
           authorize={authorizeCopies}
           fileName={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}`}
+          showBrandStamp={false}
         />
         <FwbPreviewDialog
           open={fwbOpen}
