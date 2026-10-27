@@ -250,6 +250,15 @@ export function DocEditorShell<T>({
         )}
       </div>
 
+      {!demo && plan === 'free' && forceWatermark && (
+        <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <span>{t('editor.limitBanner')}</span>
+          <Link to="/pricing?source=watermark_limit&intent=remove_watermark" style={{ fontWeight: 700, color: 'var(--red)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            {t('editor.upgradeNow')}
+          </Link>
+        </div>
+      )}
+
       <div className="main">
         {/* ── Form panel ── */}
         <div className="form-panel-wrap" style={{ width: formWidth, display: showForm ? undefined : 'none' }}>

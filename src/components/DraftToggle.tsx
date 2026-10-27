@@ -6,7 +6,7 @@ export function DraftToggle({ checked, onChange, locked }: {
 }) {
   return (
     <label
-      title={locked ? 'Plan gratis: alcanzaste el límite de documentos, el PDF lleva DRAFT hasta que actualices el plan.' : 'Marca de agua DRAFT en el PDF'}
+      title={locked ? 'Plan gratis: alcanzaste el límite de documentos sin marca. Actualiza a Starter para quitar DRAFT.' : 'Marca de agua DRAFT en el PDF'}
       style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#ddd', fontSize: 11, fontWeight: 700, padding: '0 8px', height: 26, borderRadius: 4, background: '#333', cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.7 : 1 }}
     >
       <input
