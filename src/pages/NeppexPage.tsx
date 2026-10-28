@@ -14,6 +14,7 @@ import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
+import { applyPdfWatermarkPolicy, usePaidPlanDraftCleanup } from '../lib/watermarkPolicy'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -79,6 +80,8 @@ export function NeppexPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragRef = useRef(false)
 
+  usePaidPlanDraftCleanup(data, setData, { plan, demo })
+
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
     const startX = e.clientX
@@ -108,12 +111,12 @@ export function NeppexPage() {
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => regenerate(data), 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, quota.atLimit])
+  }, [data, quota.atLimit, plan, demo])
 
   async function regenerate(d: NeppexData) {
     setGenerating(true)
     try {
-      const blob = await pdf(<NeppexDocument data={quota.atLimit ? { ...d, isDraft: true } : d} />).toBlob()
+      const blob = await pdf(<NeppexDocument data={applyPdfWatermarkPolicy(d, { plan, atLimit: quota.atLimit, demo })} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {

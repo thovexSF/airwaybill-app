@@ -17,6 +17,7 @@ import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
+import { applyPdfWatermarkPolicy, usePaidPlanDraftCleanup } from '../lib/watermarkPolicy'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -83,6 +84,8 @@ export function DGDPage() {
 
   const blocked = false
 
+  usePaidPlanDraftCleanup(data, setData, { plan, demo })
+
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
     const startX = e.clientX
@@ -103,7 +106,7 @@ export function DGDPage() {
   }, [docId])
 
   const logo = data.logoUrl ?? (profile.companyLogoUrl || undefined)
-  const docForRender = (d: DGDData) => (quota.atLimit ? { ...d, isDraft: true } : d)
+  const docForRender = (d: DGDData) => applyPdfWatermarkPolicy(d, { plan, atLimit: quota.atLimit, demo })
 
   // The PDF that gets downloaded: always complete, refreshed shortly after the data changes.
   useEffect(() => {
@@ -118,15 +121,15 @@ export function DGDPage() {
       }
     }, 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, quota.atLimit, logo])
+  }, [data, quota.atLimit, logo, plan, demo])
 
   // What the preview shows. Editing on the sheet draws no values underneath, so typing must not reload the
   // viewer (that emptied it, scrolled it to the top and dropped focus): it only reloads when the sheet itself
   // changes: struck options, number of sheets, draft mark, logo.
   const sigState = signatureState(data)
   const previewKey = overlayMode
-    ? JSON.stringify(['sheet', data.shipmentType, data.isRadioactive, data.isDraft, quota.atLimit, Math.max(1, Math.ceil(data.items.length / DGD_ROWS)), logo, sigState, data.signatureProof?.signedAt])
-    : JSON.stringify(['full', data, quota.atLimit, logo])
+    ? JSON.stringify(['sheet', data.shipmentType, data.isRadioactive, data.isDraft, quota.atLimit, plan, demo, Math.max(1, Math.ceil(data.items.length / DGD_ROWS)), logo, sigState, data.signatureProof?.signedAt])
+    : JSON.stringify(['full', data, quota.atLimit, plan, demo, logo])
 
   useEffect(() => {
     let cancelled = false

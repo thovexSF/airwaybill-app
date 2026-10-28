@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getDocument, saveDocument, SuiteDocType, SuiteDocumentData } from './documentService'
 import { usePdfDownloadGuard, DownloadAuthorization } from './pdfQuota'
+import { usePaidPlanDraftCleanup } from './watermarkPolicy'
 
 export type { DownloadAuthorization }
 
@@ -25,6 +26,8 @@ export function useDocEditor<T extends SuiteDocumentData>(
   const [currentId, setCurrentId] = useState<string | null>(docId)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+
+  usePaidPlanDraftCleanup(data, setData, { plan: guard.plan })
 
   useEffect(() => {
     if (!docId) return

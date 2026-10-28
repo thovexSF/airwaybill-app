@@ -23,6 +23,7 @@ import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { DraftToggle } from '../components/DraftToggle'
 import { usePostHog } from '@posthog/react'
+import { applyPdfWatermarkPolicy } from '../lib/watermarkPolicy'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -73,7 +74,8 @@ export function EditorPage() {
   const [downloadCountedAt, setDownloadCountedAt] = useState<string | null>(null)
   // Free plan, allowance spent: documents still download, but always with the DRAFT watermark.
   const atLimit = plan === 'free' && !canDownloadDocument && !downloadCountedAt
-  const renderData = atLimit ? { ...data, isDraft: true } : data
+  const renderData = applyPdfWatermarkPolicy(data, { plan, atLimit })
+  const showBrandStamp = plan === 'free'
   const [formWidth, setFormWidth] = useState(initialFormWidth)
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
@@ -202,8 +204,8 @@ export function EditorPage() {
   const previewKey = overlayMode
     ? JSON.stringify(['sheet', renderData.docType, renderData.awbPrefix, renderData.awbSerial, renderData.awbAirportCode,
         renderData.airportOfDeparture, renderData.hawbNumber, renderData.isDraft, renderData.copyNumber,
-        (renderData.rateItems ?? []).map(r => [r.pieces, r.grossWeight, r.weightUnit, r.total]), pdfScale])
-    : JSON.stringify(['full', renderData, pdfScale])
+        (renderData.rateItems ?? []).map(r => [r.pieces, r.grossWeight, r.weightUnit, r.total]), pdfScale, showBrandStamp])
+    : JSON.stringify(['full', renderData, pdfScale, showBrandStamp])
 
   // Debounced PDF regeneration
   useEffect(() => {
@@ -215,7 +217,7 @@ export function EditorPage() {
   async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
     setGenerating(true)
     try {
-      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} />).toBlob()
+      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} showBrandStamp={showBrandStamp} />).toBlob()
       savedScroll.current = previewScrollRef.current?.scrollTop ?? 0
       restorePending.current = true
       setPdfBlob(blob)
@@ -454,6 +456,7 @@ export function EditorPage() {
           onClose={() => setCopiesOpen(false)}
           authorize={authorizeCopies}
           fileName={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}`}
+          showBrandStamp={showBrandStamp}
         />
         <FwbPreviewDialog
           open={fwbOpen}
