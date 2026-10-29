@@ -12,6 +12,7 @@ import { usePlan } from '../lib/usePlan'
 import { usePdfDownloadGuard } from '../lib/pdfQuota'
 import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { WatermarkUpgradePrompt } from '../components/WatermarkUpgradePrompt'
 import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
 
@@ -59,7 +60,7 @@ function Check({ label, checked, onChange }: { label: string; checked: boolean; 
 
 export function NeppexPage() {
   const { user, logout, orgName } = useAuth()
-  const { plan } = usePlan()
+  const { plan, orgId, docsUsedThisMonth, docLimit } = usePlan()
   const quota = usePdfDownloadGuard()
   const demo = useDemoMode()
   const navigate = useNavigate()
@@ -250,6 +251,17 @@ export function NeppexPage() {
           />
         )}
       </div>
+
+      {!demo && quota.atLimit && (
+        <WatermarkUpgradePrompt
+          source="neppex_editor_limit"
+          docType="neppex"
+          plan={plan}
+          orgId={orgId}
+          docsUsed={docsUsedThisMonth}
+          docLimit={docLimit}
+        />
+      )}
 
       <div className="main">
         <div className="form-panel-wrap" style={{ width: formWidth }}>
