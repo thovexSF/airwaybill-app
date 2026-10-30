@@ -22,6 +22,7 @@ import { recordPdfDownload } from '../lib/pdfQuota'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { DraftToggle } from '../components/DraftToggle'
+import { WatermarkUpgradePrompt } from '../components/WatermarkUpgradePrompt'
 import { usePostHog } from '@posthog/react'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -417,10 +418,13 @@ export function EditorPage() {
 
       {/* Free plan limit banner */}
       {atLimit && (
-        <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>{t('editor.limitBanner')}</span>
-          <Link to="/pricing" style={{ fontWeight: 700, color: 'var(--red)', textDecoration: 'none' }}>{t('editor.upgradeNow')}</Link>
-        </div>
+        <WatermarkUpgradePrompt
+          docType={data.docType ?? 'awb'}
+          placement="awb_editor"
+          userEmail={user?.email}
+          orgId={orgId}
+          plan={plan}
+        />
       )}
 
       <div className={`main ${overlayMode ? 'main-single' : ''}`}>
