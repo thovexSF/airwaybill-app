@@ -15,6 +15,7 @@ import { usePlan } from '../lib/usePlan'
 import { usePdfDownloadGuard } from '../lib/pdfQuota'
 import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
+import { WatermarkUpgradePrompt } from '../components/WatermarkUpgradePrompt'
 import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
 
@@ -53,7 +54,7 @@ function Row({ children }: { children: React.ReactNode }) {
 
 export function DGDPage() {
   const { user, logout, orgName } = useAuth()
-  const { plan } = usePlan()
+  const { plan, orgId } = usePlan()
   const quota = usePdfDownloadGuard()
   const { profile } = useOrgProfile()
   const demo = useDemoMode()
@@ -274,6 +275,16 @@ export function DGDPage() {
           />
         )}
       </div>
+
+      {!demo && quota.atLimit && (
+        <WatermarkUpgradePrompt
+          docType="dgd"
+          placement="dgd_editor"
+          userEmail={user?.email}
+          orgId={orgId}
+          plan={plan}
+        />
+      )}
 
       <div className="main">
         {/* Form panel */}
