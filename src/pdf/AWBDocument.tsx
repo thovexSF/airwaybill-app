@@ -328,7 +328,7 @@ function AwbSheet({ ink, wash, label, footer, hawb }: { ink: string; wash: strin
  * while the HTML overlay is up: the overlay already shows every value, and
  * drawing them here too made each one appear twice.
  */
-function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?: boolean; copyKey?: string }) {
+function AWBFacePage({ data, hideValues, copyKey, showBrandStamp = true }: { data: AWBData; hideValues?: boolean; copyKey?: string; showBrandStamp?: boolean }) {
   const isHawb = data.docType === 'hawb'
   const awbFull = isHawb
     ? (data.hawbNumber || '')
@@ -346,7 +346,7 @@ function AWBFacePage({ data, hideValues, copyKey }: { data: AWBData; hideValues?
 
       {data.isDraft && <Text style={[styles.watermark, { color: theme.ink }]}>DRAFT</Text>}
 
-      <Text style={[styles.stamp, { color: theme.ink }]}>GENERATED WITH AIRWAYBILL.APP</Text>
+      {showBrandStamp && <Text style={[styles.stamp, { color: theme.ink }]}>GENERATED WITH AIRWAYBILL.APP</Text>}
 
       {fieldDefs.map((def, i) => {
         // The overlay covers only what the user types, so the derived values —
@@ -420,15 +420,16 @@ const conditions = StyleSheet.create({
  * it is on paper; the live editor leaves it off so a keystroke only re-lays out
  * the page being edited.
  */
-export function AWBDocument({ data, hideValues, withConditions }: {
+export function AWBDocument({ data, hideValues, withConditions, showBrandStamp = true }: {
   data: AWBData
   userScale?: 'sm' | 'md' | 'lg'
   hideValues?: boolean
   withConditions?: boolean
+  showBrandStamp?: boolean
 }) {
   return (
     <Document>
-      <AWBFacePage data={data} hideValues={hideValues} />
+      <AWBFacePage data={data} hideValues={hideValues} showBrandStamp={showBrandStamp} />
       {withConditions && <AwbConditionsPage />}
     </Document>
   )
@@ -445,12 +446,12 @@ export type AwbCopySides = 'both' | 'face' | 'conditions'
  * `sides` lets the contract go to the printer on its own: one reverse per
  * selected copy, so a stack printed face-only can be turned over and fed back.
  */
-export function AWBCopiesDocument({ data, copies, sides = 'both' }: { data: AWBData; copies: string[]; sides?: AwbCopySides }) {
+export function AWBCopiesDocument({ data, copies, sides = 'both', showBrandStamp = true }: { data: AWBData; copies: string[]; sides?: AwbCopySides; showBrandStamp?: boolean }) {
   return (
     <Document>
       {copies.map((key) => (
         <React.Fragment key={key}>
-          {sides !== 'conditions' && <AWBFacePage data={data} copyKey={key} />}
+          {sides !== 'conditions' && <AWBFacePage data={data} copyKey={key} showBrandStamp={showBrandStamp} />}
           {sides !== 'face' && <AwbConditionsPage />}
         </React.Fragment>
       ))}

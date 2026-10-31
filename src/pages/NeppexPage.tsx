@@ -10,6 +10,7 @@ import { saveNeppex, getNeppex } from '../lib/neppexService'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
 import { usePdfDownloadGuard } from '../lib/pdfQuota'
+import { withPdfWatermarkPolicy } from '../lib/watermarkPolicy'
 import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
@@ -105,15 +106,21 @@ export function NeppexPage() {
   }, [docId])
 
   useEffect(() => {
+    if (plan !== 'free' && data.isDraft) {
+      setData(d => (d.isDraft ? { ...d, isDraft: false } : d))
+    }
+  }, [plan, data.isDraft])
+
+  useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => regenerate(data), 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, quota.atLimit])
+  }, [data, quota.atLimit, plan])
 
   async function regenerate(d: NeppexData) {
     setGenerating(true)
     try {
-      const blob = await pdf(<NeppexDocument data={quota.atLimit ? { ...d, isDraft: true } : d} />).toBlob()
+      const blob = await pdf(<NeppexDocument data={withPdfWatermarkPolicy(d, { plan, forceWatermark: quota.atLimit })} />).toBlob()
       setPdfBlob(blob)
       setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob) })
     } catch (e) {

@@ -19,6 +19,7 @@ import { useAuth } from '../auth/AuthContext'
 import { saveAWB, getAWB } from '../lib/awbService'
 import { usePlan } from '../lib/usePlan'
 import { recordPdfDownload } from '../lib/pdfQuota'
+import { withPdfWatermarkPolicy } from '../lib/watermarkPolicy'
 import { supabase } from '../lib/supabase'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { DraftToggle } from '../components/DraftToggle'
@@ -73,7 +74,7 @@ export function EditorPage() {
   const [downloadCountedAt, setDownloadCountedAt] = useState<string | null>(null)
   // Free plan, allowance spent: documents still download, but always with the DRAFT watermark.
   const atLimit = plan === 'free' && !canDownloadDocument && !downloadCountedAt
-  const renderData = atLimit ? { ...data, isDraft: true } : data
+  const renderData = withPdfWatermarkPolicy(data, { plan, forceWatermark: atLimit })
   const [formWidth, setFormWidth] = useState(initialFormWidth)
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
@@ -145,12 +146,12 @@ export function EditorPage() {
     return () => ro.disconnect()
   }, [overlayMode, pdfBlob, updatePageWidth])
 
-  // Auto-disable DRAFT watermark for paid plans
+  // Auto-disable DRAFT watermark for paid plans.
   useEffect(() => {
     if (plan !== 'free' && data.isDraft) {
       setData(prev => ({ ...prev, isDraft: false }))
     }
-  }, [plan])
+  }, [plan, data.isDraft])
 
   // Load doc
   useEffect(() => {
@@ -215,7 +216,7 @@ export function EditorPage() {
   async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
     setGenerating(true)
     try {
-      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} />).toBlob()
+      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} showBrandStamp={false} />).toBlob()
       savedScroll.current = previewScrollRef.current?.scrollTop ?? 0
       restorePending.current = true
       setPdfBlob(blob)
@@ -454,6 +455,7 @@ export function EditorPage() {
           onClose={() => setCopiesOpen(false)}
           authorize={authorizeCopies}
           fileName={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}`}
+          showBrandStamp={false}
         />
         <FwbPreviewDialog
           open={fwbOpen}

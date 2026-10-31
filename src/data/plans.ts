@@ -30,7 +30,7 @@ export const PLANS: PlanConfig[] = [
     priceDisplay: '$10',
     period: 'per month',
     description: 'For small freight forwarders',
-    features: ['Unlimited AWB PDF downloads', 'No watermark', 'Custom carrier logo', 'AWB check digit validation', '2 users', 'Email support'],
+    features: ['Unlimited document PDF downloads', 'No watermark', 'Custom carrier logo', 'AWB check digit validation', '2 users', 'Email support'],
     highlight: false,
     cta: 'Subscribe',
   },

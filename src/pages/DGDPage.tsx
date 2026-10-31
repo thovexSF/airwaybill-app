@@ -13,6 +13,7 @@ import { saveDGD, getDGD } from '../lib/dgdService'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
 import { usePdfDownloadGuard } from '../lib/pdfQuota'
+import { withPdfWatermarkPolicy } from '../lib/watermarkPolicy'
 import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
@@ -102,8 +103,14 @@ export function DGDPage() {
     }
   }, [docId])
 
+  useEffect(() => {
+    if (plan !== 'free' && data.isDraft) {
+      setData(d => (d.isDraft ? { ...d, isDraft: false } : d))
+    }
+  }, [plan, data.isDraft])
+
   const logo = data.logoUrl ?? (profile.companyLogoUrl || undefined)
-  const docForRender = (d: DGDData) => (quota.atLimit ? { ...d, isDraft: true } : d)
+  const docForRender = (d: DGDData) => withPdfWatermarkPolicy(d, { plan, forceWatermark: quota.atLimit })
 
   // The PDF that gets downloaded: always complete, refreshed shortly after the data changes.
   useEffect(() => {
@@ -118,15 +125,15 @@ export function DGDPage() {
       }
     }, 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, quota.atLimit, logo])
+  }, [data, quota.atLimit, logo, plan])
 
   // What the preview shows. Editing on the sheet draws no values underneath, so typing must not reload the
   // viewer (that emptied it, scrolled it to the top and dropped focus): it only reloads when the sheet itself
   // changes: struck options, number of sheets, draft mark, logo.
   const sigState = signatureState(data)
   const previewKey = overlayMode
-    ? JSON.stringify(['sheet', data.shipmentType, data.isRadioactive, data.isDraft, quota.atLimit, Math.max(1, Math.ceil(data.items.length / DGD_ROWS)), logo, sigState, data.signatureProof?.signedAt])
-    : JSON.stringify(['full', data, quota.atLimit, logo])
+    ? JSON.stringify(['sheet', data.shipmentType, data.isRadioactive, data.isDraft, quota.atLimit, plan, Math.max(1, Math.ceil(data.items.length / DGD_ROWS)), logo, sigState, data.signatureProof?.signedAt])
+    : JSON.stringify(['full', data, quota.atLimit, plan, logo])
 
   useEffect(() => {
     let cancelled = false
