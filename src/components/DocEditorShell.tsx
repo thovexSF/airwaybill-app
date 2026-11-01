@@ -10,6 +10,7 @@ import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
 import { useDemoMode } from './DemoMode'
 import { useTranslation } from 'react-i18next'
+import { WatermarkUpgradePrompt } from './WatermarkUpgradePrompt'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -249,6 +250,10 @@ export function DocEditorShell<T>({
           </button>
         )}
       </div>
+
+      {!demo && forceWatermark && (
+        <WatermarkUpgradePrompt docType={(data as any).docType ?? 'document'} placement="shared_editor_limit_banner" />
+      )}
 
       <div className="main">
         {/* ── Form panel ── */}
