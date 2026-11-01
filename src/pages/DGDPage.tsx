@@ -16,6 +16,7 @@ import { usePdfDownloadGuard } from '../lib/pdfQuota'
 import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
+import { WatermarkUpgradePrompt } from '../components/WatermarkUpgradePrompt'
 import { track } from '../lib/analytics'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -274,6 +275,10 @@ export function DGDPage() {
           />
         )}
       </div>
+
+      {!demo && quota.atLimit && (
+        <WatermarkUpgradePrompt docType="dgd" placement="dgd_editor_limit_banner" />
+      )}
 
       <div className="main">
         {/* Form panel */}
