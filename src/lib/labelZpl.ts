@@ -83,12 +83,42 @@ export function buildLabelZpl(data: LabelData): string {
 }
 
 /**
+ * Talk to the Zebra Browser Print local service directly over its HTTP API —
+ * the SDK is only a thin wrapper around these two endpoints, so this avoids
+ * bundling Zebra's proprietary JS. The service listens on 9100 (http) and
+ * 9101 (https); from an https page the browser blocks the http origin as mixed
+ * content, so try the matching scheme first. Returns false if the service
+ * isn't running (user hasn't installed/started Browser Print) or refuses.
+ */
+async function sendViaBrowserPrint(zpl: string): Promise<boolean> {
+  const bases =
+    location.protocol === 'https:'
+      ? ['https://localhost:9101', 'http://localhost:9100']
+      : ['http://localhost:9100', 'https://localhost:9101']
+
+  for (const base of bases) {
+    try {
+      const device = await fetch(`${base}/default?type=printer`).then(r => (r.ok ? r.json() : Promise.reject()))
+      const res = await fetch(`${base}/write`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device, data: zpl }),
+      })
+      if (res.ok) return true
+    } catch {
+      // Try the next base, then fall through to download.
+    }
+  }
+  return false
+}
+
+/**
  * Print through Zebra Browser Print if the local service is running,
  * otherwise fall back to downloading the .zpl file.
  */
 export async function sendLabelToZebra(zpl: string, filename = 'label.zpl'): Promise<'browser-print' | 'download'> {
+  // Prefer the SDK if a page ever loads it; otherwise hit the service directly.
   const BrowserPrint = (window as any).BrowserPrint
-
   if (BrowserPrint?.getDefaultDevice) {
     try {
       const device = await new Promise<any>((resolve, reject) => {
@@ -99,9 +129,11 @@ export async function sendLabelToZebra(zpl: string, filename = 'label.zpl'): Pro
         return 'browser-print'
       }
     } catch {
-      // Browser Print not reachable — fall through to the download path.
+      // Fall through.
     }
   }
+
+  if (await sendViaBrowserPrint(zpl)) return 'browser-print'
 
   const url = URL.createObjectURL(new Blob([zpl], { type: 'text/plain' }))
   const a = document.createElement('a')

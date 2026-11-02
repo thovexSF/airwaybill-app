@@ -25,7 +25,7 @@ export function LabelPage() {
     setZplMsg(null)
     try {
       const where = await sendLabelToZebra(buildLabelZpl(data), `Label_${awb || 'draft'}.zpl`)
-      setZplMsg(where === 'browser-print' ? 'Sent to Zebra' : 'ZPL downloaded')
+      setZplMsg(where === 'browser-print' ? 'Sent to Zebra' : 'Browser Print not found — ZPL downloaded')
       track('label_zpl_printed')
     } catch {
       setZplMsg('ZPL error')
@@ -49,7 +49,11 @@ export function LabelPage() {
       forceWatermark={atLimit}
       onDownload={() => track('label_downloaded')}
       extraActions={
-        <button className="btn-example" onClick={handleZebra} title="Send ZPL to a Zebra printer, or download the .zpl file">
+        <button
+          className="btn-example"
+          onClick={handleZebra}
+          title="Prints directly to the Zebra printer. Requires the free Zebra Browser Print app installed and running on this computer. Without it, the .zpl file is downloaded instead."
+        >
           ⎙ Print to Zebra
         </button>
       }
