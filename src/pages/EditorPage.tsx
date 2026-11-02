@@ -17,6 +17,8 @@ import { exampleAWB } from '../data/example'
 import { applyAirlineForPrefix, dedupeCarrierAddress } from '../lib/airlines'
 import { useAuth } from '../auth/AuthContext'
 import { saveAWB, getAWB } from '../lib/awbService'
+import { saveDocument } from '../lib/documentService'
+import { awbToLabel } from '../lib/awbToLabel'
 import { usePlan } from '../lib/usePlan'
 import { recordPdfDownload } from '../lib/pdfQuota'
 import { supabase } from '../lib/supabase'
@@ -260,6 +262,17 @@ export function EditorPage() {
     return null
   }
 
+  /** Create an air cargo label prefilled from this MAWB and open its editor. */
+  async function handleCreateLabel() {
+    setSaveMsg(null)
+    try {
+      const doc = await saveDocument(awbToLabel(data))
+      navigate(`/label?id=${doc.id}`)
+    } catch (e: any) {
+      setSaveMsg(t('editor.saveError'))
+    }
+  }
+
   /** Once the free allowance is spent the file is still delivered, watermarked; we only track the event. */
   function withinQuota(): boolean {
     if (atLimit) {
@@ -413,6 +426,9 @@ export function EditorPage() {
               </button>
             </>
           )}
+          <button className="btn-example" type="button" onClick={handleCreateLabel} title="Crear una etiqueta prellenada desde esta AWB">
+            🏷 Crear Label
+          </button>
           {/* One way out: the copies dialog previews, prints and downloads (and counts the free quota). */}
           <button className="btn-download" type="button" onClick={() => setCopiesOpen(true)}>
             🖨 {t('editor.print')}
