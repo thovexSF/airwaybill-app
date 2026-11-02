@@ -5,7 +5,7 @@ import { DocEditorShell } from '../components/DocEditorShell'
 import { Section, Row, Field, TextArea, Check } from '../components/DocForm'
 import { useDocEditor } from '../lib/useDocEditor'
 import { awbBarcodePayload, barcodeDataUrl } from '../lib/barcode'
-import { buildLabelZpl, sendLabelToZebra } from '../lib/labelZpl'
+import { buildLabelZpl, buildCalibrationZpl, sendLabelToZebra } from '../lib/labelZpl'
 import { track } from '../lib/analytics'
 
 export function LabelPage() {
@@ -33,13 +33,24 @@ export function LabelPage() {
     setTimeout(() => setZplMsg(null), 3000)
   }
 
+  async function handleCalibrate() {
+    setZplMsg(null)
+    try {
+      const where = await sendLabelToZebra(buildCalibrationZpl(), 'calibrate.zpl')
+      setZplMsg(where === 'browser-print' ? 'Calibrating…' : 'Browser Print not found')
+    } catch {
+      setZplMsg('ZPL error')
+    }
+    setTimeout(() => setZplMsg(null), 3000)
+  }
+
   const pieces = parseInt(data.totalPieces) || 1
 
   return (
     <DocEditorShell
       data={data}
       renderDocument={d => <LabelDocument data={d} barcodeSrc={barcodeSrc} />}
-      subtitle="Air Cargo Label (4×5″)"
+      subtitle="Air Cargo Label (10×15 cm)"
       accent="#3a1a5c"
       fileName={`Label_${awb || 'draft'}_${data.pieceNumber || '1'}.pdf`}
       onSave={save}
@@ -49,13 +60,22 @@ export function LabelPage() {
       forceWatermark={atLimit}
       onDownload={() => track('label_downloaded')}
       extraActions={
-        <button
-          className="btn-example"
-          onClick={handleZebra}
-          title="Prints directly to the Zebra printer. Requires the free Zebra Browser Print app installed and running on this computer. Without it, the .zpl file is downloaded instead."
-        >
-          ⎙ Print to Zebra
-        </button>
+        <>
+          <button
+            className="btn-example"
+            onClick={handleCalibrate}
+            title="Sends a one-time media calibration to the Zebra printer (gap + 10×15 cm length), so it registers to each label. Requires Zebra Browser Print running."
+          >
+            ⚙ Calibrar
+          </button>
+          <button
+            className="btn-example"
+            onClick={handleZebra}
+            title="Prints directly to the Zebra printer. Requires the free Zebra Browser Print app installed and running on this computer. Without it, the .zpl file is downloaded instead."
+          >
+            ⎙ Print to Zebra
+          </button>
+        </>
       }
     >
       <Section title="Carrier & AWB">

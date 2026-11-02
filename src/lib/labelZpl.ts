@@ -85,6 +85,16 @@ export function buildLabelZpl(data: LabelData): string {
 }
 
 /**
+ * One-shot media calibration for the printer: declare gap media and the 10×15
+ * label length, persist it (^JUS), then run the auto length/gap calibration
+ * (~JC) so the sensor registers to each label. Zebra Setup Utilities is
+ * Windows-only, so on macOS this is sent through Browser Print instead.
+ */
+export function buildCalibrationZpl(): string {
+  return ['^XA', '^MNY', '^LL1200', '^JUS', '^XZ', '~JC'].join('\n')
+}
+
+/**
  * Talk to the Zebra Browser Print local service directly over its HTTP API —
  * the SDK is only a thin wrapper around these two endpoints, so this avoids
  * bundling Zebra's proprietary JS. The service listens on 9100 (http) and
