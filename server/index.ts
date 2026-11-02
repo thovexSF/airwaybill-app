@@ -65,7 +65,7 @@ app.get('/v1/health', (_req, res) => {
 
 // Free plan: free_doc_limit() in migration_free_lifetime_limit.sql — lifetime, not monthly.
 const PLAN_DOC_LIMIT: Record<string, number | null> = {
-  free: 3, starter: null, pro: null, enterprise: null,
+  free: 10, starter: null, pro: null, enterprise: null,
 }
 
 function docTypeOf(doc: { data: unknown }): string {
@@ -964,6 +964,14 @@ app.get('/api/import/awbeditor/:jobId', async (req, res) => {
   } catch (e: any) {
     res.status(500).json({ error: 'job_status_failed', message: e?.message || String(e) })
   }
+})
+
+// Version tag for cache-busting the host bundle. The filename is stable and
+// Cloudflare adds a 4h browser TTL on top of our no-cache, so B2B appends this
+// as ?v=… and only re-downloads b2b-host.js when a deploy changes it.
+const HOST_VERSION = process.env.RAILWAY_GIT_COMMIT_SHA || String(Date.now())
+app.get('/host/version.txt', (_req, res) => {
+  res.set('Cache-Control', 'no-store').type('text/plain').send(HOST_VERSION)
 })
 
 // Host bundle B2B loads into its own page. Filename is stable, so it must not sit in a long cache.
