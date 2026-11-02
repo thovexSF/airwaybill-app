@@ -44,7 +44,8 @@ export function buildLabelZpl(data: LabelData): string {
     '^PW800', // 100 mm @ 203 dpi
     '^LL1200', // 150 mm @ 203 dpi
     '^MNY', // gap / web-sensing media
-    '^LH0,0',
+    '^LH18,0', // nudge right so the box sits centred on the 100 mm label
+
     '^CI28',
     // outer box
     '^FO20,20^GB760,1160,3^FS',
