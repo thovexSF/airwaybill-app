@@ -8,8 +8,9 @@ import { awbBarcodePayload, formatAwbDisplay } from '../lib/barcode'
  * the label. One label per piece; the piece number drives the barcode
  * payload's trailing 4 digits.
  */
-const LABEL_W = 288
-const LABEL_H = 360
+// 100 × 150 mm (4×6") at 72 pt/in — matches the Zebra media.
+const LABEL_W = 283
+const LABEL_H = 425
 
 const s = StyleSheet.create({
   page:      { fontFamily: 'Helvetica', fontSize: 8, backgroundColor: '#fff' },

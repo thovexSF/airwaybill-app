@@ -41,41 +41,43 @@ export function buildLabelZpl(data: LabelData): string {
 
   const lines: string[] = [
     '^XA',
-    '^PW812',
-    '^LL1016',
+    '^PW800', // 100 mm @ 203 dpi
+    '^LL1200', // 150 mm @ 203 dpi
+    '^MNY', // gap / web-sensing media
     '^LH0,0',
     '^CI28',
     // outer box
-    '^FO20,20^GB772,976,3^FS',
+    '^FO20,20^GB760,1160,3^FS',
     // airline
     '^FO30,35^A0N,28,28^FDAirline^FS',
-    `^FO30,70^A0N,48,48^FD${zplEsc(airline)}^FS`,
-    '^FO20,140^GB772,3,3^FS',
+    `^FO30,72^A0N,50,50^FD${zplEsc(airline)}^FS`,
+    '^FO20,150^GB760,3,3^FS',
     // barcode
-    `^FO60,160^BY3^BCN,140,N,N,N^FD${zplEsc(payload)}^FS`,
-    `^FO60,310^A0N,28,28^FD${zplEsc(payload)}^FS`,
-    `^FO560,310^A0N,28,28^FD${zplEsc(pieceLine)}^FS`,
-    '^FO20,350^GB772,3,3^FS',
+    `^FO70,175^BY3^BCN,160,N,N,N^FD${zplEsc(payload)}^FS`,
+    `^FO70,345^A0N,28,28^FD${zplEsc(payload)}^FS`,
+    `^FO560,345^A0N,28,28^FD${zplEsc(pieceLine)}^FS`,
+    '^FO20,390^GB760,3,3^FS',
     // AWB number
-    '^FO30,365^A0N,24,24^FDAir Waybill Number^FS',
-    `^FO80,400^A0N,72,72^FD${zplEsc(awbDisp)}^FS`,
+    '^FO30,405^A0N,26,26^FDAir Waybill Number^FS',
+    `^FO90,445^A0N,80,80^FD${zplEsc(awbDisp)}^FS`,
+    '^FO20,545^GB760,3,3^FS',
     // destination | departure
-    '^FO20,490^GB386,120,3^FS',
-    '^FO406,490^GB386,120,3^FS',
-    '^FO30,500^A0N,22,22^FDDestination^FS',
-    `^FO60,530^A0N,60,60^FD${zplEsc(dest)}^FS`,
-    '^FO416,500^A0N,22,22^FDDeparture^FS',
-    `^FO450,530^A0N,60,60^FD${zplEsc(dep)}^FS`,
+    '^FO20,555^GB380,140,3^FS',
+    '^FO400,555^GB380,140,3^FS',
+    '^FO30,565^A0N,24,24^FDDestination^FS',
+    `^FO60,600^A0N,66,66^FD${zplEsc(dest)}^FS`,
+    '^FO410,565^A0N,24,24^FDDeparture^FS',
+    `^FO440,600^A0N,66,66^FD${zplEsc(dep)}^FS`,
     // other information
-    '^FO20,610^GB772,386,3^FS',
-    '^FO30,620^A0N,22,22^FDOther Information^FS',
+    '^FO20,705^GB760,475,3^FS',
+    '^FO30,715^A0N,24,24^FDOther Information^FS',
   ]
 
-  let y = 655
+  let y = 755
   for (const line of other) {
-    lines.push(`^FO30,${y}^A0N,24,24^FD${zplEsc(line.slice(0, 55))}^FS`)
-    y += 32
-    if (y > 960) break
+    lines.push(`^FO30,${y}^A0N,24,24^FD${zplEsc(line.slice(0, 58))}^FS`)
+    y += 34
+    if (y > 1150) break
   }
 
   lines.push('^XZ')
