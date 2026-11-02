@@ -14,7 +14,17 @@ function zplEsc(s: string): string {
     .replace(/~/g, ' ')
 }
 
-export function buildLabelZpl(data: LabelData): string {
+/** 203 dpi → 8 dots/mm. Printer alignment offset comes in from the editor. */
+export const DOTS_PER_MM = 8
+/** Keep the shift inside the 20-dot margins so content never clips off the label. */
+export function clampOffsetDots(dots: number): number {
+  return Math.max(-20, Math.min(20, Math.round(dots)))
+}
+
+export function buildLabelZpl(data: LabelData, offsetXDots = 0, offsetYDots = 0): string {
+  const ox = clampOffsetDots(offsetXDots)
+  const oy = clampOffsetDots(offsetYDots)
+  const fo = (x: number, y: number) => `^FO${x + ox},${y + oy}`
   const awb = labelAwbNumber(data)
   const payload = awbBarcodePayload(awb, data.pieceNumber)
   const awbDisp = formatAwbDisplay(awb)
@@ -47,35 +57,35 @@ export function buildLabelZpl(data: LabelData): string {
     '^LH0,0',
     '^CI28',
     // outer box
-    '^FO20,20^GB760,1160,3^FS',
+    `${fo(20, 20)}^GB760,1160,3^FS`,
     // airline
-    '^FO30,35^A0N,28,28^FDAirline^FS',
-    `^FO30,72^A0N,50,50^FD${zplEsc(airline)}^FS`,
-    '^FO20,150^GB760,3,3^FS',
+    `${fo(30, 35)}^A0N,28,28^FDAirline^FS`,
+    `${fo(30, 72)}^A0N,50,50^FD${zplEsc(airline)}^FS`,
+    `${fo(20, 150)}^GB760,3,3^FS`,
     // barcode
-    `^FO70,175^BY3^BCN,160,N,N,N^FD${zplEsc(payload)}^FS`,
-    `^FO70,345^A0N,28,28^FD${zplEsc(payload)}^FS`,
-    `^FO560,345^A0N,28,28^FD${zplEsc(pieceLine)}^FS`,
-    '^FO20,390^GB760,3,3^FS',
+    `${fo(70, 175)}^BY3^BCN,160,N,N,N^FD${zplEsc(payload)}^FS`,
+    `${fo(70, 345)}^A0N,28,28^FD${zplEsc(payload)}^FS`,
+    `${fo(560, 345)}^A0N,28,28^FD${zplEsc(pieceLine)}^FS`,
+    `${fo(20, 390)}^GB760,3,3^FS`,
     // AWB number
-    '^FO30,405^A0N,26,26^FDAir Waybill Number^FS',
-    `^FO90,445^A0N,80,80^FD${zplEsc(awbDisp)}^FS`,
-    '^FO20,545^GB760,3,3^FS',
+    `${fo(30, 405)}^A0N,26,26^FDAir Waybill Number^FS`,
+    `${fo(90, 445)}^A0N,80,80^FD${zplEsc(awbDisp)}^FS`,
+    `${fo(20, 545)}^GB760,3,3^FS`,
     // destination | departure
-    '^FO20,555^GB380,140,3^FS',
-    '^FO400,555^GB380,140,3^FS',
-    '^FO30,565^A0N,24,24^FDDestination^FS',
-    `^FO60,600^A0N,66,66^FD${zplEsc(dest)}^FS`,
-    '^FO410,565^A0N,24,24^FDDeparture^FS',
-    `^FO440,600^A0N,66,66^FD${zplEsc(dep)}^FS`,
+    `${fo(20, 555)}^GB380,140,3^FS`,
+    `${fo(400, 555)}^GB380,140,3^FS`,
+    `${fo(30, 565)}^A0N,24,24^FDDestination^FS`,
+    `${fo(60, 600)}^A0N,66,66^FD${zplEsc(dest)}^FS`,
+    `${fo(410, 565)}^A0N,24,24^FDDeparture^FS`,
+    `${fo(440, 600)}^A0N,66,66^FD${zplEsc(dep)}^FS`,
     // other information
-    '^FO20,705^GB760,475,3^FS',
-    '^FO30,715^A0N,24,24^FDOther Information^FS',
+    `${fo(20, 705)}^GB760,475,3^FS`,
+    `${fo(30, 715)}^A0N,24,24^FDOther Information^FS`,
   ]
 
   let y = 755
   for (const line of other) {
-    lines.push(`^FO30,${y}^A0N,24,24^FD${zplEsc(line.slice(0, 58))}^FS`)
+    lines.push(`${fo(30, y)}^A0N,24,24^FD${zplEsc(line.slice(0, 58))}^FS`)
     y += 34
     if (y > 1150) break
   }

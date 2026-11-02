@@ -1,16 +1,33 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { defaultLabelData, LabelData, labelAwbNumber } from '../types/label'
 import { LabelDocument } from '../pdf/LabelDocument'
 import { DocEditorShell } from '../components/DocEditorShell'
 import { Section, Row, Field, TextArea, Check } from '../components/DocForm'
 import { useDocEditor } from '../lib/useDocEditor'
 import { awbBarcodePayload, barcodeDataUrl } from '../lib/barcode'
-import { buildLabelZpl, buildCalibrationZpl, sendLabelToZebra } from '../lib/labelZpl'
+import { buildLabelZpl, buildCalibrationZpl, sendLabelToZebra, DOTS_PER_MM } from '../lib/labelZpl'
 import { track } from '../lib/analytics'
+
+// Printer alignment lives in the browser: it's a property of the physical
+// printer, not the document, so it applies to every label on this machine.
+const OFFSET_KEY = 'zebraPrintOffsetMm'
+function loadOffset(): { x: number; y: number } {
+  try {
+    const v = JSON.parse(localStorage.getItem(OFFSET_KEY) || '{}')
+    return { x: Number(v.x) || 0, y: Number(v.y) || 0 }
+  } catch {
+    return { x: 0, y: 0 }
+  }
+}
 
 export function LabelPage() {
   const { data, set, saving, saveMsg, save, authorizeDownload, atLimit } = useDocEditor<LabelData>('label', defaultLabelData, '/label')
   const [zplMsg, setZplMsg] = useState<string | null>(null)
+  const [offset, setOffset] = useState(loadOffset)
+
+  useEffect(() => {
+    try { localStorage.setItem(OFFSET_KEY, JSON.stringify(offset)) } catch { /* private mode */ }
+  }, [offset])
 
   const awb = labelAwbNumber(data)
 
@@ -24,7 +41,7 @@ export function LabelPage() {
   async function handleZebra() {
     setZplMsg(null)
     try {
-      const where = await sendLabelToZebra(buildLabelZpl(data), `Label_${awb || 'draft'}.zpl`)
+      const where = await sendLabelToZebra(buildLabelZpl(data, offset.x * DOTS_PER_MM, offset.y * DOTS_PER_MM), `Label_${awb || 'draft'}.zpl`)
       setZplMsg(where === 'browser-print' ? 'Sent to Zebra' : 'Browser Print not found — ZPL downloaded')
       track('label_zpl_printed')
     } catch {
@@ -137,6 +154,36 @@ export function LabelPage() {
         </div>
         <Row>
           <Check label="Show DRAFT watermark" checked={data.isDraft} onChange={set('isDraft')} />
+        </Row>
+      </Section>
+
+      <Section title="Zebra alignment">
+        <div style={{ padding: '10px 12px', fontSize: 11, color: '#888' }}>
+          Only affects printing to Zebra. Trial and error: shift the whole label to fit your roll. X: + right / − left · Y: + down / − up. Saved on this computer.
+        </div>
+        <Row>
+          <div className="field">
+            <label>Horizontal (mm)</label>
+            <input
+              type="number"
+              step={0.5}
+              min={-2.5}
+              max={2.5}
+              value={offset.x}
+              onChange={e => setOffset(o => ({ ...o, x: Math.max(-2.5, Math.min(2.5, Number(e.target.value) || 0)) }))}
+            />
+          </div>
+          <div className="field">
+            <label>Vertical (mm)</label>
+            <input
+              type="number"
+              step={0.5}
+              min={-2.5}
+              max={2.5}
+              value={offset.y}
+              onChange={e => setOffset(o => ({ ...o, y: Math.max(-2.5, Math.min(2.5, Number(e.target.value) || 0)) }))}
+            />
+          </div>
         </Row>
       </Section>
     </DocEditorShell>
