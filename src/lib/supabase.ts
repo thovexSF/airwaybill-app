@@ -7,4 +7,4 @@ if (!url || !key) {
   console.warn('Supabase env vars missing — auth and storage will not work.')
 }
 
-export const supabase = createClient(url ?? '', key ?? '')
+export const supabase = createClient(url || 'https://invalid.supabase.co', key || 'invalid')

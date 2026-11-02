@@ -657,6 +657,19 @@ html[data-partner-embed="1"] .doc-hub-table th {
   background: #ff6600; border-color: #ff6600;
 }
 
+/* Misma cromía del embed, dentro del shadow root que monta B2B.
+   Los selectores html[...] no alcanzan el árbol del shadow. */
+:host { display: block; height: 100%; }
+.awb-host { height: 100%; overflow: auto; background: #fff; --red: #ff6600; --red-light: #ff8533; }
+.awb-host .topbar,
+.awb-host .partner-hide-in-embed { display: none !important; }
+.awb-host .doc-hub { min-height: 100%; background: #fff; }
+.awb-host .doc-hub-btn.primary,
+.awb-host .doc-hub-view-toggle button.active,
+.awb-host .doc-hub-chip.active,
+.awb-host .doc-hub-table th { background: #ff6600; border-color: #ff6600; }
+.awb-host .form-dialog-backdrop { z-index: 1600; }
+
 /* ── Barra superior del hub: logo a la izquierda; plan, herramientas y cuenta agrupados a la derecha ── */
 .hub-bar-logo { font-weight: 800; font-size: 16px; color: #fff; text-decoration: none; letter-spacing: 0.5px; white-space: nowrap; }
 .hub-bar-right { display: flex; align-items: center; gap: 14px; min-width: 0; overflow-x: auto; scrollbar-width: none; }

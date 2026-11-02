@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { isPartnerHost, partnerDelete, partnerGet, partnerList, partnerSave } from './partnerHost'
 import { ManifestData } from '../types/manifest'
 
 export interface ManifestDocument {
@@ -11,6 +12,7 @@ export interface ManifestDocument {
 }
 
 export async function listManifests(): Promise<ManifestDocument[]> {
+  if (isPartnerHost()) return partnerList<ManifestDocument>('manifest')
   const { data, error } = await supabase
     .from('awb_documents')
     .select('*')
@@ -21,6 +23,7 @@ export async function listManifests(): Promise<ManifestDocument[]> {
 }
 
 export async function getManifest(id: string): Promise<ManifestDocument> {
+  if (isPartnerHost()) return partnerGet<ManifestDocument>(id)
   const { data, error } = await supabase
     .from('awb_documents')
     .select('*')
@@ -32,6 +35,7 @@ export async function getManifest(id: string): Promise<ManifestDocument> {
 }
 
 export async function saveManifest(manifestData: ManifestData, id?: string): Promise<ManifestDocument> {
+  if (isPartnerHost()) return partnerSave<ManifestDocument>(manifestData, id)
   const status = manifestData.isDraft ? 'draft' : 'final'
 
   if (id) {
@@ -56,6 +60,7 @@ export async function saveManifest(manifestData: ManifestData, id?: string): Pro
 }
 
 export async function deleteManifest(id: string): Promise<void> {
+  if (isPartnerHost()) return partnerDelete(id)
   const { error } = await supabase
     .from('awb_documents')
     .delete()

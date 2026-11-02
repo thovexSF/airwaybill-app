@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { isPartnerHost } from './partnerHost'
 import { usePlan } from './usePlan'
 import { normalizePhone, normalizeAgentCode } from './eawbValidation'
 
@@ -103,6 +104,16 @@ export function useOrgProfile() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (isPartnerHost()) {
+      setProfile({
+        ...EMPTY_PROFILE,
+        country: 'Chile',
+        onboardingCompletedAt: '2020-01-01T00:00:00.000Z',
+        onboardingDismissedAt: '2020-01-01T00:00:00.000Z',
+      })
+      setLoading(false)
+      return
+    }
     if (!orgId) return
     setLoading(true)
     supabase.from('organization_defaults').select('*').eq('organization_id', orgId).maybeSingle()

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { isPartnerHost } from './partnerHost'
 import { useAuth } from '../auth/AuthContext'
 
 export type Plan = 'free' | 'starter' | 'pro' | 'enterprise'
@@ -35,10 +36,11 @@ function hasUnlimitedEmail(email: string | undefined): boolean {
 
 export function usePlan(): PlanInfo {
   const { user } = useAuth()
-  const [plan, setPlan]   = useState<Plan>('free')
-  const [orgId, setOrgId] = useState<string | null>(null)
+  const hosted = isPartnerHost()
+  const [plan, setPlan]   = useState<Plan>(hosted ? 'enterprise' : 'free')
+  const [orgId, setOrgId] = useState<string | null>(hosted ? 'partner' : null)
   const [used, setUsed]   = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!hosted)
 
   async function loadUsage(id: string) {
     const { data: usage } = await supabase
@@ -50,6 +52,7 @@ export function usePlan(): PlanInfo {
   }
 
   useEffect(() => {
+    if (hosted) return
     if (!user) { setLoading(false); return }
 
     async function load() {

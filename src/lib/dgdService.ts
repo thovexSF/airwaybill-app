@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { isPartnerHost, partnerDelete, partnerGet, partnerList, partnerSave } from './partnerHost'
 import { DGDData } from '../types/dgd'
 
 export interface DGDDocument {
@@ -11,6 +12,7 @@ export interface DGDDocument {
 }
 
 export async function listDGDs(): Promise<DGDDocument[]> {
+  if (isPartnerHost()) return partnerList<DGDDocument>('dgd')
   const { data, error } = await supabase
     .from('awb_documents')
     .select('*')
@@ -21,6 +23,7 @@ export async function listDGDs(): Promise<DGDDocument[]> {
 }
 
 export async function getDGD(id: string): Promise<DGDDocument> {
+  if (isPartnerHost()) return partnerGet<DGDDocument>(id)
   const { data, error } = await supabase
     .from('awb_documents')
     .select('*')
@@ -32,6 +35,7 @@ export async function getDGD(id: string): Promise<DGDDocument> {
 }
 
 export async function saveDGD(dgdData: DGDData, id?: string): Promise<DGDDocument> {
+  if (isPartnerHost()) return partnerSave<DGDDocument>(dgdData, id)
   const status = dgdData.isDraft ? 'draft' : 'final'
 
   if (id) {
@@ -56,6 +60,7 @@ export async function saveDGD(dgdData: DGDData, id?: string): Promise<DGDDocumen
 }
 
 export async function deleteDGD(id: string): Promise<void> {
+  if (isPartnerHost()) return partnerDelete(id)
   const { error } = await supabase
     .from('awb_documents')
     .delete()

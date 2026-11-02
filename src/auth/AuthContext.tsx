@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { isPartnerHost } from '../lib/partnerHost'
 import { usePostHog } from '@posthog/react'
 
 type AuthContextValue = {
@@ -18,13 +19,32 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+const HOST_SESSION = {
+  user: {
+    id: 'b2b-partner',
+    email: '',
+    created_at: '2020-01-01T00:00:00.000Z',
+    app_metadata: {},
+    user_metadata: {},
+    aud: 'authenticated',
+    role: 'authenticated',
+  },
+  access_token: '',
+  refresh_token: '',
+  expires_in: 0,
+  token_type: 'bearer',
+  expires_at: 0,
+} as Session
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const posthog = usePostHog()
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [orgName, setOrgName] = useState<string | null>(null)
+  const hosted = isPartnerHost()
+  const [session, setSession] = useState<Session | null>(hosted ? HOST_SESSION : null)
+  const [loading, setLoading] = useState(!hosted)
+  const [orgName, setOrgName] = useState<string | null>(hosted ? 'B2B' : null)
 
   useEffect(() => {
+    if (hosted) return
     supabase.auth.getSession().then(async ({ data, error }) => {
       if (error?.message?.includes('JWT issued at future')) {
         await supabase.auth.signOut({ scope: 'local' })
@@ -57,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Load org name whenever user changes
   useEffect(() => {
+    if (hosted) return
     const userId = session?.user?.id
     if (!userId) { setOrgName(null); return }
 

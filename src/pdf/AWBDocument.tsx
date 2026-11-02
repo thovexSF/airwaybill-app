@@ -8,6 +8,7 @@ import {
 } from './awbLayout'
 import { awbCopyTheme } from './awbCopyTheme'
 import { airlineLogoSrc } from '../lib/airlines'
+import { publicAsset } from '../lib/partnerHost'
 import { SHEET_INK_PATH, SHEET_WASH } from './awbSheet'
 import {
   CONDITIONS, CONDITIONS_NOTICE, CONDITIONS_NOTICE_TITLE, CONDITIONS_TITLE,
@@ -19,13 +20,21 @@ import {
  * Chrome, so the same waybill looked like two different documents depending on
  * who opened it. Shared with the sister `b2b` repo, which embeds the same file.
  */
-Font.register({
-  family: 'AwbCourier',
-  fonts: [
-    { src: '/awb-fonts/CourierPrime-Regular.ttf', fontWeight: 400 },
-    { src: '/awb-fonts/CourierPrime-Bold.ttf', fontWeight: 700 },
-  ],
-})
+let registeredFontBase = ''
+
+/** Resolved when the document renders, so a B2B host can point fonts at airwaybill.app. */
+function ensureAwbFonts() {
+  const regular = publicAsset('/awb-fonts/CourierPrime-Regular.ttf')
+  if (regular === registeredFontBase) return
+  registeredFontBase = regular
+  Font.register({
+    family: 'AwbCourier',
+    fonts: [
+      { src: regular, fontWeight: 400 },
+      { src: publicAsset('/awb-fonts/CourierPrime-Bold.ttf'), fontWeight: 700 },
+    ],
+  })
+}
 
 /** A hair under 792: at exactly the page height react-pdf rounds the absolute
  *  background past the page and pushes every sibling onto page 2. */
@@ -388,7 +397,7 @@ function AwbConditionsPage() {
 
   return (
     <Page size={[PAGE_WIDTH, PAGE_HEIGHT]} wrap={false} style={[styles.page, { paddingHorizontal: 26, paddingVertical: 18 }]}>
-      <Image src="/awb-iata/5.png" style={conditions.mark} />
+      <Image src={publicAsset('/awb-iata/5.png')} style={conditions.mark} />
       <Text style={conditions.noticeTitle}>{CONDITIONS_NOTICE_TITLE}</Text>
       <Text style={conditions.notice}>{CONDITIONS_NOTICE}</Text>
       <Text style={conditions.title}>{CONDITIONS_TITLE}</Text>
@@ -426,6 +435,7 @@ export function AWBDocument({ data, hideValues, withConditions }: {
   hideValues?: boolean
   withConditions?: boolean
 }) {
+  ensureAwbFonts()
   return (
     <Document>
       <AWBFacePage data={data} hideValues={hideValues} />

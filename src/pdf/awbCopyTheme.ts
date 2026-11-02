@@ -1,4 +1,5 @@
 import { AWB_FIELD_LAYOUT_REV } from './awbFieldPositions'
+import { publicAsset } from '../lib/partnerHost'
 
 /**
  * The eight IATA copies. Each is issued on its own colour of paper and printed
@@ -42,5 +43,6 @@ export const AWB_COPIES = Object.values(AWB_COPY_THEMES)
 export const DEFAULT_COPIES = ['1', '2', '3']
 
 export function awbCopyTheme(copyKey: string | number | undefined): AwbCopyTheme {
-  return AWB_COPY_THEMES[String(copyKey)] ?? AWB_COPY_THEMES['1']
+  const theme = AWB_COPY_THEMES[String(copyKey)] ?? AWB_COPY_THEMES['1']
+  return { ...theme, bg: publicAsset(theme.bg), mark: publicAsset(theme.mark) }
 }

@@ -555,9 +555,8 @@ app.post('/v1/documents', async (req, res) => {
   const data = body.data
   if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data_required' })
   if (!data.docType) data.docType = 'awb'
-  data.isDraft = false
-
-  const status = body.status === 'draft' ? 'draft' : 'final'
+  const status = body.status === 'draft' ? 'draft' : body.status === 'final' ? 'final' : (data.isDraft ? 'draft' : 'final')
+  data.isDraft = status === 'draft'
   const externalId = typeof body.externalId === 'string' ? body.externalId : null
 
   const { data: row, error } = await supabase
@@ -601,7 +600,9 @@ app.patch('/v1/documents/:id', async (req, res) => {
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
 
   if (body.data && typeof body.data === 'object') {
-    patch.data = { ...body.data, isDraft: false }
+    const data = body.data
+    if (body.status === 'draft' || body.status === 'final') data.isDraft = body.status === 'draft'
+    patch.data = data
   }
   if (body.status === 'draft' || body.status === 'final') patch.status = body.status
   if (typeof body.externalId === 'string') patch.external_id = body.externalId
@@ -965,6 +966,12 @@ app.get('/api/import/awbeditor/:jobId', async (req, res) => {
   }
 })
 
+// Host bundle B2B loads into its own page. Filename is stable, so it must not sit in a long cache.
+app.use('/host', express.static(path.join(DIST, 'host'), {
+  index: false,
+  setHeaders(res) { res.setHeader('Cache-Control', 'no-cache') },
+}))
+
 // SPA: serve built assets; fall through to index.html for client routes
 app.use('/assets', express.static(path.join(DIST, 'assets'), { index: false, maxAge: '1y', immutable: true }))
 // A missing asset (a chunk of a previous build) is a 404 nobody may cache. Falling
@@ -976,7 +983,7 @@ app.use('/assets', (_req, res) => {
 app.use(express.static(DIST, { index: false, maxAge: '1h' }))
 // Express 5 / path-to-regexp: bare '*' is invalid; use a named splat.
 app.get('/{*path}', (req, res, next) => {
-  if (req.path.startsWith('/v1/') || req.path.startsWith('/api/')) return next()
+  if (req.path.startsWith('/v1/') || req.path.startsWith('/api/') || req.path.startsWith('/host/')) return next()
   // index.html names the current build's chunks, so it is never served from a cache.
   res.sendFile(path.join(DIST, 'index.html'), { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } }, err => {
     if (err) res.status(404).send('Build missing — run npm run build')

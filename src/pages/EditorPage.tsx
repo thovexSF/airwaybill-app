@@ -20,14 +20,17 @@ import { saveAWB, getAWB } from '../lib/awbService'
 import { usePlan } from '../lib/usePlan'
 import { recordPdfDownload } from '../lib/pdfQuota'
 import { supabase } from '../lib/supabase'
+import { isPartnerHost } from '../lib/partnerHost'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { DraftToggle } from '../components/DraftToggle'
 import { usePostHog } from '@posthog/react'
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString()
+if (!isPartnerHost()) {
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url,
+  ).toString()
+}
 
 /** Ancho inicial del panel formulario (~58% en modal hub, ~52% en editor full). */
 function initialFormWidth(): number {
@@ -168,7 +171,7 @@ export function EditorPage() {
         try { setData(JSON.parse(raw) as AWBData); return } catch { /* ignore */ }
       }
       // Load org defaults for new AWB
-      if (orgId) {
+      if (orgId && !isPartnerHost()) {
         supabase
           .from('organization_defaults')
           .select('*')
@@ -301,7 +304,9 @@ export function EditorPage() {
 
     ;(window as any).clarity?.('event', 'awb_downloaded')
     posthog?.capture('awb_downloaded', { doc_type: data.docType ?? 'awb', awb_number: awbFull, plan, source })
-    supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
+    if (!isPartnerHost()) {
+      supabase.functions.invoke('notify-owner', { body: { event: 'awb_downloaded', data: { email: user?.email, awb: awbFull, plan } } })
+    }
     return true
   }
 

@@ -9,6 +9,8 @@
  * an absent airline — the block simply stays as typed — is a far better failure
  * than a confidently wrong one.
  */
+import { publicAsset } from './partnerHost'
+
 export interface Airline {
   /** IATA 2-character designator, e.g. "LH". */
   iata: string
@@ -57,7 +59,7 @@ export function airlineForPrefix(prefix?: string | null): Airline | undefined {
 /** The carrier's logo file, or undefined when the prefix is not in the registry. */
 export function airlineLogoSrc(prefix?: string | null): string | undefined {
   const p = normalizeAwbPrefix(prefix)
-  return p && AIRLINE_BY_PREFIX[p] ? `/awb-airlines/${p}.png` : undefined
+  return p && AIRLINE_BY_PREFIX[p] ? publicAsset(`/awb-airlines/${p}.png`) : undefined
 }
 
 /** Drops a first address row that just repeats the carrier name, which has its own row above. */

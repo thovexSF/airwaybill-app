@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { isPartnerHost, partnerDelete, partnerGet, partnerList, partnerSave } from './partnerHost'
 
 /**
  * Generic CRUD over the shared `awb_documents` table, parameterised by the
@@ -32,6 +33,7 @@ export interface SuiteDocument<T extends SuiteDocumentData> {
 }
 
 export async function listDocuments<T extends SuiteDocumentData>(docType: SuiteDocType): Promise<SuiteDocument<T>[]> {
+  if (isPartnerHost()) return partnerList<SuiteDocument<T>>(docType)
   const { data, error } = await supabase
     .from('awb_documents')
     .select('*')
@@ -42,6 +44,7 @@ export async function listDocuments<T extends SuiteDocumentData>(docType: SuiteD
 }
 
 export async function getDocument<T extends SuiteDocumentData>(id: string): Promise<SuiteDocument<T>> {
+  if (isPartnerHost()) return partnerGet<SuiteDocument<T>>(id)
   const { data, error } = await supabase
     .from('awb_documents')
     .select('*')
@@ -53,6 +56,7 @@ export async function getDocument<T extends SuiteDocumentData>(id: string): Prom
 }
 
 export async function saveDocument<T extends SuiteDocumentData>(docData: T, id?: string): Promise<SuiteDocument<T>> {
+  if (isPartnerHost()) return partnerSave<SuiteDocument<T>>(docData, id)
   const status: 'draft' | 'final' = docData.isDraft ? 'draft' : 'final'
 
   if (id) {
@@ -77,6 +81,7 @@ export async function saveDocument<T extends SuiteDocumentData>(docData: T, id?:
 }
 
 export async function deleteDocument(id: string): Promise<void> {
+  if (isPartnerHost()) return partnerDelete(id)
   const { error } = await supabase.from('awb_documents').delete().eq('id', id)
   if (error) throw error
 }

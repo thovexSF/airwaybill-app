@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from './supabase'
+import { isPartnerHost } from './partnerHost'
 import { usePlan } from './usePlan'
 
 /**
@@ -27,6 +28,7 @@ export async function recordPdfDownload(
   documentId: string | null,
   alreadyCountedAt?: string | null,
 ): Promise<QuotaResult> {
+  if (isPartnerHost()) return 'skipped'
   if (!orgId) return 'skipped'
   if (alreadyCountedAt) return 'already_counted'
 

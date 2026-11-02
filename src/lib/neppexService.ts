@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { isPartnerHost, partnerDelete, partnerGet, partnerList, partnerSave } from './partnerHost'
 import { NeppexData } from '../types/neppex'
 
 export interface NeppexDocument {
@@ -11,6 +12,7 @@ export interface NeppexDocument {
 }
 
 export async function listNeppex(): Promise<NeppexDocument[]> {
+  if (isPartnerHost()) return partnerList<NeppexDocument>('neppex')
   const { data, error } = await supabase
     .from('awb_documents')
     .select('*')
@@ -21,6 +23,7 @@ export async function listNeppex(): Promise<NeppexDocument[]> {
 }
 
 export async function getNeppex(id: string): Promise<NeppexDocument> {
+  if (isPartnerHost()) return partnerGet<NeppexDocument>(id)
   const { data, error } = await supabase
     .from('awb_documents')
     .select('*')
@@ -32,6 +35,7 @@ export async function getNeppex(id: string): Promise<NeppexDocument> {
 }
 
 export async function saveNeppex(neppexData: NeppexData, id?: string): Promise<NeppexDocument> {
+  if (isPartnerHost()) return partnerSave<NeppexDocument>(neppexData, id)
   const status = neppexData.isDraft ? 'draft' : 'final'
 
   if (id) {
@@ -56,6 +60,7 @@ export async function saveNeppex(neppexData: NeppexData, id?: string): Promise<N
 }
 
 export async function deleteNeppex(id: string): Promise<void> {
+  if (isPartnerHost()) return partnerDelete(id)
   const { error } = await supabase
     .from('awb_documents')
     .delete()

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { isPartnerHost, partnerDelete, partnerGet, partnerList, partnerSave } from './partnerHost'
 import { AWBData } from '../types/awb'
 
 export interface AWBDocument {
@@ -13,6 +14,7 @@ export interface AWBDocument {
 }
 
 export async function listAWBs(): Promise<AWBDocument[]> {
+  if (isPartnerHost()) return partnerList<AWBDocument>()
   const { data, error } = await supabase
     .from('awb_documents')
     .select('*')
@@ -23,14 +25,18 @@ export async function listAWBs(): Promise<AWBDocument[]> {
 }
 
 export async function getAWB(id: string): Promise<AWBDocument> {
-  const { data, error } = await supabase
-    .from('awb_documents')
-    .select('*')
-    .eq('id', id)
-    .single()
-
-  if (error) throw error
-  const doc = data as AWBDocument
+  let doc: AWBDocument
+  if (isPartnerHost()) {
+    doc = await partnerGet<AWBDocument>(id)
+  } else {
+    const { data, error } = await supabase
+      .from('awb_documents')
+      .select('*')
+      .eq('id', id)
+      .single()
+    if (error) throw error
+    doc = data as AWBDocument
+  }
   // Migrate legacy optionalShippingInfo → optionalShippingInfo1
   if (doc.data.optionalShippingInfo && !doc.data.optionalShippingInfo1) {
     doc.data.optionalShippingInfo1 = doc.data.optionalShippingInfo
@@ -43,6 +49,7 @@ export async function getAWB(id: string): Promise<AWBDocument> {
 }
 
 export async function saveAWB(awbData: AWBData, id?: string, orgId?: string): Promise<AWBDocument> {
+  if (isPartnerHost()) return partnerSave<AWBDocument>(awbData, id)
   if (id) {
     const { data, error } = await supabase
       .from('awb_documents')
@@ -65,6 +72,7 @@ export async function saveAWB(awbData: AWBData, id?: string, orgId?: string): Pr
 }
 
 export async function deleteAWB(id: string): Promise<void> {
+  if (isPartnerHost()) return partnerDelete(id)
   const { error } = await supabase
     .from('awb_documents')
     .delete()

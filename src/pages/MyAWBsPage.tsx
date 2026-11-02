@@ -18,6 +18,7 @@ import { HUB_DOC_TYPES, DocTypeMeta, docTypeMeta, docTypeAvailable, DOC_CATEGORI
 import { isAdminUiUser } from '../lib/adminUi'
 import { usePostHog } from '@posthog/react'
 import { isPartnerEmbed } from '../lib/partnerTheme'
+import { isPartnerHost } from '../lib/partnerHost'
 
 type ViewMode = 'cards' | 'table'
 type StatusFilter = 'all' | 'final' | 'draft'
@@ -88,12 +89,12 @@ export function MyAWBsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileIncomplete, profile.country, profile.onboardingDismissedAt, user?.created_at])
   useEffect(() => {
-    if (orgId) listAgreements(orgId).then(r => setHasAgreement(r.some(a => a.status !== 'rechazado'))).catch(() => {})
+    if (orgId && !isPartnerHost()) listAgreements(orgId).then(r => setHasAgreement(r.some(a => a.status !== 'rechazado'))).catch(() => {})
   }, [orgId])
   const [searchParams, setSearchParams] = useSearchParams()
 
   const tabFromUrl = searchParams.get('tab') || 'awb'
-  const isB2bPartner = isPartnerEmbed() || document.documentElement.getAttribute('data-partner-theme') === 'b2b'
+  const isB2bPartner = isPartnerHost() || isPartnerEmbed() || document.documentElement.getAttribute('data-partner-theme') === 'b2b'
   const activeMeta = HUB_DOC_TYPES.find((d) => d.type === tabFromUrl) || HUB_DOC_TYPES[0]
 
   const [docs, setDocs] = useState<AWBDocument[]>([])
@@ -127,7 +128,7 @@ export function MyAWBsPage() {
       .then(setDocs)
       .catch(async (e) => {
         const msg = e.message || String(e)
-        if (msg.includes('JWT issued at future')) {
+        if (!isPartnerHost() && msg.includes('JWT issued at future')) {
           await supabase.auth.signOut({ scope: 'local' })
           window.location.reload()
           return
