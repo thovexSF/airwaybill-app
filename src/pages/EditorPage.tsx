@@ -78,7 +78,7 @@ export function EditorPage() {
   const [downloadCountedAt, setDownloadCountedAt] = useState<string | null>(null)
   // Free plan, allowance spent: documents still download, but always with the DRAFT watermark.
   const atLimit = plan === 'free' && !canDownloadDocument && !downloadCountedAt
-  const renderData = atLimit ? { ...data, isDraft: true } : data
+  const renderData = plan !== 'free' ? { ...data, isDraft: false } : atLimit ? { ...data, isDraft: true } : data
   const [formWidth, setFormWidth] = useState(initialFormWidth)
   const [pdfScale] = useState<'sm' | 'md' | 'lg'>('lg')
   const [isWideViewport, setIsWideViewport] = useState(() => window.innerWidth >= 900)
@@ -220,7 +220,7 @@ export function EditorPage() {
   async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
     setGenerating(true)
     try {
-      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} />).toBlob()
+      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} showBrandStamp={false} />).toBlob()
       savedScroll.current = previewScrollRef.current?.scrollTop ?? 0
       restorePending.current = true
       setPdfBlob(blob)
@@ -475,6 +475,7 @@ export function EditorPage() {
           onClose={() => setCopiesOpen(false)}
           authorize={authorizeCopies}
           fileName={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}`}
+          showBrandStamp={false}
         />
         <FwbPreviewDialog
           open={fwbOpen}
@@ -503,7 +504,12 @@ export function EditorPage() {
             <span style={{ color: '#ccc', fontSize: 12, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
             <button onClick={() => setZoom(z => Math.min(z + 0.1, 2.5))} style={{ background: '#444', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>+</button>
             <button onClick={() => setZoom(initialZoom())} style={{ background: '#333', border: 'none', color: '#aaa', padding: '0 8px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>{t('editor.zoomReset')}</button>
-            <DraftToggle checked={data.isDraft} onChange={v => setData(prev => ({ ...prev, isDraft: v }))} locked={atLimit} />
+            <DraftToggle
+              checked={renderData.isDraft}
+              onChange={v => setData(prev => ({ ...prev, isDraft: v }))}
+              locked={atLimit || plan !== 'free'}
+              lockedTitle={plan !== 'free' ? 'Paid plans export clean PDFs without watermarks.' : undefined}
+            />
             {isWideViewport && (
               <button
                 type="button"
