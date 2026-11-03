@@ -9,28 +9,41 @@ import { DGDData, DGDItem } from '../types/dgd'
 const COLS = 29
 const COL_WIDTH = 3.453125
 
-// Twips, one per row 1..56, measured from the office template.
-const ROW_TWIPS = [
-  250, 250, 250, 250, 250, 330,
-  250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250,
-  450,
-  250, 250, 250, 250, 250,
-  150,
-  250, 250, 250, 250,
-  15,
-  250, 260, 250, 260, 260, 250, 260, 260, 250, 250,
-  250, 250, 250, 250, 250,
-  570, 225, 120, 240, 120,
-  250, 250, 250,
+// Points, as Excel shows the office template. Rows stored as 250 twips display
+// as 13pt (the sheet standard), not 12.5. Mac Excel multiplies a hand-written
+// custom height by 4/3, so the file stores three quarters of this list.
+const ROW_PT = [
+  13, 13, 13, 13, 13, 16.5,
+  13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,
+  22.5,
+  13, 13, 13, 13, 13,
+  7.5,
+  13, 13, 13, 13,
+  0.75,
+  13, 13, 13, 13, 13, 13, 13, 13, 13, 13,
+  13, 13, 13, 13, 13,
+  28.5, 11.25, 6, 12, 6,
+  13, 13, 13,
 ]
 
 const GOODS_FIRST = 34
 const GOODS_LAST = 45
 
+// Boxes the form was ruled on. Goods columns repeat on every item row so a
+// value sits in the same merged range as the template, not in a single narrow cell.
+const MERGES = [
+  'I20:P20', 'I21:P21', 'F23:P24', 'Y52:AB52', 'Y54:AB54', 'B33:C33', 'U24:W24',
+  ...Array.from({ length: GOODS_LAST - GOODS_FIRST + 1 }, (_, i) => {
+    const r = GOODS_FIRST + i
+    return [`B${r}:C${r}`, `M${r}:N${r}`, `O${r}:P${r}`, `X${r}:Y${r}`, `AA${r}:AB${r}`]
+  }).flat(),
+]
+
 type Style = number
 
-// 0 Arial 10 left, 1 Arial 10 center, 2 Arial 8 center, 3 Arial 9 right,
-// 4 Arial 9 left, 5 Arial 8 bold left, 6 Arial 9 center, 7 Arial 10 center + date m/d/yy
+// 0 Arial 10 left, 1 Arial 10 center, 2 Arial 8 left indent (departure),
+// 3 Arial 9 center (destination), 4 Arial 9 left, 5 Arial 8 bold left,
+// 6 Arial 9 center, 7 Arial 9 center + date m/d/yy
 const S = { body: 0, center: 1, depart: 2, dest: 3, note: 4, sign: 5, place: 6, date: 7 }
 
 interface Cell { r: number; c: string; v: string | number; s: Style; date?: boolean }
@@ -173,20 +186,22 @@ function sheetXml(cells: Cell[]): string {
     byRow.set(cell.r, list)
   }
   const rows: string[] = []
-  for (let r = 1; r <= ROW_TWIPS.length; r++) {
-    const ht = (ROW_TWIPS[r - 1] / 20).toFixed(2)
+  for (let r = 1; r <= ROW_PT.length; r++) {
+    const ht = String(Math.round(ROW_PT[r - 1] * 0.75 * 1000) / 1000)
     const list = (byRow.get(r) || []).sort((a, b) => a.c.charCodeAt(0) - b.c.charCodeAt(0))
     const cols = list.map(cell => {
       if (cell.date) return `<c r="${cell.c}${r}" s="${cell.s}"><v>${cell.v}</v></c>`
       return `<c r="${cell.c}${r}" s="${cell.s}" t="inlineStr"><is><t xml:space="preserve">${xmlEscape(String(cell.v))}</t></is></c>`
     }).join('')
-    rows.push(`<row r="${r}" ht="${ht}" customHeight="1">${cols}</row>`)
+    rows.push(`<row r="${r}" ht="${ht}" customHeight="1" x14ac:dyDescent="0.25">${cols}</row>`)
   }
+  const merges = MERGES.map(ref => `<mergeCell ref="${ref}"/>`).join('')
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<sheetFormatPr defaultRowHeight="12.5"/>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac" mc:Ignorable="x14ac">
+<sheetFormatPr defaultRowHeight="9.75" x14ac:dyDescent="0.25"/>
 <cols><col min="1" max="${COLS}" width="${COL_WIDTH}" customWidth="1"/></cols>
 <sheetData>${rows.join('')}</sheetData>
+<mergeCells count="${MERGES.length}">${merges}</mergeCells>
 <pageMargins left="0" right="0" top="0" bottom="0" header="0" footer="0"/>
 <pageSetup paperSize="5" scale="100" orientation="portrait"/>
 </worksheet>`
@@ -207,13 +222,14 @@ const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cellXfs count="8">
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="1"/>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="bottom" indent="1"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="center"/></xf>
 <xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="center"/></xf>
 <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="14" fontId="2" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 </cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`
 
 const CONTENT_TYPES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -232,6 +248,8 @@ const RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 const WORKBOOK = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<fileVersion appName="xl" lastEdited="7" lowestEdited="7" rupBuild="9303"/>
+<workbookPr defaultThemeVersion="164011"/>
 <sheets><sheet name="Shipper" sheetId="1" r:id="rId1"/></sheets>
 </workbook>`
 
