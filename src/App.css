@@ -661,6 +661,14 @@ html[data-partner-embed="1"] .doc-hub-table th {
    Los selectores html[...] no alcanzan el árbol del shadow. */
 :host { display: block; height: 100%; }
 .awb-host { height: 100%; overflow: auto; background: #fff; --red: #ff6600; --red-light: #ff8533; }
+/* Inside the B2B shadow the html[data-partner-theme] rule never matches, so the
+   maroon action bar stayed #6b0000. The theme's bars are black. */
+.awb-host .editor-bar { background: #111 !important; }
+.awb-host .doc-editor-modal > .form-dialog-title {
+  background: #111; color: #fff; border-bottom: none;
+}
+.awb-host .doc-editor-modal > .form-dialog-title .form-dialog-close { color: #fff; }
+
 .awb-host .topbar,
 .awb-host .partner-hide-in-embed { display: none !important; }
 .awb-host .doc-hub { min-height: 100%; background: #fff; }

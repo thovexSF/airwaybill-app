@@ -2,9 +2,9 @@ import React from 'react'
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import { ShipperSticker } from '../lib/shipperLabel'
 
-/** 100 × 150 mm at 72 pt/in — the same stock as the air cargo label. */
-const W = 283
-const H = 425
+/** 15 × 10 cm at 72 pt/in: the 10×15 stock, held horizontal. */
+const W = 425
+const H = 283
 
 const s = StyleSheet.create({
   page: { padding: 16, fontFamily: 'Helvetica', backgroundColor: '#fff' },

@@ -17,9 +17,8 @@ import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
-import { buildShipperLabelZpl, shipperStickers } from '../lib/shipperLabel'
-import { ShipperLabelDocument } from '../pdf/ShipperLabelDocument'
-import { LabelPreviewDialog } from '../components/LabelPreviewDialog'
+import { EditableSticker, buildStickersZpl, shipperStickers, toEditable } from '../lib/shipperLabel'
+import { ShipperLabelDialog } from '../components/ShipperLabelDialog'
 import { buildDotMatrixShipperXlsx, dotMatrixFileName } from '../lib/dotMatrixShipper'
 import { sendLabelToZebra } from '../lib/labelZpl'
 
@@ -80,8 +79,7 @@ export function DGDPage() {
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [labelOpen, setLabelOpen] = useState(false)
-  const [labelBlob, setLabelBlob] = useState<Blob | null>(null)
-  const [printOverpack, setPrintOverpack] = useState(true)
+  const [labels, setLabels] = useState<EditableSticker[]>([])
   const [labelPrinting, setLabelPrinting] = useState(false)
   const [formWidth, setFormWidth] = useState(380)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -193,33 +191,27 @@ export function DGDPage() {
     }))
   }
 
-  async function handlePrintLabel() {
+  function handlePrintLabel() {
     setSaveMsg(null)
-    setPrintOverpack(!!data.overpack)
-    setLabelBlob(null)
+    const base = shipperStickers(data, false).map(s => toEditable(s, true))
+    setLabels(base.length ? base : [toEditable({ shipper: data.shipperNameAndAddress, consignee: data.consigneeNameAndAddress, overpack: false, title: '', un: '', quantity: '', footer: '' })])
     setLabelOpen(true)
-    try {
-      const blob = await pdf(<ShipperLabelDocument stickers={shipperStickers(data)} />).toBlob()
-      setLabelBlob(blob)
-    } catch {
-      setLabelOpen(false)
-      setSaveMsg('Label error')
-    }
   }
 
   async function confirmLabelPrint() {
+    const chosen = labels.filter(l => l.selected)
+    if (!chosen.length) return
     setLabelPrinting(true)
     setSaveMsg(null)
     try {
-      const includeOverpack = !!data.overpack && printOverpack
-      const where = await sendLabelToZebra(buildShipperLabelZpl(data, includeOverpack), `Shipper_${data.awbNo || 'label'}.zpl`)
+      const where = await sendLabelToZebra(buildStickersZpl(chosen), `Shipper_${data.awbNo || 'label'}.zpl`)
       setSaveMsg(
         where === 'browser-print' ? 'Label sent to Zebra'
           : where === 'printer-error' ? 'Browser Print is running, but the printer rejected the label — ZPL downloaded'
           : where === 'blocked' ? 'Chrome blocked Browser Print. Allow local network access for this site — ZPL downloaded'
           : 'Browser Print not found — ZPL downloaded',
       )
-      track('dgd_label_printed', { overpack: includeOverpack })
+      track('dgd_label_printed', { overpack: chosen.some(l => l.overpack), count: chosen.length })
       setLabelOpen(false)
     } catch {
       setSaveMsg('Label error')
@@ -311,7 +303,7 @@ export function DGDPage() {
           className="btn-example"
           type="button"
           onClick={handlePrintLabel}
-          title="Preview the package labels, then print them on the Zebra. OVERPACK adds one more sheet you can leave out."
+          title="Edita las etiquetas 10×15 y elige cuáles imprimir. OVERPACK se agrega como otra etiqueta."
         >
           Print label
         </button>
@@ -543,16 +535,14 @@ export function DGDPage() {
           )}
         </div>
       </div>
-      <LabelPreviewDialog
+      <ShipperLabelDialog
         open={labelOpen}
-        title="Package labels"
-        blob={labelBlob}
+        labels={labels}
+        source={data}
+        onChange={setLabels}
         onClose={() => setLabelOpen(false)}
         onPrint={confirmLabelPrint}
         printing={labelPrinting}
-        overpackPage={!!data.overpack}
-        printOverpack={printOverpack}
-        onPrintOverpack={setPrintOverpack}
       />
     </div>
   )
