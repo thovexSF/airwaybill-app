@@ -85,7 +85,7 @@ export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onA
           <textarea className="dgdo-in" aria-label="Consignee" style={{ ...box(53, 138, 236, 46), ...font(9) }}
             value={data.consigneeNameAndAddress} onChange={e => onField({ consigneeNameAndAddress: e.target.value })} />
 
-          <input className="dgdo-in" aria-label="Airport of departure" placeholder="SCL" style={{ ...line(186, 268, 100, 10), ...font(10) }}
+          <textarea className="dgdo-in" aria-label="Airport of departure" placeholder="SCL" style={{ ...box(186, 258, 114, 38), ...font(8), lineHeight: 1.15 }}
             value={data.airportOfDeparture} onChange={e => onField({ airportOfDeparture: e.target.value.toUpperCase() })} />
           <input className="dgdo-in" aria-label="Airport of destination" placeholder="MIA" style={{ ...line(182, 313, 100, 10), ...font(10) }}
             value={data.airportOfDestination} onChange={e => onField({ airportOfDestination: e.target.value.toUpperCase() })} />

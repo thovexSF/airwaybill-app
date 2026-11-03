@@ -121,7 +121,9 @@ function DeclarationPage({ data, items, index, total, hideValues, logoUrl }: {
       {!hideHeader && <At x={53.3} y={145} size={9} width={236}>{data.consigneeNameAndAddress}</At>}
 
       {/* Transport details */}
-      {!hideHeader && <At x={186.2} y={268} size={10}>{data.airportOfDeparture}</At>}
+      {!hideHeader && data.airportOfDeparture && (
+        <Text style={[s.value, { left: 186, top: 260, width: 114, fontSize: 8, lineHeight: 1.15 }]}>{data.airportOfDeparture}</Text>
+      )}
       {!hideHeader && <At x={182} y={313} size={10}>{data.airportOfDestination}</At>}
       {cargoOnly ? strikeBox(PASSENGER_BOX) : strikeBox(CARGO_ONLY_BOX)}
       {data.isRadioactive ? strikeBox(NON_RADIOACTIVE_BOX) : strikeBox(RADIOACTIVE_BOX)}
