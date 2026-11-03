@@ -104,33 +104,90 @@ export function buildCalibrationZpl(): string {
   return ['^XA', '^MNY', '^LL1200', '^JUS', '^XZ', '~JC'].join('\n')
 }
 
+type BrowserPrintOutcome = 'browser-print' | 'printer-error' | 'blocked' | false
+
+// Same shape the official SDK posts. version is always 2 there, not the
+// version field Browser Print reports on the device.
+function sdkDevice(d: Record<string, unknown>) {
+  return {
+    name: d.name,
+    uid: d.uid,
+    connection: d.connection,
+    deviceType: d.deviceType,
+    version: 2,
+    provider: d.provider,
+    manufacturer: d.manufacturer,
+  }
+}
+
+// Chrome (SDK 3.1) always uses http://127.0.0.1:9100. Safari on an https page
+// cannot, so it uses the service's https port. `targetAddressSpace` is what
+// lets an https app reach that http port: without it Chrome treats the call as
+// mixed content / an unknown address space and fails before Browser Print sees it.
+function browserPrintBases(): string[] {
+  const safariHttps = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) && location.protocol === 'https:'
+  const http = 'http://127.0.0.1:9100'
+  const https = 'https://127.0.0.1:9101'
+  return safariHttps ? [https, http] : [http, https]
+}
+
+function bpFetch(url: string, init: RequestInit = {}) {
+  return fetch(url, { ...init, targetAddressSpace: 'loopback' } as RequestInit)
+}
+
+async function loopbackBlocked(): Promise<boolean> {
+  // On http://localhost the call is same-machine and needs no permission.
+  // Only an https page is gated, and only when the service never answered.
+  if (location.protocol !== 'https:') return false
+  try {
+    const status = await navigator.permissions.query({ name: 'loopback-network' as PermissionName })
+    return status.state === 'denied' || status.state === 'prompt'
+  } catch {
+    return false
+  }
+}
+
 /**
  * Talk to the Zebra Browser Print local service directly over its HTTP API —
- * the SDK is only a thin wrapper around these two endpoints, so this avoids
- * bundling Zebra's proprietary JS. The service listens on 9100 (http) and
- * 9101 (https); from an https page the browser blocks the http origin as mixed
- * content, so try the matching scheme first. Returns false if the service
- * isn't running (user hasn't installed/started Browser Print) or refuses.
+ * the SDK is only a thin wrapper around these endpoints, so this avoids
+ * bundling Zebra's proprietary JS.
+ *
+ * `/default` is not safe to print to: after the printer re-enumerates on USB
+ * its uid changes (…addr_004 → …addr_003) and the cached default keeps the old
+ * one, so `/write` answers 500 "Unable to establish connection" while
+ * `/available` already lists the live device. Content-Type stays text/plain,
+ * same as the SDK — application/json triggers a preflight this service does
+ * not answer.
  */
-async function sendViaBrowserPrint(zpl: string): Promise<boolean> {
-  const bases =
-    location.protocol === 'https:'
-      ? ['https://localhost:9101', 'http://localhost:9100']
-      : ['http://localhost:9100', 'https://localhost:9101']
-
-  for (const base of bases) {
+async function sendViaBrowserPrint(zpl: string): Promise<BrowserPrintOutcome> {
+  let reached = false
+  for (const base of browserPrintBases()) {
+    let printers: Record<string, unknown>[]
     try {
-      const device = await fetch(`${base}/default?type=printer`).then(r => (r.ok ? r.json() : Promise.reject()))
-      const res = await fetch(`${base}/write`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ device, data: zpl }),
-      })
-      if (res.ok) return true
+      const res = await bpFetch(`${base}/available`)
+      if (!res.ok) continue
+      const body = await res.json()
+      printers = Array.isArray(body?.printer) ? body.printer : []
     } catch {
-      // Try the next base, then fall through to download.
+      continue
     }
+    reached = true
+    for (const printer of printers) {
+      try {
+        const res = await bpFetch(`${base}/write`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({ device: sdkDevice(printer), data: zpl }),
+        })
+        if (res.ok) return 'browser-print'
+      } catch {
+        // This base answered; another printer on it may still accept the job.
+      }
+    }
+    break
   }
+  if (reached) return 'printer-error'
+  if (await loopbackBlocked()) return 'blocked'
   return false
 }
 
@@ -138,7 +195,7 @@ async function sendViaBrowserPrint(zpl: string): Promise<boolean> {
  * Print through Zebra Browser Print if the local service is running,
  * otherwise fall back to downloading the .zpl file.
  */
-export async function sendLabelToZebra(zpl: string, filename = 'label.zpl'): Promise<'browser-print' | 'download'> {
+export async function sendLabelToZebra(zpl: string, filename = 'label.zpl'): Promise<'browser-print' | 'printer-error' | 'blocked' | 'download'> {
   // Prefer the SDK if a page ever loads it; otherwise hit the service directly.
   const BrowserPrint = (window as any).BrowserPrint
   if (BrowserPrint?.getDefaultDevice) {
@@ -155,7 +212,8 @@ export async function sendLabelToZebra(zpl: string, filename = 'label.zpl'): Pro
     }
   }
 
-  if (await sendViaBrowserPrint(zpl)) return 'browser-print'
+  const via = await sendViaBrowserPrint(zpl)
+  if (via) return via
 
   const url = URL.createObjectURL(new Blob([zpl], { type: 'text/plain' }))
   const a = document.createElement('a')

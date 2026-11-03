@@ -10,6 +10,13 @@ import { track } from '../lib/analytics'
 
 // Printer alignment lives in the browser: it's a property of the physical
 // printer, not the document, so it applies to every label on this machine.
+function zplResultMessage(where: 'browser-print' | 'printer-error' | 'blocked' | 'download', kind: 'print' | 'calibrate') {
+  if (where === 'browser-print') return kind === 'print' ? 'Sent to Zebra' : 'Calibrating…'
+  if (where === 'printer-error') return 'Browser Print is running, but the printer rejected the job — ZPL downloaded'
+  if (where === 'blocked') return 'Chrome blocked Browser Print. Allow local network access for this site and try again — ZPL downloaded'
+  return kind === 'print' ? 'Browser Print not found — ZPL downloaded' : 'Browser Print not found'
+}
+
 const OFFSET_KEY = 'zebraPrintOffsetMm'
 function loadOffset(): { x: number; y: number } {
   try {
@@ -42,7 +49,7 @@ export function LabelPage() {
     setZplMsg(null)
     try {
       const where = await sendLabelToZebra(buildLabelZpl(data, offset.x * DOTS_PER_MM, offset.y * DOTS_PER_MM), `Label_${awb || 'draft'}.zpl`)
-      setZplMsg(where === 'browser-print' ? 'Sent to Zebra' : 'Browser Print not found — ZPL downloaded')
+      setZplMsg(zplResultMessage(where, 'print'))
       track('label_zpl_printed')
     } catch {
       setZplMsg('ZPL error')
@@ -54,7 +61,7 @@ export function LabelPage() {
     setZplMsg(null)
     try {
       const where = await sendLabelToZebra(buildCalibrationZpl(), 'calibrate.zpl')
-      setZplMsg(where === 'browser-print' ? 'Calibrating…' : 'Browser Print not found')
+      setZplMsg(zplResultMessage(where, 'calibrate'))
     } catch {
       setZplMsg('ZPL error')
     }
