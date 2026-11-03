@@ -3,8 +3,8 @@ import { DGDData, DGDItem } from '../types/dgd'
 /**
  * The shipper's package sticker, the same job as the NiceLabel "UN …" templates:
  * shipper, consignee, proper shipping name, UN number and quantity on one
- * 10×15 cm label (the Zebra stock). OVERPACK is a single label instead, with
- * the word required by the DGR and whatever text the shipper types at the bottom.
+ * 10×15 cm label (the Zebra stock). OVERPACK is one more label after the
+ * packages, with the word required by the DGR and the text typed at the bottom.
  */
 export interface ShipperSticker {
   shipper: string
@@ -21,6 +21,7 @@ export interface ShipperSticker {
 function unLine(un: string): string {
   const t = un.trim().toUpperCase()
   if (!t) return ''
+  if (/^(UN|ID)\d/.test(t)) return t.replace(/^(UN|ID)/, '$1 ')
   return /^(UN|ID)\b/.test(t) ? t : `UN ${t}`
 }
 
@@ -35,11 +36,25 @@ export function suggestOverpackText(d: DGDData): string {
     .join('\n')
 }
 
-export function shipperStickers(d: DGDData): ShipperSticker[] {
+/** Item labels, plus the OVERPACK sheet when `includeOverpack` is set. */
+export function shipperStickers(d: DGDData, includeOverpack = !!d.overpack): ShipperSticker[] {
   const shipper = d.shipperNameAndAddress || ''
   const consignee = d.consigneeNameAndAddress || ''
-  if (d.overpack) {
-    return [{
+  const items = d.items.filter(filled)
+  const stickers: ShipperSticker[] = items.map(it => ({
+    shipper,
+    consignee,
+    overpack: false,
+    title: (it.properShippingName || '').trim(),
+    un: unLine(it.unIdNo || ''),
+    quantity: (it.quantity || '').trim(),
+    footer: '',
+  }))
+  if (!stickers.length && !includeOverpack) {
+    stickers.push({ shipper, consignee, overpack: false, title: '', un: '', quantity: '', footer: '' })
+  }
+  if (includeOverpack) {
+    stickers.push({
       shipper,
       consignee,
       overpack: true,
@@ -47,19 +62,9 @@ export function shipperStickers(d: DGDData): ShipperSticker[] {
       un: '',
       quantity: '',
       footer: (d.overpackText || '').trim() || suggestOverpackText(d),
-    }]
+    })
   }
-  const items = d.items.filter(filled)
-  const rows = items.length ? items : [null]
-  return rows.map(it => ({
-    shipper,
-    consignee,
-    overpack: false,
-    title: (it?.properShippingName || '').trim(),
-    un: unLine(it?.unIdNo || ''),
-    quantity: (it?.quantity || '').trim(),
-    footer: '',
-  }))
+  return stickers
 }
 
 function zplEsc(s: string): string {
@@ -71,8 +76,8 @@ function linesOf(s: string, max: number): string[] {
 }
 
 /** 203 dpi, 100 × 150 mm. One ^XA per sticker so they print in order. */
-export function buildShipperLabelZpl(d: DGDData): string {
-  return shipperStickers(d).map(sticker => {
+export function buildShipperLabelZpl(d: DGDData, includeOverpack = !!d.overpack): string {
+  return shipperStickers(d, includeOverpack).map(sticker => {
     const out: string[] = ['^XA', '^PW800', '^LL1200', '^LH0,0', '^CI28']
     const block = (x: number, y: number, h: number, text: string, step: number, max: number) => {
       linesOf(text, max).forEach((line, i) => {

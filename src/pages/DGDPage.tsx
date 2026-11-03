@@ -17,7 +17,9 @@ import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
-import { buildShipperLabelZpl, suggestOverpackText } from '../lib/shipperLabel'
+import { buildShipperLabelZpl, shipperStickers } from '../lib/shipperLabel'
+import { ShipperLabelDocument } from '../pdf/ShipperLabelDocument'
+import { LabelPreviewDialog } from '../components/LabelPreviewDialog'
 import { buildDotMatrixShipperXlsx, dotMatrixFileName } from '../lib/dotMatrixShipper'
 import { sendLabelToZebra } from '../lib/labelZpl'
 
@@ -77,6 +79,10 @@ export function DGDPage() {
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const [labelOpen, setLabelOpen] = useState(false)
+  const [labelBlob, setLabelBlob] = useState<Blob | null>(null)
+  const [printOverpack, setPrintOverpack] = useState(true)
+  const [labelPrinting, setLabelPrinting] = useState(false)
   const [formWidth, setFormWidth] = useState(380)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previewScrollRef = useRef<HTMLDivElement>(null)
@@ -189,17 +195,36 @@ export function DGDPage() {
 
   async function handlePrintLabel() {
     setSaveMsg(null)
+    setPrintOverpack(!!data.overpack)
+    setLabelBlob(null)
+    setLabelOpen(true)
     try {
-      const where = await sendLabelToZebra(buildShipperLabelZpl(data), `Shipper_${data.awbNo || 'label'}.zpl`)
+      const blob = await pdf(<ShipperLabelDocument stickers={shipperStickers(data)} />).toBlob()
+      setLabelBlob(blob)
+    } catch {
+      setLabelOpen(false)
+      setSaveMsg('Label error')
+    }
+  }
+
+  async function confirmLabelPrint() {
+    setLabelPrinting(true)
+    setSaveMsg(null)
+    try {
+      const includeOverpack = !!data.overpack && printOverpack
+      const where = await sendLabelToZebra(buildShipperLabelZpl(data, includeOverpack), `Shipper_${data.awbNo || 'label'}.zpl`)
       setSaveMsg(
         where === 'browser-print' ? 'Label sent to Zebra'
           : where === 'printer-error' ? 'Browser Print is running, but the printer rejected the label — ZPL downloaded'
           : where === 'blocked' ? 'Chrome blocked Browser Print. Allow local network access for this site — ZPL downloaded'
           : 'Browser Print not found — ZPL downloaded',
       )
-      track('dgd_label_printed', { overpack: !!data.overpack })
+      track('dgd_label_printed', { overpack: includeOverpack })
+      setLabelOpen(false)
     } catch {
       setSaveMsg('Label error')
+    } finally {
+      setLabelPrinting(false)
     }
     setTimeout(() => setSaveMsg(null), 4000)
   }
@@ -286,7 +311,7 @@ export function DGDPage() {
           className="btn-example"
           type="button"
           onClick={handlePrintLabel}
-          title="Print the package label on the Zebra. With OVERPACK checked, prints one overpack label."
+          title="Preview the package labels, then print them on the Zebra. OVERPACK adds one more sheet you can leave out."
         >
           Print label
         </button>
@@ -397,35 +422,6 @@ export function DGDPage() {
                 </div>
                 <button className="btn-add" onClick={addItem}>+ Add Item</button>
               </div>
-            </Section>
-
-            <Section title="Package label">
-              <div className="field">
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    checked={!!data.overpack}
-                    onChange={e => {
-                      const on = e.target.checked
-                      setData(d => ({
-                        ...d,
-                        overpack: on,
-                        overpackText: on && !(d.overpackText || '').trim() ? suggestOverpackText(d) : (d.overpackText || ''),
-                      }))
-                    }}
-                  />
-                  <span>OVERPACK</span>
-                </label>
-              </div>
-              {!!data.overpack && (
-                <Field
-                  label="Text at the bottom"
-                  value={data.overpackText || ''}
-                  onChange={set('overpackText')}
-                  rows={3}
-                  placeholder="UN 2795 BATTERIES, WET, FILLED WITH ALKALI — 4.5 kg"
-                />
-              )}
             </Section>
 
             <Section title="Additional Handling Information">
@@ -547,6 +543,17 @@ export function DGDPage() {
           )}
         </div>
       </div>
+      <LabelPreviewDialog
+        open={labelOpen}
+        title="Package labels"
+        blob={labelBlob}
+        onClose={() => setLabelOpen(false)}
+        onPrint={confirmLabelPrint}
+        printing={labelPrinting}
+        overpackPage={!!data.overpack}
+        printOverpack={printOverpack}
+        onPrintOverpack={setPrintOverpack}
+      />
     </div>
   )
 }

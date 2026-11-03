@@ -6,6 +6,8 @@ import { Section, Row, Field, TextArea, Check } from '../components/DocForm'
 import { useDocEditor } from '../lib/useDocEditor'
 import { awbBarcodePayload, barcodeDataUrl } from '../lib/barcode'
 import { buildLabelZpl, buildCalibrationZpl, sendLabelToZebra, DOTS_PER_MM } from '../lib/labelZpl'
+import { LabelPreviewDialog } from '../components/LabelPreviewDialog'
+import { pdf } from '@react-pdf/renderer'
 import { track } from '../lib/analytics'
 
 // Printer alignment lives in the browser: it's a property of the physical
@@ -31,6 +33,9 @@ export function LabelPage() {
   const { data, set, saving, saveMsg, save, authorizeDownload, atLimit } = useDocEditor<LabelData>('label', defaultLabelData, '/label')
   const [zplMsg, setZplMsg] = useState<string | null>(null)
   const [offset, setOffset] = useState(loadOffset)
+  const [labelOpen, setLabelOpen] = useState(false)
+  const [labelBlob, setLabelBlob] = useState<Blob | null>(null)
+  const [labelPrinting, setLabelPrinting] = useState(false)
 
   useEffect(() => {
     try { localStorage.setItem(OFFSET_KEY, JSON.stringify(offset)) } catch { /* private mode */ }
@@ -47,12 +52,29 @@ export function LabelPage() {
 
   async function handleZebra() {
     setZplMsg(null)
+    setLabelBlob(null)
+    setLabelOpen(true)
+    try {
+      const blob = await pdf(<LabelDocument data={data} barcodeSrc={barcodeSrc} />).toBlob()
+      setLabelBlob(blob)
+    } catch {
+      setLabelOpen(false)
+      setZplMsg('ZPL error')
+    }
+  }
+
+  async function confirmZebra() {
+    setLabelPrinting(true)
+    setZplMsg(null)
     try {
       const where = await sendLabelToZebra(buildLabelZpl(data, offset.x * DOTS_PER_MM, offset.y * DOTS_PER_MM), `Label_${awb || 'draft'}.zpl`)
       setZplMsg(zplResultMessage(where, 'print'))
       track('label_zpl_printed')
+      setLabelOpen(false)
     } catch {
       setZplMsg('ZPL error')
+    } finally {
+      setLabelPrinting(false)
     }
     setTimeout(() => setZplMsg(null), 3000)
   }
@@ -71,6 +93,7 @@ export function LabelPage() {
   const pieces = parseInt(data.totalPieces) || 1
 
   return (
+    <>
     <DocEditorShell
       data={data}
       renderDocument={d => <LabelDocument data={d} barcodeSrc={barcodeSrc} />}
@@ -95,7 +118,7 @@ export function LabelPage() {
           <button
             className="btn-example"
             onClick={handleZebra}
-            title="Prints directly to the Zebra printer. Requires the free Zebra Browser Print app installed and running on this computer. Without it, the .zpl file is downloaded instead."
+            title="Preview the label, then print it on the Zebra. Requires Zebra Browser Print. Without it, the .zpl file is downloaded."
           >
             ⎙ Print to Zebra
           </button>
@@ -194,5 +217,14 @@ export function LabelPage() {
         </Row>
       </Section>
     </DocEditorShell>
+    <LabelPreviewDialog
+      open={labelOpen}
+      title="Air cargo label"
+      blob={labelBlob}
+      onClose={() => setLabelOpen(false)}
+      onPrint={confirmZebra}
+      printing={labelPrinting}
+    />
+    </>
   )
 }
