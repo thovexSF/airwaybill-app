@@ -973,6 +973,44 @@ app.get('/api/import/awbeditor/:jobId', async (req, res) => {
   }
 })
 
+/**
+ * Partner-authenticated import, so the hub embedded in B2B (which has no
+ * Supabase session, only the partner key) can import awbeditor.db through
+ * B2B's proxy. Same job machinery as the Supabase route, scoped to the
+ * partner's organization.
+ */
+app.post('/v1/import/awbeditor', upload.single('file'), async (req, res) => {
+  const auth = await requirePartner(req, res)
+  if (!auth) return
+  const { supabase, ctx } = auth
+  if (!req.file?.buffer) return res.status(400).json({ error: 'file_required' })
+
+  let types: Array<'mawb' | 'hawb' | 'dgd'> | undefined
+  try {
+    const raw = JSON.parse(String(req.body?.types ?? '[]'))
+    if (Array.isArray(raw)) types = raw.filter((t) => t === 'mawb' || t === 'hawb' || t === 'dgd')
+  } catch { /* no filter → import all */ }
+
+  const jobId = createBufferImportJob(
+    ctx.organizationId,
+    ctx.actingUserId,
+    req.file.buffer,
+    req.file.originalname || 'awbeditor.db',
+    supabase,
+    types && types.length ? types : undefined,
+  )
+  res.json({ jobId, preview: { mawb: 0, hawb: 0, dgd: 0 }, status: 'running' })
+})
+
+app.get('/v1/import/awbeditor/:jobId', async (req, res) => {
+  const auth = await requirePartner(req, res)
+  if (!auth) return
+  const { ctx } = auth
+  const job = getImportJob(req.params.jobId, ctx.organizationId)
+  if (!job) return res.status(404).json({ error: 'job_not_found' })
+  res.json({ status: job.status, preview: job.preview, progress: job.progress, result: job.result, error: job.error })
+})
+
 // Version tag for cache-busting the host bundle. The filename is stable and
 // Cloudflare adds a 4h browser TTL on top of our no-cache, so B2B appends this
 // as ?v=… and only re-downloads b2b-host.js when a deploy changes it.

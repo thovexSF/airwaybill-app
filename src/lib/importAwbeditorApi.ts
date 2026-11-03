@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { getPartnerHost } from './partnerHost'
 
 export type AwbeditorImportResult = {
   mawbCreated: number
@@ -12,7 +13,21 @@ export type AwbeditorImportResult = {
   preview: { mawb: number; hawb: number; dgd: number }
 }
 
+/**
+ * In the B2B-embedded hub there is no Supabase session; the import goes through
+ * B2B's partner proxy with the B2B user token. Standalone uses Supabase auth.
+ */
+function importBase(): string {
+  const ph = getPartnerHost()
+  return ph ? `${ph.apiBase}/import/awbeditor` : '/api/import/awbeditor'
+}
+
 async function authHeaders(): Promise<HeadersInit> {
+  if (getPartnerHost()) {
+    let token: string | null = null
+    try { token = localStorage.getItem('token') } catch { /* ignore */ }
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
   const { data: sessionData } = await supabase.auth.getSession()
   const token = sessionData.session?.access_token
   if (!token) throw new Error('Debes iniciar sesión para importar')
@@ -53,7 +68,8 @@ export async function importAwbeditorDb(
   const form = new FormData()
   form.append('file', file)
   if (types && types.length) form.append('types', JSON.stringify(types))
-  const res = await fetch('/api/import/awbeditor', { method: 'POST', headers, body: form })
+  const base = importBase()
+  const res = await fetch(base, { method: 'POST', headers, body: form })
   if (!res.ok) throw new Error(await readError(res))
 
   const started = (await res.json()) as { jobId: string; preview: AwbeditorImportResult['preview'] }
@@ -61,7 +77,7 @@ export async function importAwbeditorDb(
   const deadline = Date.now() + 15 * 60 * 1000
 
   while (Date.now() < deadline) {
-    const poll = await fetch(`/api/import/awbeditor/${started.jobId}`, { headers: await authHeaders() })
+    const poll = await fetch(`${base}/${started.jobId}`, { headers: await authHeaders() })
     if (!poll.ok) throw new Error(await readError(poll))
     const job = (await poll.json()) as {
       status: string
