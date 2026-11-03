@@ -95,6 +95,8 @@ export function MyAWBsPage() {
   const tabFromUrl = searchParams.get('tab') || 'awb'
   const isB2bPartner = isPartnerHost() || isPartnerEmbed() || document.documentElement.getAttribute('data-partner-theme') === 'b2b'
   const activeMeta = HUB_DOC_TYPES.find((d) => d.type === tabFromUrl) || HUB_DOC_TYPES[0]
+  // En B2B el DGD se llama Shipper. airwaybill.app conserva el badge DGD.
+  const hubBadge = (dt: DocTypeMeta) => (isB2bPartner && dt.type === 'dgd' ? 'SHIPPER' : dt.badge)
 
   const [docs, setDocs] = useState<AWBDocument[]>([])
   const [loading, setLoading] = useState(true)
@@ -355,7 +357,7 @@ export function MyAWBsPage() {
     awb: 'No hay MAWB registrados.',
     hawb: 'No hay HAWB registrados.',
     manifest: 'No hay manifiestos registrados.',
-    dgd: 'No hay declaraciones DGD registradas.',
+    dgd: isB2bPartner ? 'No hay shippers registrados.' : 'No hay declaraciones DGD registradas.',
     label: 'No hay labels registrados.',
     bl: 'No hay Bills of Lading registrados.',
     bl_manifest: 'No hay manifiestos B/L registrados.',
@@ -461,7 +463,7 @@ export function MyAWBsPage() {
 
                       onClick={() => setTab(dt.type)}
                     >
-                      <span className="doc-hub-tab-label">{dt.badge}</span>
+                      <span className="doc-hub-tab-label">{hubBadge(dt)}</span>
                       {n > 0 && (
                         <span className="doc-hub-tab-count">
                           {n}
@@ -502,9 +504,9 @@ export function MyAWBsPage() {
             <button
               type="button"
               className="doc-hub-btn primary"
-              onClick={() => openEditor(newDocPath(activeMeta), `${t('myAwbs.newPrefix')} ${activeMeta.badge}`)}
+              onClick={() => openEditor(newDocPath(activeMeta), `${t('myAwbs.newPrefix')} ${hubBadge(activeMeta)}`)}
             >
-              + {t('myAwbs.newPrefix')} {activeMeta.badge}
+              + {t('myAwbs.newPrefix')} {hubBadge(activeMeta)}
             </button>
           </div>
         </div>
@@ -557,9 +559,9 @@ export function MyAWBsPage() {
                 type="button"
                 className="doc-hub-btn primary"
                 style={{ marginTop: 14 }}
-                onClick={() => openEditor(newDocPath(activeMeta), `Nuevo ${activeMeta.badge}`)}
+                onClick={() => openEditor(newDocPath(activeMeta), `Nuevo ${hubBadge(activeMeta)}`)}
               >
-                + Nuevo {activeMeta.badge}
+                + Nuevo {hubBadge(activeMeta)}
               </button>
             </div>
           )}
@@ -659,7 +661,7 @@ export function MyAWBsPage() {
                 </tbody>
               </table>
               <div className="doc-hub-footer">
-                {filtered.length} {activeMeta.badge}
+                {filtered.length} {hubBadge(activeMeta)}
                 {docs.length !== filtered.length ? ` · ${docs.length} total` : ''}
                 {colsCustomized && (
                   <button type="button" className="doc-hub-cols-reset" onClick={resetCols}>
