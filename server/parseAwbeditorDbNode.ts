@@ -285,7 +285,7 @@ function parseDbFile(dbPath: string): AwbEditorParseResult {
         result.errors.push({ id: Number(row.id), type: Number(row.document_type), error: e?.message || 'xml parse error' })
         continue
       }
-      const root = (parsed.awb || parsed.root || parsed) as Record<string, unknown>
+      const root = (parsed.awb || parsed.dgd || parsed.root || parsed) as Record<string, unknown>
       const dtype = Number(row.document_type)
       if (dtype === 101) result.mawb.push(parseAwbXml(root, 101, meta))
       else if (dtype === 102) result.hawb.push(parseAwbXml(root, 102, meta))
