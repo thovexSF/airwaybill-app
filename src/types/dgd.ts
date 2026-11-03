@@ -33,6 +33,10 @@ export interface DGDData {
   // Additional handling
   additionalHandling: string
 
+  /** Package sticker. OVERPACK prints one label with editable text along the bottom. */
+  overpack: boolean
+  overpackText: string
+
   // Certification / signature
   signatoryName: string
   signatoryTitle: string
@@ -64,6 +68,8 @@ export const defaultDGDData: DGDData = {
     { id: '1', unIdNo: '', properShippingName: '', classDivision: '', subsidiaryRisk: '', packingGroup: '', quantity: '', packingInstruction: '', authorization: '' },
   ],
   additionalHandling: '',
+  overpack: false,
+  overpackText: '',
   signatoryName: '',
   signatoryTitle: '',
   signaturePlace: '',

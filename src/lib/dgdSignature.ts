@@ -15,7 +15,8 @@ function cyrb53(str: string): string {
 
 /** Everything the declaration says, except the signature itself, the draft mark and the logo. */
 export function dgdContentHash(d: DGDData): string {
-  const { signatureUrl: _s, signatureProof: _p, logoUrl: _l, isDraft: _d, ...content } = d
+  // The package sticker is not part of the declaration: toggling it must not void a signature.
+  const { signatureUrl: _s, signatureProof: _p, logoUrl: _l, isDraft: _d, overpack: _o, overpackText: _t, ...content } = d
   return cyrb53(JSON.stringify(content))
 }
 

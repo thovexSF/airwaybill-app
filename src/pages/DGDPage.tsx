@@ -17,6 +17,8 @@ import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
+import { buildShipperLabelZpl, suggestOverpackText } from '../lib/shipperLabel'
+import { sendLabelToZebra } from '../lib/labelZpl'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -184,6 +186,23 @@ export function DGDPage() {
     }))
   }
 
+  async function handlePrintLabel() {
+    setSaveMsg(null)
+    try {
+      const where = await sendLabelToZebra(buildShipperLabelZpl(data), `Shipper_${data.awbNo || 'label'}.zpl`)
+      setSaveMsg(
+        where === 'browser-print' ? 'Label sent to Zebra'
+          : where === 'printer-error' ? 'Browser Print is running, but the printer rejected the label — ZPL downloaded'
+          : where === 'blocked' ? 'Chrome blocked Browser Print. Allow local network access for this site — ZPL downloaded'
+          : 'Browser Print not found — ZPL downloaded',
+      )
+      track('dgd_label_printed', { overpack: !!data.overpack })
+    } catch {
+      setSaveMsg('Label error')
+    }
+    setTimeout(() => setSaveMsg(null), 4000)
+  }
+
   function signNow() {
     if (!profile.signatureUrl) return
     setData(d => signDgd(d, profile.signatureUrl, user?.email ?? ''))
@@ -251,6 +270,14 @@ export function DGDPage() {
       <div className="editor-bar" style={{ background: '#6b0000', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 20px', height: 38, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
         {generating && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Generating…</span>}
         {saveMsg && <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>{saveMsg}</span>}
+        <button
+          className="btn-example"
+          type="button"
+          onClick={handlePrintLabel}
+          title="Print the package label on the Zebra. With OVERPACK checked, prints one overpack label."
+        >
+          Print label
+        </button>
         {!demo && (
           <button
             className="btn-example"
@@ -350,6 +377,35 @@ export function DGDPage() {
                 </div>
                 <button className="btn-add" onClick={addItem}>+ Add Item</button>
               </div>
+            </Section>
+
+            <Section title="Package label">
+              <div className="field">
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={!!data.overpack}
+                    onChange={e => {
+                      const on = e.target.checked
+                      setData(d => ({
+                        ...d,
+                        overpack: on,
+                        overpackText: on && !(d.overpackText || '').trim() ? suggestOverpackText(d) : (d.overpackText || ''),
+                      }))
+                    }}
+                  />
+                  <span>OVERPACK</span>
+                </label>
+              </div>
+              {!!data.overpack && (
+                <Field
+                  label="Text at the bottom"
+                  value={data.overpackText || ''}
+                  onChange={set('overpackText')}
+                  rows={3}
+                  placeholder="UN 2795 BATTERIES, WET, FILLED WITH ALKALI — 4.5 kg"
+                />
+              )}
             </Section>
 
             <Section title="Additional Handling Information">
