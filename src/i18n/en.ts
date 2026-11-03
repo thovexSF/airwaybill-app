@@ -23,7 +23,7 @@ const en = {
       subtitle: 'Professional AWB documents in IATA format — directly in your browser. No software to install.',
       cta: 'Try it free — no signup required →',
       demo: 'Try Demo',
-      note: 'No signup required to try · 3 free documents when you register',
+      note: 'No signup required to try · 10 free documents when you register',
     },
     features: {
       label: 'Features',
@@ -100,7 +100,7 @@ const en = {
       },
     },
     signup: {
-      sub: 'Create your free account: 3 documents of any type without watermark, no credit card required.',
+      sub: 'Create your free account: 10 documents of any type without watermark, no credit card required.',
       google: 'Sign up with Google',
       github: 'Sign up with GitHub',
       apple: 'Sign up with Apple',
@@ -148,7 +148,7 @@ const en = {
     downloading: 'Preparing download...',
     downloadError: 'Could not download PDF',
     downloadPdf: '⬇ Download PDF',
-    limitBanner: 'You\'ve used the 3 free documents included in Free. New PDFs now carry a DRAFT watermark — subscribe to Pro to remove it.',
+    limitBanner: 'You\'ve used the 10 free documents included in Free. New PDFs now carry a DRAFT watermark — subscribe to Pro to remove it.',
     upgradeNow: 'Upgrade to Starter →',
     editFields: 'Edit fields',
     copies: 'Copies',
@@ -159,7 +159,7 @@ const en = {
     pdfDownloads: 'documents',
     freeDocsShort: 'free',
     freeDocs: 'free documents',
-    limitReached: 'Free plan: 3 documents without watermark (any type)',
+    limitReached: 'Free plan: 10 documents without watermark (any type)',
     previewLoading: 'Generating preview…',
     updating: 'Updating…',
     zoomReset: 'Reset',
@@ -265,7 +265,7 @@ const en = {
   },
 
   demo: {
-    banner: 'Demo — preview and edit with DRAFT watermark. Sign up free for 3 documents without watermark.',
+    banner: 'Demo — preview and edit with DRAFT watermark. Sign up free for 10 documents without watermark.',
     signupCta: 'Create free account',
     downloadCta: 'Sign up to download PDF',
     sub: 'Live demo — no signup required',

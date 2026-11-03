@@ -102,7 +102,7 @@ export function AdminPage() {
         <Kpi label="Usuarios" value={kpis.totalUsers} />
         <Kpi label="Con login registrado" value={kpis.activeUsers} />
         <Kpi label="Organizaciones" value={kpis.totalOrgs} />
-        <Kpi label="En el límite free" value={kpis.nearLimitOrgs} sub="3 docs de por vida, alcanzados" />
+        <Kpi label="En el límite free" value={kpis.nearLimitOrgs} sub="10 docs de por vida, alcanzados" />
         <Kpi label="Documentos re-impresos" value={kpis.repeatedDocs} sub="mismo doc, 2+ veces" />
       </div>
 
@@ -110,7 +110,7 @@ export function AdminPage() {
       <RegistrySection />
       <EawbChannelsSection />
 
-      <Section title="Organizaciones" subtitle="Uso de PDF de por vida vs. límite del plan (free: 3 documentos, no por mes)">
+      <Section title="Organizaciones" subtitle="Uso de PDF de por vida vs. límite del plan (free: 10 documentos, no por mes)">
         <TableScroll>
           <table style={tableStyle}>
             <thead>

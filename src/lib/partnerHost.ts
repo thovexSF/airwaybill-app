@@ -27,6 +27,16 @@ export function isPartnerHost(): boolean {
   return config !== null
 }
 
+let shadow: ShadowRoot | null = null
+
+export function setPartnerShadow(next: ShadowRoot) {
+  shadow = next
+}
+
+export function getPartnerShadow(): ShadowRoot | null {
+  return shadow
+}
+
 /** Root-relative public file. Absolute when the UI is hosted on another origin. */
 export function publicAsset(path: string): string {
   if (!path || /^https?:\/\//i.test(path) || path.startsWith('data:')) return path

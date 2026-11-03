@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { pdfjs } from 'react-pdf'
 import { AuthProvider } from './auth/AuthContext'
 import { MyAWBsPage } from './pages/MyAWBsPage'
-import { setPartnerHost, type PartnerHostConfig } from './lib/partnerHost'
+import { setPartnerHost, setPartnerShadow, type PartnerHostConfig } from './lib/partnerHost'
 import { applyPartnerTheme } from './lib/partnerTheme'
 import i18n from './i18n'
 import css from './App.css?inline'
@@ -29,6 +29,7 @@ export function mount(el: HTMLElement, cfg: PartnerHostConfig): () => void {
     .catch(() => {})
 
   const shadow = el.shadowRoot ?? el.attachShadow({ mode: 'open' })
+  setPartnerShadow(shadow)
   let inner = shadow.querySelector('.awb-host') as HTMLElement | null
   if (!inner) {
     const style = document.createElement('style')

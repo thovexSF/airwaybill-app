@@ -24,6 +24,7 @@ const MIGRATIONS = [
   'migration_contact_tax_id.sql',
   'migration_org_shared_documents.sql',
   'migration_eawb_messaging.sql',
+  'migration_free_doc_limit_10.sql',
 ]
 
 const url = process.env.DATABASE_URL

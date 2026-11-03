@@ -531,19 +531,29 @@ app.get('/v1/documents', async (req, res) => {
   const docType = typeof req.query.docType === 'string' ? req.query.docType : undefined
   const externalId = typeof req.query.externalId === 'string' ? req.query.externalId : undefined
 
-  let q = supabase
-    .from('awb_documents')
-    .select('id, organization_id, external_id, data, status, created_at, updated_at')
-    .eq('organization_id', ctx.organizationId)
-    .order('updated_at', { ascending: false })
-    .limit(200)
+  // All pages: the hub splits by docType client-side, and an import bumps updated_at
+  // in bulk, so any cap here hides whole document types behind the latest import.
+  const pageSize = 1000
+  const all: any[] = []
+  for (let from = 0; ; from += pageSize) {
+    let q = supabase
+      .from('awb_documents')
+      .select('id, organization_id, external_id, data, status, created_at, updated_at')
+      .eq('organization_id', ctx.organizationId)
+      .order('updated_at', { ascending: false })
+      .order('id')
+      .range(from, from + pageSize - 1)
 
-  if (externalId) q = q.eq('external_id', externalId)
+    if (externalId) q = q.eq('external_id', externalId)
 
-  const { data, error } = await q
-  if (error) return res.status(500).json({ error: error.message })
+    const { data, error } = await q
+    if (error) return res.status(500).json({ error: error.message })
 
-  const rows = (data || []).filter(r => !docType || (r.data as any)?.docType === docType)
+    all.push(...(data || []))
+    if (!data || data.length < pageSize) break
+  }
+
+  const rows = all.filter(r => !docType || (r.data as any)?.docType === docType)
   res.json({ documents: rows, plan: effectivePlan(ctx) })
 })
 

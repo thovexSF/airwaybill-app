@@ -7,7 +7,7 @@ import { usePlan } from './usePlan'
 /**
  * Free-plan usage accounting for PDF downloads.
  *
- * The quota is 3 *documents* per organisation in total (not per month) — any
+ * The quota is 10 *documents* per organisation in total (not per month) — any
  * document type in the suite, not just AWBs. Past it, PDFs are still delivered but
  * always carry the DRAFT watermark; only a paid plan removes it. The `record_awb_pdf_download`
  * RPC (name kept for backwards compatibility with the deployed function) is

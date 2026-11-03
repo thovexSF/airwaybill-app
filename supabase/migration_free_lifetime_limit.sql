@@ -1,4 +1,4 @@
--- Free plan: 3 clean documents in total per organisation (not per month), no trials.
+-- Free plan: 10 clean documents in total per organisation (not per month), no trials.
 -- Past the allowance the RPCs answer 'limit_reached' WITHOUT counting; the client then
 -- still delivers the PDF, but forces the DRAFT watermark. Paid plans never hit the limit.
 -- Supersedes migration_pdf_download_usage.sql, which was never applied in production
@@ -9,7 +9,7 @@ alter table awb_documents
 
 -- Single source of truth for the limit; keep in step with FREE_DOC_LIMIT in src/lib/usePlan.ts.
 create or replace function free_doc_limit() returns int
-language sql immutable as $$ select 3 $$;
+language sql immutable as $$ select 10 $$;
 
 -- Lifetime units used by an organisation (sum over every month row).
 create or replace function org_docs_used(p_org_id uuid) returns int

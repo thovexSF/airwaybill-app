@@ -23,7 +23,7 @@ const es = {
       subtitle: 'Documentos AWB profesionales en formato IATA — directamente en tu navegador. Sin instalación.',
       cta: 'Pruébalo gratis — sin registrarte →',
       demo: 'Ver demo',
-      note: 'Sin registro para probar · 3 documentos gratis al crear cuenta',
+      note: 'Sin registro para probar · 10 documentos gratis al crear cuenta',
     },
     features: {
       label: 'Funciones',
@@ -100,7 +100,7 @@ const es = {
       },
     },
     signup: {
-      sub: 'Crea tu cuenta gratis: 3 documentos de cualquier tipo sin marca de agua, sin tarjeta de credito.',
+      sub: 'Crea tu cuenta gratis: 10 documentos de cualquier tipo sin marca de agua, sin tarjeta de credito.',
       google: 'Registrarse con Google',
       github: 'Registrarse con GitHub',
       apple: 'Registrarse con Apple',
@@ -148,7 +148,7 @@ const es = {
     downloading: 'Preparando descarga...',
     downloadError: 'No se pudo descargar el PDF',
     downloadPdf: '⬇ Descargar PDF',
-    limitBanner: 'Usaste los 3 documentos gratis del plan Free. Los nuevos PDF llevan marca de agua DRAFT: suscríbete a Pro para quitarla.',
+    limitBanner: 'Usaste los 10 documentos gratis del plan Free. Los nuevos PDF llevan marca de agua DRAFT: suscríbete a Pro para quitarla.',
     upgradeNow: 'Actualizar a Starter →',
     editFields: 'Editar campos',
     copies: 'Copias',
@@ -159,7 +159,7 @@ const es = {
     pdfDownloads: 'documentos',
     freeDocsShort: 'gratis',
     freeDocs: 'documentos gratis',
-    limitReached: 'Plan Free: 3 documentos sin marca de agua (cualquier tipo)',
+    limitReached: 'Plan Free: 10 documentos sin marca de agua (cualquier tipo)',
     previewLoading: 'Generando vista previa…',
     updating: 'Actualizando…',
     zoomReset: 'Reset',
@@ -265,7 +265,7 @@ const es = {
   },
 
   demo: {
-    banner: 'Demo — previsualiza y edita con watermark DRAFT. Regístrate gratis para 3 documentos sin marca de agua.',
+    banner: 'Demo — previsualiza y edita con watermark DRAFT. Regístrate gratis para 10 documentos sin marca de agua.',
     signupCta: 'Crear cuenta gratis',
     downloadCta: 'Registrate para descargar PDF',
     sub: 'Demo en vivo — sin registrarte',

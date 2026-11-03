@@ -17,7 +17,7 @@ export interface PlanInfo {
 }
 
 // Keep in step with free_doc_limit() in supabase/migration_free_lifetime_limit.sql.
-export const FREE_DOC_LIMIT = 3
+export const FREE_DOC_LIMIT = 10
 
 const LIMITS: Record<Plan, number | null> = {
   free:       FREE_DOC_LIMIT,
