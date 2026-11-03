@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { parseExcelFile, importRows, ImportPreviewRow } from '../lib/importService'
-import { importAwbeditorDb } from '../lib/importAwbeditorApi'
+import { importAwbeditorDb, ImportKind } from '../lib/importAwbeditorApi'
 import { usePostHog } from '@posthog/react'
 
 interface Props {
@@ -8,8 +8,14 @@ interface Props {
   onDone: () => void
 }
 
-type Step = 'pick' | 'preview' | 'importing' | 'done'
+type Step = 'pick' | 'preview' | 'dbTypes' | 'importing' | 'done'
 type ImportMode = 'excel' | 'awbeditor'
+
+const DB_KINDS: { key: ImportKind; label: string }[] = [
+  { key: 'mawb', label: 'MAWB' },
+  { key: 'hawb', label: 'HAWB' },
+  { key: 'dgd', label: 'DGD' },
+]
 
 export function ImportModal({ onClose, onDone }: Props) {
   const posthog = usePostHog()
@@ -20,6 +26,32 @@ export function ImportModal({ onClose, onDone }: Props) {
   const [parseError, setParseError] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
   const [result, setResult] = useState<{ ok: number; errors: string[]; summary?: string } | null>(null)
+  const [dbFile, setDbFile] = useState<File | null>(null)
+  const [dbTypes, setDbTypes] = useState<ImportKind[]>(['mawb', 'hawb', 'dgd'])
+
+  async function runDbImport(file: File, types: ImportKind[]) {
+    setStep('importing')
+    setProgress(1)
+    try {
+      const r = await importAwbeditorDb(file, setProgress, types)
+      const ok = r.mawbCreated + r.mawbUpdated + r.hawbCreated + r.hawbUpdated + r.dgdCreated + r.dgdUpdated
+      const summary = `${r.preview.mawb} MAWB · ${r.preview.hawb} HAWB · ${r.preview.dgd} DGD`
+      setResult({ ok, errors: r.errors, summary })
+      setStep('done')
+      if (ok > 0) {
+        posthog?.capture('awbeditor_db_imported', {
+          mawb: r.mawbCreated + r.mawbUpdated,
+          hawb: r.hawbCreated + r.hawbUpdated,
+          dgd: r.dgdCreated + r.dgdUpdated,
+          errors: r.errors.length,
+        })
+        onDone()
+      }
+    } catch (err: any) {
+      setParseError(err?.message || String(err))
+      setStep('dbTypes')
+    }
+  }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -29,29 +61,10 @@ export function ImportModal({ onClose, onDone }: Props) {
 
     if (lower.endsWith('.db') || lower.endsWith('.zip')) {
       setMode('awbeditor')
-      setStep('importing')
-      setProgress(1)
-      try {
-        const r = await importAwbeditorDb(file, setProgress)
-        const ok = r.mawbCreated + r.mawbUpdated + r.hawbCreated + r.hawbUpdated + r.dgdCreated + r.dgdUpdated
-        const summary = `${r.preview.mawb} MAWB · ${r.preview.hawb} HAWB · ${r.preview.dgd} DGD`
-        setResult({ ok, errors: r.errors, summary })
-        setStep('done')
-        if (ok > 0) {
-          posthog?.capture('awbeditor_db_imported', {
-            mawb: r.mawbCreated + r.mawbUpdated,
-            hawb: r.hawbCreated + r.hawbUpdated,
-            dgd: r.dgdCreated + r.dgdUpdated,
-            errors: r.errors.length,
-          })
-          onDone()
-        }
-      } catch (err: any) {
-        setParseError(err?.message || String(err))
-        setStep('pick')
-      } finally {
-        if (inputRef.current) inputRef.current.value = ''
-      }
+      setDbFile(file)
+      setDbTypes(['mawb', 'hawb', 'dgd'])
+      setStep('dbTypes')
+      if (inputRef.current) inputRef.current.value = ''
       return
     }
 
@@ -161,6 +174,45 @@ export function ImportModal({ onClose, onDone }: Props) {
                 Seleccionar archivo
               </button>
               {parseError && <p style={{ color: '#c00', marginTop: 12, fontSize: 13 }}>{parseError}</p>}
+            </div>
+          )}
+
+          {step === 'dbTypes' && (
+            <div style={{ padding: '8px 4px' }}>
+              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>¿Qué quieres importar?</p>
+              <p style={{ fontSize: 12, color: '#888', marginBottom: 14 }}>
+                Re-importar sobrescribe los documentos existentes de cada tipo seleccionado. Desmarca los que editaste en la app para no pisarlos.
+              </p>
+              <div style={{ display: 'flex', gap: 18, marginBottom: 18 }}>
+                {DB_KINDS.map(k => (
+                  <label key={k.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={dbTypes.includes(k.key)}
+                      onChange={e =>
+                        setDbTypes(prev => (e.target.checked ? [...prev, k.key] : prev.filter(t => t !== k.key)))
+                      }
+                    />
+                    {k.label}
+                  </label>
+                ))}
+              </div>
+              {parseError && <p style={{ color: '#c00', marginBottom: 12, fontSize: 13 }}>{parseError}</p>}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => dbFile && runDbImport(dbFile, dbTypes)}
+                  disabled={!dbFile || dbTypes.length === 0}
+                  style={{ background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 6, padding: '10px 28px', fontSize: 14, fontWeight: 700, cursor: dbTypes.length ? 'pointer' : 'not-allowed', opacity: dbTypes.length ? 1 : 0.5 }}
+                >
+                  Importar
+                </button>
+                <button
+                  onClick={() => { setStep('pick'); setDbFile(null); setParseError(null) }}
+                  style={{ background: 'transparent', color: '#666', border: '1px solid #ccc', borderRadius: 6, padding: '10px 20px', fontSize: 14, cursor: 'pointer' }}
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           )}
 

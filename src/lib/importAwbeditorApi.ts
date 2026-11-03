@@ -33,9 +33,12 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms))
 }
 
+export type ImportKind = 'mawb' | 'hawb' | 'dgd'
+
 export async function importAwbeditorDb(
   file: File,
   onProgress?: (pct: number) => void,
+  types?: ImportKind[],
 ): Promise<AwbeditorImportResult> {
   let lastPct = 0
   const bump = (pct: number) => {
@@ -49,6 +52,7 @@ export async function importAwbeditorDb(
   const headers = await authHeaders()
   const form = new FormData()
   form.append('file', file)
+  if (types && types.length) form.append('types', JSON.stringify(types))
   const res = await fetch('/api/import/awbeditor', { method: 'POST', headers, body: form })
   if (!res.ok) throw new Error(await readError(res))
 

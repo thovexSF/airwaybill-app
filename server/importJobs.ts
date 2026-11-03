@@ -64,12 +64,15 @@ export function createImportJob(
 }
 
 /** Recibe el buffer crudo; parse + import en background (POST responde al instante). */
+export type ImportKind = 'mawb' | 'hawb' | 'dgd'
+
 export function createBufferImportJob(
   organizationId: string,
   userId: string,
   buffer: Buffer,
   originalName: string,
   supabase: SupabaseClient,
+  types?: ImportKind[],
 ): string {
   const jobId = randomUUID()
   jobs.set(jobId, {
@@ -87,6 +90,12 @@ export function createBufferImportJob(
     try {
       job.progress = 3
       const parsed = parseAwbeditorDbBuffer(buffer, originalName)
+      // Only import the kinds the user selected; skip the rest so editing one
+      // document type doesn't get overwritten by a re-import of another.
+      const sel = new Set<ImportKind>(types && types.length ? types : ['mawb', 'hawb', 'dgd'])
+      if (!sel.has('mawb')) parsed.mawb = []
+      if (!sel.has('hawb')) parsed.hawb = []
+      if (!sel.has('dgd')) parsed.dgd = []
       job.preview = {
         mawb: parsed.mawb?.length || 0,
         hawb: parsed.hawb?.length || 0,

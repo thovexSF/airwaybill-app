@@ -929,12 +929,19 @@ app.post('/api/import/awbeditor', upload.single('file'), async (req, res) => {
     }
     if (!req.file?.buffer) return res.status(400).json({ error: 'file_required' })
 
+    let types: Array<'mawb' | 'hawb' | 'dgd'> | undefined
+    try {
+      const raw = JSON.parse(String(req.body?.types ?? '[]'))
+      if (Array.isArray(raw)) types = raw.filter((t) => t === 'mawb' || t === 'hawb' || t === 'dgd')
+    } catch { /* no filter → import all */ }
+
     const jobId = createBufferImportJob(
       ctx.organizationId,
       ctx.userId,
       req.file.buffer,
       req.file.originalname || 'awbeditor.db',
       ctx.supabase,
+      types && types.length ? types : undefined,
     )
 
     res.json({
