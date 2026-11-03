@@ -18,6 +18,7 @@ import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
 import { buildShipperLabelZpl, suggestOverpackText } from '../lib/shipperLabel'
+import { buildDotMatrixShipperXlsx, dotMatrixFileName } from '../lib/dotMatrixShipper'
 import { sendLabelToZebra } from '../lib/labelZpl'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -203,6 +204,17 @@ export function DGDPage() {
     setTimeout(() => setSaveMsg(null), 4000)
   }
 
+  function handleDotMatrix() {
+    const blob = buildDotMatrixShipperXlsx(data)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = dotMatrixFileName(data)
+    a.click()
+    URL.revokeObjectURL(url)
+    track('dgd_dot_matrix')
+  }
+
   function signNow() {
     if (!profile.signatureUrl) return
     setData(d => signDgd(d, profile.signatureUrl, user?.email ?? ''))
@@ -277,6 +289,14 @@ export function DGDPage() {
           title="Print the package label on the Zebra. With OVERPACK checked, prints one overpack label."
         >
           Print label
+        </button>
+        <button
+          className="btn-example"
+          type="button"
+          onClick={handleDotMatrix}
+          title="Download the Excel registered to the preprinted form on the OKI dot-matrix printer. Print it at 100% with zero margins."
+        >
+          Dot matrix
         </button>
         {!demo && (
           <button
