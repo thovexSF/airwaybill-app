@@ -47,7 +47,6 @@ function loadColPrefs(): ColPrefs {
   return { order: [...DEFAULT_COL_ORDER], widths: {} }
 }
 
-const PLAN_LABEL: Record<string, string> = { free: 'Gratis', starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' }
 
 const icon = (d: string) => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -439,7 +438,7 @@ export function MyAWBsPage() {
           </a>
         )}
         <div className="doc-hub-brand">
-          Airwaybill App <span>· Plan {PLAN_LABEL[plan] ?? plan}</span>
+          Airwaybill App
         </div>
         <div className="doc-hub-tabs" role="tablist" aria-label={t('myAwbs.docTypes')}>
           {DOC_CATEGORIES.map((cat) => {
