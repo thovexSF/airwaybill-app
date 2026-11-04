@@ -112,7 +112,10 @@ export function DocEditorShell<T>({
   }, [overlayMode, pdfBlob])
 
   const docFor = (d: T, hideValues: boolean) =>
-    renderDocument(forceWatermark ? { ...d, isDraft: true } : d, { hideValues })
+    renderDocument(
+      forceWatermark ? { ...d, isDraft: true } : !demo && plan !== 'free' ? { ...d, isDraft: false } : d,
+      { hideValues },
+    )
 
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
@@ -135,7 +138,7 @@ export function DocEditorShell<T>({
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => { void regenerate(data) }, 400)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [data, forceWatermark, overlayMode])
+  }, [data, forceWatermark, overlayMode, plan])
 
   // Release the last preview URL when the editor unmounts.
   useEffect(() => () => { setPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null }) }, [])
