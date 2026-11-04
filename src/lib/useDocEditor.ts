@@ -27,6 +27,12 @@ export function useDocEditor<T extends SuiteDocumentData>(
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
 
   useEffect(() => {
+    if (guard.plan !== 'free') {
+      setData(d => d.isDraft ? { ...d, isDraft: false } : d)
+    }
+  }, [guard.plan, data.isDraft])
+
+  useEffect(() => {
     if (!docId) return
     getDocument<T>(docId)
       .then(doc => {
