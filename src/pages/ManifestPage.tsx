@@ -68,6 +68,12 @@ export function ManifestPage() {
 
   const blocked = false
 
+  useEffect(() => {
+    if (plan !== 'free' && data.isDraft) {
+      setData(prev => ({ ...prev, isDraft: false }))
+    }
+  }, [plan, data.isDraft])
+
   function onDragStart(e: React.MouseEvent) {
     dragRef.current = true
     const startX = e.clientX
