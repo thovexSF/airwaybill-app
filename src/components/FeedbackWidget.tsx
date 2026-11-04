@@ -6,11 +6,15 @@ import { submitFeedback } from '../lib/feedbackService'
 import { usePostHog } from '@posthog/react'
 
 const ENABLED = import.meta.env.VITE_FEEDBACK_ENABLED !== 'false'
+const MIN_DETAILED_MESSAGE_LENGTH = 12
+
+const TOPICS = ['bug', 'feature', 'question', 'spanish_help'] as const
+type FeedbackTopic = typeof TOPICS[number]
 
 type Step = 'form' | 'sending' | 'done' | 'error'
 
 export function FeedbackWidget() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const posthog = usePostHog()
   const { user } = useAuth()
   const location = useLocation()
@@ -19,6 +23,7 @@ export function FeedbackWidget() {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [email, setEmail] = useState('')
+  const [topic, setTopic] = useState<FeedbackTopic | null>(null)
   const [step, setStep] = useState<Step>('form')
   const [errorKey, setErrorKey] = useState<string | null>(null)
 
@@ -40,13 +45,14 @@ export function FeedbackWidget() {
     setOpen(false)
     setStep('form')
     setText('')
+    setTopic(null)
     setErrorKey(null)
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const trimmed = text.trim()
-    if (trimmed.length < 3) {
+    if (!topic && trimmed.length < MIN_DETAILED_MESSAGE_LENGTH) {
       setErrorKey('too_short')
       return
     }
@@ -58,13 +64,24 @@ export function FeedbackWidget() {
       text: trimmed,
       page: location.pathname + location.search,
       user_email: email.trim() || user?.email || undefined,
-      context: user?.id ? { user_id: user.id } : undefined,
+      context: {
+        ...(user?.id ? { user_id: user.id } : {}),
+        topic,
+        locale: i18n.language,
+        message_length: trimmed.length,
+      },
     })
 
     if (result.ok) {
-      posthog?.capture('feedback_submitted', { page: location.pathname })
+      posthog?.capture('feedback_submitted', {
+        page: location.pathname,
+        topic,
+        locale: i18n.language,
+        message_length: trimmed.length,
+      })
       setStep('done')
       setText('')
+      setTopic(null)
       window.setTimeout(resetAndClose, 1400)
       return
     }
@@ -176,13 +193,40 @@ export function FeedbackWidget() {
                     {t('feedback.directNote')}
                   </p>
 
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                    {TOPICS.map((topicKey) => {
+                      const selected = topic === topicKey
+                      return (
+                        <button
+                          key={topicKey}
+                          type="button"
+                          onClick={() => setTopic(selected ? null : topicKey)}
+                          disabled={step === 'sending'}
+                          aria-pressed={selected}
+                          style={{
+                            border: selected ? '1px solid #8b0000' : '1px solid #ddd',
+                            borderRadius: 999,
+                            background: selected ? '#fff4f4' : '#fff',
+                            color: selected ? '#8b0000' : '#444',
+                            cursor: step === 'sending' ? 'wait' : 'pointer',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            padding: '6px 10px',
+                          }}
+                        >
+                          {t(`feedback.topics.${topicKey}`)}
+                        </button>
+                      )
+                    })}
+                  </div>
+
                   <textarea
                     ref={textareaRef}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     placeholder={t('feedback.placeholder')}
                     required
-                    minLength={3}
+                    minLength={topic ? 3 : MIN_DETAILED_MESSAGE_LENGTH}
                     maxLength={2000}
                     disabled={step === 'sending'}
                     rows={5}
