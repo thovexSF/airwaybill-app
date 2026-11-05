@@ -109,6 +109,12 @@ export function DGDPage() {
     }
   }, [docId])
 
+  useEffect(() => {
+    if (plan !== 'free' && data.isDraft) {
+      setData(prev => ({ ...prev, isDraft: false }))
+    }
+  }, [plan, data.isDraft])
+
   const logo = data.logoUrl ?? (profile.companyLogoUrl || undefined)
   const docForRender = (d: DGDData) => (quota.atLimit ? { ...d, isDraft: true } : d)
 

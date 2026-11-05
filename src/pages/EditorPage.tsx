@@ -220,7 +220,7 @@ export function EditorPage() {
   async function regenerate(d: AWBData, scale: 'sm' | 'md' | 'lg' = 'lg') {
     setGenerating(true)
     try {
-      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} />).toBlob()
+      const blob = await pdf(<AWBDocument data={d} userScale={scale} hideValues={overlayMode} showBrandStamp={false} />).toBlob()
       savedScroll.current = previewScrollRef.current?.scrollTop ?? 0
       restorePending.current = true
       setPdfBlob(blob)
@@ -475,6 +475,7 @@ export function EditorPage() {
           onClose={() => setCopiesOpen(false)}
           authorize={authorizeCopies}
           fileName={`${isHawb ? 'HAWB' : 'AWB'}_${awbFull}`}
+          showBrandStamp={false}
         />
         <FwbPreviewDialog
           open={fwbOpen}
