@@ -75,8 +75,8 @@ function elementFor(data: any, copies?: string[]) {
   const clean = { ...data, isDraft: false }
 
   if (t === 'awb' || t === 'hawb') {
-    if (copies?.length) return <AWBCopiesDocument data={clean} copies={copies} />
-    return <AWBDocument data={clean} />
+    if (copies?.length) return <AWBCopiesDocument data={clean} copies={copies} showBrandStamp={false} />
+    return <AWBDocument data={clean} showBrandStamp={false} />
   }
   if (t === 'dgd') return <DGDDocument data={clean} />
   if (t === 'manifest') return <ManifestDocument data={clean} />
@@ -87,7 +87,7 @@ function elementFor(data: any, copies?: string[]) {
   if (t === 'imo_dgd') return <IMODGDDocument data={clean} />
   if (t === 'neppex') return <NeppexDocument data={clean} />
   if (t === 'fwb' || t === 'fhl' || t === 'ffr') return <EDIDocument data={clean} />
-  return <AWBDocument data={clean} />
+  return <AWBDocument data={clean} showBrandStamp={false} />
 }
 
 export async function renderDocumentPdf(
