@@ -17,6 +17,7 @@ export type SuiteDocType =
   | 'fwb'
   | 'fhl'
   | 'ffr'
+  | 'labelTemplate'
 
 export interface SuiteDocumentData {
   docType: string

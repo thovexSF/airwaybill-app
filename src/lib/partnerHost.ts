@@ -82,7 +82,7 @@ function normalizeDoc<T>(row: any): T {
 }
 
 export async function partnerList<T>(docType?: string): Promise<T[]> {
-  const json = await partnerRequest<{ documents: any[] }>('GET', '/documents')
+  const json = await partnerRequest<{ documents: any[] }>('GET', docType ? `/documents?docType=${encodeURIComponent(docType)}` : '/documents')
   const rows = (json.documents || []).map(row => normalizeDoc<any>(row))
   const filtered = docType ? rows.filter(d => d.data?.docType === docType) : rows
   return filtered as T[]

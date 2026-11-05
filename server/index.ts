@@ -545,6 +545,8 @@ app.get('/v1/documents', async (req, res) => {
       .range(from, from + pageSize - 1)
 
     if (externalId) q = q.eq('external_id', externalId)
+    // Filter in the query, not after the page limit, or rarer types get cut off.
+    if (docType) q = q.eq('data->>docType', docType)
 
     const { data, error } = await q
     if (error) return res.status(500).json({ error: error.message })

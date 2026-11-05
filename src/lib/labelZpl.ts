@@ -16,6 +16,18 @@ function zplEsc(s: string): string {
 
 /** 203 dpi → 8 dots/mm. Printer alignment offset comes in from the editor. */
 export const DOTS_PER_MM = 8
+
+// Printer alignment lives in the browser: it's a property of the physical
+// printer, not the document, so every label printed from this machine uses it.
+export const PRINT_OFFSET_KEY = 'zebraPrintOffsetMm'
+export function loadPrintOffsetMm(): { x: number; y: number } {
+  try {
+    const v = JSON.parse(localStorage.getItem(PRINT_OFFSET_KEY) || '{}')
+    return { x: Number(v.x) || 0, y: Number(v.y) || 0 }
+  } catch {
+    return { x: 0, y: 0 }
+  }
+}
 /** Keep the shift inside the 20-dot margins so content never clips off the label. */
 export function clampOffsetDots(dots: number): number {
   return Math.max(-20, Math.min(20, Math.round(dots)))

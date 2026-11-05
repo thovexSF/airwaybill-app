@@ -5,13 +5,11 @@ import { DocEditorShell } from '../components/DocEditorShell'
 import { Section, Row, Field, TextArea, Check } from '../components/DocForm'
 import { useDocEditor } from '../lib/useDocEditor'
 import { awbBarcodePayload, barcodeDataUrl } from '../lib/barcode'
-import { buildLabelZpl, buildCalibrationZpl, sendLabelToZebra, DOTS_PER_MM } from '../lib/labelZpl'
+import { buildLabelZpl, buildCalibrationZpl, sendLabelToZebra, DOTS_PER_MM, PRINT_OFFSET_KEY, loadPrintOffsetMm } from '../lib/labelZpl'
 import { LabelPreviewDialog } from '../components/LabelPreviewDialog'
 import { pdf } from '@react-pdf/renderer'
 import { track } from '../lib/analytics'
 
-// Printer alignment lives in the browser: it's a property of the physical
-// printer, not the document, so it applies to every label on this machine.
 function zplResultMessage(where: 'browser-print' | 'printer-error' | 'blocked' | 'download', kind: 'print' | 'calibrate') {
   if (where === 'browser-print') return kind === 'print' ? 'Sent to Zebra' : 'Calibrating…'
   if (where === 'printer-error') return 'Browser Print is running, but the printer rejected the job — ZPL downloaded'
@@ -19,26 +17,16 @@ function zplResultMessage(where: 'browser-print' | 'printer-error' | 'blocked' |
   return kind === 'print' ? 'Browser Print not found — ZPL downloaded' : 'Browser Print not found'
 }
 
-const OFFSET_KEY = 'zebraPrintOffsetMm'
-function loadOffset(): { x: number; y: number } {
-  try {
-    const v = JSON.parse(localStorage.getItem(OFFSET_KEY) || '{}')
-    return { x: Number(v.x) || 0, y: Number(v.y) || 0 }
-  } catch {
-    return { x: 0, y: 0 }
-  }
-}
-
 export function LabelPage() {
   const { data, set, saving, saveMsg, save, authorizeDownload, atLimit } = useDocEditor<LabelData>('label', defaultLabelData, '/label')
   const [zplMsg, setZplMsg] = useState<string | null>(null)
-  const [offset, setOffset] = useState(loadOffset)
+  const [offset, setOffset] = useState(loadPrintOffsetMm)
   const [labelOpen, setLabelOpen] = useState(false)
   const [labelBlob, setLabelBlob] = useState<Blob | null>(null)
   const [labelPrinting, setLabelPrinting] = useState(false)
 
   useEffect(() => {
-    try { localStorage.setItem(OFFSET_KEY, JSON.stringify(offset)) } catch { /* private mode */ }
+    try { localStorage.setItem(PRINT_OFFSET_KEY, JSON.stringify(offset)) } catch { /* private mode */ }
   }, [offset])
 
   const awb = labelAwbNumber(data)
