@@ -2,7 +2,7 @@ import React from 'react'
 import { DGDData, DGDItem } from '../types/dgd'
 import type { SignatureState } from '../lib/dgdSignature'
 import {
-  BODY_TOP, COL, DGD_ROWS, ROW_H,
+  BODY_TOP, COL, DGD_ROWS, ROW_H, LOGO_BOX,
   CARGO_ONLY_BOX, NON_RADIOACTIVE_BOX, PASSENGER_BOX, RADIOACTIVE_BOX, SIGNATURE_BOX,
 } from '../pdf/DGDDocument'
 
@@ -11,7 +11,7 @@ import {
  * `DGDDocument` places its values at, so typing feels like filling in the paper form. While this
  * is mounted the preview PDF is rendered with `hideValues`, so a value is never drawn twice.
  */
-export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onAddItem, onRemoveItem, signature, hasProfileSignature, onSign, onClearSignature }: {
+export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onAddItem, onRemoveItem, signature, hasProfileSignature, onSign, onClearSignature, logo, onLogoFile, onClearLogo }: {
   data: DGDData
   /** CSS pixels per PDF point. */
   scale: number
@@ -26,6 +26,10 @@ export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onA
   hasProfileSignature: boolean
   onSign: () => void
   onClearSignature: () => void
+  /** Resolved logo, already drawn by the PDF. The box only receives a replacement. */
+  logo?: string
+  onLogoFile: (file: File) => void
+  onClearLogo: () => void
 }) {
   const px = (v: number) => v * scale
   const box = (x: number, y: number, w: number, h: number): React.CSSProperties => ({
@@ -72,6 +76,7 @@ export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onA
         .dgdo-x:hover { opacity: 1; }
         .dgdo-sign { position: absolute; background: rgba(139,0,0,0.04); border: 1px dashed rgba(139,0,0,0.45); color: var(--red); font-family: Helvetica, Arial, sans-serif; font-weight: 700; cursor: pointer; padding: 0; border-radius: 3px; }
         .dgdo-sign:hover { background: rgba(139,0,0,0.1); }
+        .dgdo-logo:hover { background: rgba(60,120,255,0.07); box-shadow: 0 0 0 1px rgba(60,120,255,0.25); }
       `}</style>
 
       {first && (
@@ -84,6 +89,30 @@ export function DGDOverlay({ data, scale, pageIndex, items, onField, onItem, onA
             value={data.shipperReference} onChange={e => onField({ shipperReference: e.target.value })} />
           <textarea className="dgdo-in" aria-label="Consignee" style={{ ...box(53, 138, 236, 46), ...font(9) }}
             value={data.consigneeNameAndAddress} onChange={e => onField({ consigneeNameAndAddress: e.target.value })} />
+          <div
+            title="Clic para cambiar el logo. También puedes pegar una imagen."
+            tabIndex={0}
+            onPaste={e => {
+              const f = [...e.clipboardData.files].find(x => x.type.startsWith('image/'))
+              if (!f) return
+              e.preventDefault()
+              onLogoFile(f)
+            }}
+            className="dgdo-logo"
+            style={{ ...box(LOGO_BOX[0], LOGO_BOX[1], LOGO_BOX[2], LOGO_BOX[3]), cursor: 'pointer' }}
+          >
+            <label style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: logo ? '1px dashed transparent' : '1px dashed rgba(0,0,0,0.35)', borderRadius: 2 }}>
+              {!logo && <span style={{ fontSize: px(8), color: 'rgba(0,0,0,0.35)', fontFamily: 'Helvetica, Arial, sans-serif' }}>Logo</span>}
+              <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onLogoFile(f) }} />
+            </label>
+            {logo && (
+              <button type="button" className="dgdo-x" title="Quitar logo" aria-label="Quitar logo"
+                style={{ position: 'absolute', top: 0, right: 0, fontSize: px(10) }}
+                onMouseDown={e => e.preventDefault()}
+                onClick={e => { e.preventDefault(); e.stopPropagation(); onClearLogo() }}>×</button>
+            )}
+          </div>
 
           <textarea className="dgdo-in" aria-label="Airport of departure" placeholder="SCL" style={{ ...box(186, 258, 114, 38), ...font(8), lineHeight: 1.15 }}
             value={data.airportOfDeparture} onChange={e => onField({ airportOfDeparture: e.target.value.toUpperCase() })} />

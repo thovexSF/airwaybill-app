@@ -8,7 +8,9 @@ import { DGDData, DGDItem, defaultDGDData } from '../types/dgd'
 import { DGDDocument, DGD_ROWS } from '../pdf/DGDDocument'
 import { DGDOverlay } from '../components/DGDOverlay'
 import { clearSignature, signatureState, signDgd } from '../lib/dgdSignature'
-import { useOrgProfile } from '../lib/orgProfile'
+import { logoToDataUrl, useOrgProfile } from '../lib/orgProfile'
+import { isPartnerHost, publicAsset } from '../lib/partnerHost'
+import { isPartnerEmbed } from '../lib/partnerTheme'
 import { saveDGD, getDGD } from '../lib/dgdService'
 import { useAuth } from '../auth/AuthContext'
 import { usePlan } from '../lib/usePlan'
@@ -109,7 +111,28 @@ export function DGDPage() {
     }
   }, [docId])
 
-  const logo = data.logoUrl ?? (profile.companyLogoUrl || undefined)
+  const b2b = isPartnerHost() || isPartnerEmbed() || document.documentElement.getAttribute('data-partner-theme') === 'b2b'
+  const [brandLogo, setBrandLogo] = useState<string | undefined>()
+  useEffect(() => {
+    if (!b2b) return
+    let cancelled = false
+    fetch(publicAsset('/b2b-express-logo.png'))
+      .then(r => { if (!r.ok) throw new Error('logo'); return r.blob() })
+      .then(b => logoToDataUrl(new File([b], 'logo.png', { type: b.type || 'image/png' })))
+      .then(url => { if (!cancelled) setBrandLogo(url) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [b2b])
+  // '' is an explicit removal. Otherwise the shipper's own logo, then the company one, then B2B's.
+  const logo = data.logoUrl === '' ? undefined : (data.logoUrl || profile.companyLogoUrl || brandLogo || undefined)
+
+  async function setLogoFile(file: File | undefined) {
+    if (!file) return
+    try {
+      const logoUrl = await logoToDataUrl(file)
+      setData(d => ({ ...d, logoUrl }))
+    } catch { setSaveMsg('No se pudo leer el logo') }
+  }
   const docForRender = (d: DGDData) => (quota.atLimit ? { ...d, isDraft: true } : d)
 
   // The PDF that gets downloaded: always complete, refreshed shortly after the data changes.
@@ -352,6 +375,24 @@ export function DGDPage() {
                 <Field label="Page of Pages" value={data.pageOf} onChange={set('pageOf')} placeholder="1 of 1" />
               </Row>
               <Field label="Shipper's Reference (optional)" value={data.shipperReference} onChange={set('shipperReference')} />
+              <div className="field">
+                <label>Logo</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <label title="Clic para cambiar. También puedes pegar una imagen." tabIndex={0}
+                    onPaste={e => { const f = [...e.clipboardData.files].find(x => x.type.startsWith('image/')); if (f) { e.preventDefault(); setLogoFile(f) } }}
+                    style={{ width: 160, height: 48, border: '1px dashed #ccc', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', cursor: 'pointer', overflow: 'hidden' }}>
+                    {logo ? <img src={logo} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 11, color: '#aaa' }}>Pegar o elegir</span>}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }}
+                      onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; setLogoFile(f) }} />
+                  </label>
+                  {logo && (
+                    <button type="button" onClick={() => setData(d => ({ ...d, logoUrl: '' }))}
+                      style={{ background: 'none', border: 0, color: '#777', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>
+                      Quitar
+                    </button>
+                  )}
+                </div>
+              </div>
             </Section>
 
             <Section title="Transport">
@@ -524,6 +565,9 @@ export function DGDPage() {
                         hasProfileSignature={!!profile.signatureUrl}
                         onSign={signNow}
                         onClearSignature={() => setData(d => clearSignature(d))}
+                        logo={logo}
+                        onLogoFile={setLogoFile}
+                        onClearLogo={() => setData(d => ({ ...d, logoUrl: '' }))}
                       />
                     )}
                   </div>
