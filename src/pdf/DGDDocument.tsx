@@ -40,6 +40,12 @@ const BODY_BOTTOM = 605
 export const ROW_H = 20
 export const DGD_ROWS = Math.floor((BODY_BOTTOM - BODY_TOP - 4) / ROW_H)
 
+/** Packing Inst. mide 35 pt: una celda de varias líneas (categoría, etiqueta, IT, dimensiones) solo entra con letra menor. */
+function fitPackingCell(i: number, v: string): { left: number; width: number; fontSize: number } | null {
+  if (i !== 5 || v.split('\n').length <= 2) return null
+  return { left: COL[5] + 2, width: COL[6] - COL[5] - 3, fontSize: 6.5 }
+}
+
 function itemCells(item: DGDItem): string[] {
   const classDiv = item.subsidiaryRisk ? `${item.classDivision} (${item.subsidiaryRisk})` : item.classDivision
   return [item.unIdNo, item.properShippingName, classDiv, item.packingGroup, item.quantity, item.packingInstruction, item.authorization]
@@ -136,9 +142,12 @@ function DeclarationPage({ data, items, index, total, hideValues, logoUrl }: {
               key={i}
               style={[s.value, {
                 left: COL[i] + 3, top: BODY_TOP + 4 + r * ROW_H, width: COL[i + 1] - COL[i] - 6,
-                // Two lines fit: dangerous-goods names are long. Anything past that is clipped.
-                height: ROW_H - 2, fontSize: 7.2, lineHeight: 1.1, overflow: 'hidden',
+                // Two lines fit in a row: dangerous-goods names are long. The last row has the free
+                // space below it, so a multi-line cell (a shipper with one package) prints in full.
+                height: r === items.length - 1 ? BODY_BOTTOM - (BODY_TOP + 4 + r * ROW_H) : ROW_H - 2,
+                fontSize: 7.2, lineHeight: 1.1, overflow: 'hidden',
                 fontFamily: i === 1 ? 'Helvetica-Bold' : 'Helvetica',
+                ...fitPackingCell(i, v),
               }]}
             >
               {v}
