@@ -7,6 +7,7 @@ import { useDocEditor } from '../lib/useDocEditor'
 import { awbBarcodePayload, barcodeDataUrl } from '../lib/barcode'
 import { buildLabelZpl, buildCalibrationZpl, sendLabelToZebra, DOTS_PER_MM, PRINT_OFFSET_KEY, loadPrintOffsetMm } from '../lib/labelZpl'
 import { LabelPreviewDialog } from '../components/LabelPreviewDialog'
+import { pdfToImages, printLabelImages } from '../lib/labelPrint'
 import { pdf } from '@react-pdf/renderer'
 import { track } from '../lib/analytics'
 
@@ -49,6 +50,22 @@ export function LabelPage() {
       setLabelOpen(false)
       setZplMsg('ZPL error')
     }
+  }
+
+  async function confirmSystemPrint() {
+    if (!labelBlob) return
+    setLabelPrinting(true)
+    setZplMsg(null)
+    try {
+      await printLabelImages(await pdfToImages(labelBlob))
+      track('label_printed', { via: 'system' })
+      setLabelOpen(false)
+    } catch {
+      setZplMsg('Print error')
+    } finally {
+      setLabelPrinting(false)
+    }
+    setTimeout(() => setZplMsg(null), 3000)
   }
 
   async function confirmZebra() {
@@ -106,9 +123,9 @@ export function LabelPage() {
           <button
             className="btn-example"
             onClick={handleZebra}
-            title="Preview the label, then print it on the Zebra. Requires Zebra Browser Print. Without it, the .zpl file is downloaded."
+            title="Preview the label, then print it through the system print dialog on any installed Zebra (pick 10×15 cm / 4×6 in paper). Direct print via Zebra Browser Print is also offered."
           >
-            ⎙ Print to Zebra
+            ⎙ Print label
           </button>
         </>
       }
@@ -177,7 +194,7 @@ export function LabelPage() {
 
       <Section title="Zebra alignment">
         <div style={{ padding: '10px 12px', fontSize: 11, color: '#888' }}>
-          Only affects printing to Zebra. Trial and error: shift the whole label to fit your roll. X: + right / − left · Y: + down / − up. Saved on this computer.
+          Only affects label printing. Trial and error: shift the whole label to fit your roll. X: + right / − left · Y: + down / − up. Saved on this computer.
         </div>
         <Row>
           <div className="field">
@@ -210,7 +227,8 @@ export function LabelPage() {
       title="Air cargo label"
       blob={labelBlob}
       onClose={() => setLabelOpen(false)}
-      onPrint={confirmZebra}
+      onPrint={confirmSystemPrint}
+      onPrintDirect={confirmZebra}
       printing={labelPrinting}
     />
     </>

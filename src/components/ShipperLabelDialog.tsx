@@ -27,6 +27,7 @@ export function ShipperLabelDialog({
   onChange,
   onClose,
   onPrint,
+  onPrintDirect,
   printing,
 }: {
   open: boolean
@@ -35,6 +36,7 @@ export function ShipperLabelDialog({
   onChange: (next: EditableSticker[]) => void
   onClose: () => void
   onPrint: () => void
+  onPrintDirect: () => void
   printing: boolean
 }) {
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -446,7 +448,22 @@ export function ShipperLabelDialog({
         <div className="form-dialog-actions" style={{ justifyContent: 'flex-end' }}>
           <span style={{ display: 'flex', gap: 8 }}>
             <button type="button" className="form-dialog-btn" onClick={onClose}>Cancelar</button>
-            <button type="button" className="form-dialog-btn primary" onClick={onPrint} disabled={!selectedCount || printing}>
+            <button
+              type="button"
+              className="form-dialog-btn"
+              onClick={onPrintDirect}
+              disabled={!selectedCount || printing}
+              title="Envía ZPL directo a la Zebra sin diálogo. Requiere Zebra Browser Print y una impresora ZPL (no sirve con TLP 2844 EPL)."
+            >
+              Impresión directa
+            </button>
+            <button
+              type="button"
+              className="form-dialog-btn primary"
+              onClick={onPrint}
+              disabled={!selectedCount || printing}
+              title="Abre el diálogo de impresión. Elige la Zebra y papel 10×15 cm (4×6 in)."
+            >
               {printing ? 'Imprimiendo…' : `Imprimir ${selectedCount || ''}`}
             </button>
           </span>

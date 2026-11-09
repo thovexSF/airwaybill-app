@@ -19,7 +19,8 @@ import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
-import { EditableSticker, buildStickersZpl, shipperStickers, toEditable } from '../lib/shipperLabel'
+import { EditableSticker, buildStickersZpl, shipperStickers, stickersImages, toEditable } from '../lib/shipperLabel'
+import { printLabelImages } from '../lib/labelPrint'
 import { ShipperLabelDialog } from '../components/ShipperLabelDialog'
 import { buildDotMatrixShipperXlsx, dotMatrixFileName } from '../lib/dotMatrixShipper'
 import { sendLabelToZebra } from '../lib/labelZpl'
@@ -222,6 +223,23 @@ export function DGDPage() {
   }
 
   async function confirmLabelPrint() {
+    const chosen = labels.filter(l => l.selected)
+    if (!chosen.length) return
+    setLabelPrinting(true)
+    setSaveMsg(null)
+    try {
+      await printLabelImages(stickersImages(chosen))
+      track('dgd_label_printed', { overpack: chosen.some(l => l.overpack), count: chosen.length, via: 'system' })
+      setLabelOpen(false)
+    } catch {
+      setSaveMsg('Label error')
+    } finally {
+      setLabelPrinting(false)
+    }
+    setTimeout(() => setSaveMsg(null), 4000)
+  }
+
+  async function confirmLabelPrintDirect() {
     const chosen = labels.filter(l => l.selected)
     if (!chosen.length) return
     setLabelPrinting(true)
@@ -586,6 +604,7 @@ export function DGDPage() {
         onChange={setLabels}
         onClose={() => setLabelOpen(false)}
         onPrint={confirmLabelPrint}
+        onPrintDirect={confirmLabelPrintDirect}
         printing={labelPrinting}
       />
     </div>

@@ -115,3 +115,10 @@ export function buildStickersZpl(stickers: EditableSticker[]): string {
     .map(s => canvasToZpl(renderStock(s.design, stickerValues(s), offset)))
     .join('\n')
 }
+
+/** The selected stickers as page images for the system print dialog (alignment is applied there). */
+export function stickersImages(stickers: EditableSticker[]): string[] {
+  return stickers
+    .filter(s => s.selected)
+    .map(s => renderStock(s.design, stickerValues(s)).toDataURL('image/png'))
+}

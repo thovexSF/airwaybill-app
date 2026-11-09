@@ -11,6 +11,7 @@ export function LabelPreviewDialog({
   blob,
   onClose,
   onPrint,
+  onPrintDirect,
   printing,
   overpackPage,
   printOverpack,
@@ -21,6 +22,7 @@ export function LabelPreviewDialog({
   blob: Blob | null
   onClose: () => void
   onPrint: () => void
+  onPrintDirect?: () => void
   printing: boolean
   overpackPage?: boolean
   printOverpack?: boolean
@@ -99,8 +101,25 @@ export function LabelPreviewDialog({
           ) : <span />}
           <span style={{ display: 'flex', gap: 8 }}>
             <button type="button" className="form-dialog-btn" onClick={onClose}>Cancel</button>
-            <button type="button" className="form-dialog-btn primary" onClick={onPrint} disabled={!blob || printing}>
-              {printing ? 'Printing…' : 'Print to Zebra'}
+            {onPrintDirect && (
+              <button
+                type="button"
+                className="form-dialog-btn"
+                onClick={onPrintDirect}
+                disabled={!blob || printing}
+                title="Sends ZPL straight to the Zebra, no dialog. Requires Zebra Browser Print and a ZPL printer."
+              >
+                Direct print
+              </button>
+            )}
+            <button
+              type="button"
+              className="form-dialog-btn primary"
+              onClick={onPrint}
+              disabled={!blob || printing}
+              title="Opens the print dialog. Pick the Zebra and 10×15 cm (4×6 in) paper."
+            >
+              {printing ? 'Printing…' : 'Print'}
             </button>
           </span>
         </div>
