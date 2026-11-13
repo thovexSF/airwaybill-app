@@ -6,6 +6,7 @@
  */
 import { pdfjs } from 'react-pdf'
 import { loadPrintOffsetMm } from './labelZpl'
+import { Orientation } from './labelDesign'
 
 /** 203 dpi: rasterise at the printer's own resolution so the driver doesn't resample. */
 const PRINTER_DPI = 203
@@ -27,14 +28,28 @@ export async function pdfToImages(blob: Blob): Promise<string[]> {
 
 /** One label per page at exactly 100×150 mm, shifted by the saved printer alignment. */
 export function printLabelImages(images: string[]): Promise<void> {
+  return printPages(images.map(src => `<img src="${src}">`), 100, 150)
+}
+
+/**
+ * Vector labels (see `designToSvg`), on sheets in the label's own orientation:
+ * a landscape label goes as a 150×100 mm page and the driver turns it onto the
+ * stock. Pre-rotating it onto a 100×150 page made drivers whose paper is
+ * listed as 6×4 turn it back and shrink it to fit across the 10 cm.
+ */
+export function printLabelSvgs(svgs: string[], orientation: Orientation): Promise<void> {
+  return orientation === 'landscape' ? printPages(svgs, 150, 100) : printPages(svgs, 100, 150)
+}
+
+function printPages(pages: string[], wMm: number, hMm: number): Promise<void> {
   const { x, y } = loadPrintOffsetMm()
   const html = `<!doctype html><html><head><meta charset="utf-8"><style>
-@page { size: 100mm 150mm; margin: 0 }
+@page { size: ${wMm}mm ${hMm}mm; margin: 0 }
 html, body { margin: 0; padding: 0 }
-.p { width: 100mm; height: 150mm; overflow: hidden; page-break-after: always; break-after: page }
+.p { width: ${wMm}mm; height: ${hMm}mm; overflow: hidden; page-break-after: always; break-after: page }
 .p:last-child { page-break-after: auto; break-after: auto }
-img { display: block; width: 100mm; height: 150mm; transform: translate(${x}mm, ${y}mm) }
-</style></head><body>${images.map(src => `<div class="p"><img src="${src}"></div>`).join('')}</body></html>`
+.p > img, .p > svg { display: block; width: ${wMm}mm; height: ${hMm}mm; transform: translate(${x}mm, ${y}mm) }
+</style></head><body>${pages.map(p => `<div class="p">${p}</div>`).join('')}</body></html>`
 
   return new Promise(resolve => {
     const iframe = document.createElement('iframe')

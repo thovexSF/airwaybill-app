@@ -61,14 +61,14 @@ export function blockId(): string {
 }
 
 function block(p: Omit<LabelBlock, 'id' | 'align' | 'valign' | 'bold' | 'upper'> & Partial<LabelBlock>): LabelBlock {
-  return { id: blockId(), align: 'left', valign: 'top', bold: true, upper: true, ...p }
+  return { id: blockId(), align: 'center', valign: 'top', bold: true, upper: true, ...p }
 }
 
 function header(): LabelBlock[] {
   return [
-    block({ field: 'text', text: 'SHIPPER:', x: 40, y: 30, w: 500, h: 30, size: 24 }),
+    block({ field: 'text', text: 'SHIPPER:', x: 40, y: 30, w: 1120, h: 30, size: 24 }),
     block({ field: 'shipper', x: 40, y: 62, w: 1120, h: 130, size: 32 }),
-    block({ field: 'text', text: 'CONSIGNEE:', x: 40, y: 205, w: 500, h: 30, size: 24 }),
+    block({ field: 'text', text: 'CONSIGNEE:', x: 40, y: 205, w: 1120, h: 30, size: 24 }),
     block({ field: 'consignee', x: 40, y: 237, w: 1120, h: 130, size: 32 }),
   ]
 }
@@ -136,29 +136,79 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[
 
 export const LINE_HEIGHT = 1.18
 
-/** Draws the design at the context's origin. Returns the ids of blocks whose text doesn't fit. */
-export function drawDesign(ctx: CanvasRenderingContext2D, design: LabelDesign, values: LabelValues): Set<string> {
+interface PlacedLine { text: string; x: number; y: number; font: string; bold: boolean; size: number }
+
+/** Wraps and positions every line. `y` is the top of the line (canvas `textBaseline = 'top'`). */
+function layoutDesign(ctx: CanvasRenderingContext2D, design: LabelDesign, values: LabelValues) {
   const overflow = new Set<string>()
-  ctx.fillStyle = '#000'
+  const lines: PlacedLine[] = []
   ctx.textBaseline = 'top'
   for (const b of design.blocks) {
     const text = blockText(b, values)
     if (!text.trim()) continue
     ctx.font = font(b)
-    const lines = wrap(ctx, text, b.w)
+    const wrapped = wrap(ctx, text, b.w)
     const lh = Math.round(b.size * LINE_HEIGHT)
     const fit = Math.max(1, Math.floor((b.h + lh - b.size) / lh))
-    if (lines.length > fit) overflow.add(b.id)
-    const shown = lines.slice(0, fit)
+    if (wrapped.length > fit) overflow.add(b.id)
+    const shown = wrapped.slice(0, fit)
     const used = (shown.length - 1) * lh + b.size
     const top = b.valign === 'middle' ? b.y + (b.h - used) / 2 : b.valign === 'bottom' ? b.y + b.h - used : b.y
     shown.forEach((line, i) => {
       const width = ctx.measureText(line).width
       const x = b.align === 'center' ? b.x + (b.w - width) / 2 : b.align === 'right' ? b.x + b.w - width : b.x
-      ctx.fillText(line, Math.round(x), Math.round(top + i * lh))
+      lines.push({ text: line, x: Math.round(x), y: Math.round(top + i * lh), font: ctx.font, bold: b.bold, size: b.size })
     })
   }
+  return { lines, overflow }
+}
+
+/** Draws the design at the context's origin. Returns the ids of blocks whose text doesn't fit. */
+export function drawDesign(ctx: CanvasRenderingContext2D, design: LabelDesign, values: LabelValues): Set<string> {
+  const { lines, overflow } = layoutDesign(ctx, design, values)
+  ctx.fillStyle = '#000'
+  ctx.textBaseline = 'top'
+  for (const l of lines) {
+    ctx.font = l.font
+    ctx.fillText(l.text, l.x, l.y)
+  }
   return overflow
+}
+
+const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+/**
+ * The design as vector SVG for the system print dialog. A bitmap there gets
+ * resampled by the browser and again by the driver, which blurs and jags the
+ * text; vector text is rasterised once, by the driver, at the head's own dpi.
+ * Lines are placed by the same layout as the canvas, so it prints what the
+ * editor shows. `page` is the sheet's orientation; a design in the other one
+ * is turned a quarter onto it.
+ */
+export function designToSvg(design: LabelDesign, values: LabelValues, page: Orientation = design.orientation): string {
+  const ctx = document.createElement('canvas').getContext('2d')!
+  const { lines } = layoutDesign(ctx, design, values)
+  // SVG has no reliable "top" baseline across browsers: shift each line from canvas top to alphabetic baseline.
+  const drop = new Map<string, number>()
+  const baseline = (f: string) => {
+    if (!drop.has(f)) {
+      ctx.font = f
+      ctx.textBaseline = 'alphabetic'
+      const a = ctx.measureText('H').actualBoundingBoxAscent
+      ctx.textBaseline = 'top'
+      drop.set(f, a - ctx.measureText('H').actualBoundingBoxAscent)
+    }
+    return drop.get(f)!
+  }
+  const texts = lines.map(l =>
+    `<text x="${l.x}" y="${(l.y + baseline(l.font)).toFixed(2)}" font-size="${l.size}" font-weight="${l.bold ? 700 : 400}">${xml(l.text)}</text>`,
+  ).join('')
+  const { w, h } = designSize(design)
+  const turned = page !== design.orientation
+  const pw = turned ? h : w
+  const ph = turned ? w : h
+  const g = turned ? `<g transform="translate(${pw},0) rotate(90)">${texts}</g>` : texts
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${pw} ${ph}" font-family="Arial, Helvetica, sans-serif" fill="#000" style="white-space:pre">${g}</svg>`
 }
 
 /** Thermal heads print dots, not grey: threshold so the preview shows the same pixels. */

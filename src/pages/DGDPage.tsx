@@ -19,8 +19,8 @@ import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
 import { track } from '../lib/analytics'
-import { EditableSticker, buildStickersZpl, shipperStickers, stickersImages, toEditable } from '../lib/shipperLabel'
-import { printLabelImages } from '../lib/labelPrint'
+import { EditableSticker, buildStickersZpl, shipperStickers, stickersSvgs, toEditable } from '../lib/shipperLabel'
+import { printLabelSvgs } from '../lib/labelPrint'
 import { ShipperLabelDialog } from '../components/ShipperLabelDialog'
 import { buildDotMatrixShipperXlsx, dotMatrixFileName } from '../lib/dotMatrixShipper'
 import { sendLabelToZebra } from '../lib/labelZpl'
@@ -228,7 +228,8 @@ export function DGDPage() {
     setLabelPrinting(true)
     setSaveMsg(null)
     try {
-      await printLabelImages(stickersImages(chosen))
+      const { svgs, orientation } = stickersSvgs(chosen)
+      await printLabelSvgs(svgs, orientation)
       track('dgd_label_printed', { overpack: chosen.some(l => l.overpack), count: chosen.length, via: 'system' })
       setLabelOpen(false)
     } catch {

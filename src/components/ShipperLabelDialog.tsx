@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { EditableSticker, blankEditable, stickerValues, suggestOverpackText } from '../lib/shipperLabel'
 import {
-  Align, FIELD_LABEL, LabelBlock, LabelDesign, LabelField, VAlign, blockId, cloneDesign,
+  Align, FIELD_LABEL, LabelBlock, LabelDesign, blockId, cloneDesign,
   defaultItemDesign, defaultOverpackDesign, designSize, renderDesign,
 } from '../lib/labelDesign'
 import {
@@ -45,6 +45,8 @@ export function ShipperLabelDialog({
   const [tplName, setTplName] = useState('')
   const [tplMsg, setTplMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Hold the canvas until the last template is applied, so the default layout doesn't flash first.
+  const [ready, setReady] = useState(false)
 
   // Drag handlers and the keyboard read the latest labels, not the render they were created in.
   const labelsRef = useRef(labels)
@@ -67,7 +69,7 @@ export function ShipperLabelDialog({
   }
 
   useEffect(() => {
-    if (!open) { applied.current = false; return }
+    if (!open) { applied.current = false; setReady(false); return }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     const previous = document.body.style.overflow
@@ -93,8 +95,9 @@ export function ShipperLabelDialog({
           const t = byKind(kindOf(l))
           return t ? { ...l, design: cloneDesign(t.design), templateId: t.id } : l
         }))
+        setReady(true)
       })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) setReady(true) })
     return () => { cancelled = true }
   }, [open])
 
@@ -139,27 +142,6 @@ export function ShipperLabelDialog({
     }
     patchDesign(active.id, d => ({ ...d, blocks: [...d.blocks, b] }))
     setBlockSel(b.id)
-  }
-
-  function duplicateBlock(b: LabelBlock) {
-    const copy = { ...b, id: blockId(), x: clamp(b.x + 20, 0, DW - b.w), y: clamp(b.y + 20, 0, DH - b.h) }
-    patchDesign(active.id, d => ({ ...d, blocks: [...d.blocks, copy] }))
-    setBlockSel(copy.id)
-  }
-
-  function setOrientation(o: LabelDesign['orientation']) {
-    patchDesign(active.id, d => {
-      const next = { ...d, orientation: o }
-      const { w, h } = designSize(next)
-      return {
-        ...next,
-        blocks: d.blocks.map(b => {
-          const bw = Math.min(b.w, w)
-          const bh = Math.min(b.h, h)
-          return { ...b, w: bw, h: bh, x: clamp(b.x, 0, w - bw), y: clamp(b.y, 0, h - bh) }
-        }),
-      }
-    })
   }
 
   function applyTemplate(id: string) {
@@ -282,7 +264,7 @@ export function ShipperLabelDialog({
                   style={{ cursor: 'pointer', outline: l.id === active.id ? '3px solid var(--red)' : '1px solid #bbb', background: '#fff', opacity: l.selected ? 1 : 0.45 }}
                   title="Editar esta etiqueta"
                 >
-                  <StickerCanvas design={l.design} values={stickerValues(l)} width={170} />
+                  {ready && <StickerCanvas design={l.design} values={stickerValues(l)} width={170} />}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, marginTop: 4 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
@@ -311,26 +293,20 @@ export function ShipperLabelDialog({
           {/* Canvas */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', padding: 14, gap: 10, overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <Seg value={active.design.orientation} onChange={setOrientation}
-                options={[{ value: 'landscape', label: 'Horizontal' }, { value: 'portrait', label: 'Vertical' }]} />
               <button type="button" className="form-dialog-btn" onClick={addText}>+ Texto</button>
-              <button type="button" className="form-dialog-btn" onClick={() => {
-                if (window.confirm('¿Volver al diseño original de esta etiqueta?')) {
-                  patchLabel(active.id, { design: active.overpack ? defaultOverpackDesign() : defaultItemDesign(), templateId: undefined })
-                  setBlockSel(null)
-                }
-              }}>Restablecer</button>
               <span style={{ fontSize: 11, color: '#777', marginLeft: 'auto' }}>
-                Clic para seleccionar · arrastra para mover · esquina para redimensionar · flechas para ajustar fino
+                Haz clic en un texto para cambiar su tamaño o alineación
               </span>
             </div>
-            <DesignEditor
+            {!ready ? (
+              <div style={{ color: '#777', textAlign: 'center', padding: 40 }}>Cargando…</div>
+            ) : <DesignEditor
               design={active.design}
               values={stickerValues(active)}
               selected={blockSel}
               onSelect={setBlockSel}
               onBlock={patchBlock}
-            />
+            />}
           </div>
 
           {/* Properties */}
@@ -374,15 +350,10 @@ export function ShipperLabelDialog({
             <Panel title="Texto seleccionado">
               {!block ? (
                 <div style={{ color: '#777', lineHeight: 1.5 }}>
-                  Haz clic en un texto de la etiqueta para cambiar su tamaño, alineación o posición sin tocar los demás.
+                  Haz clic en un texto de la etiqueta para cambiar su tamaño o alineación. Arrástralo para moverlo.
                 </div>
               ) : (
                 <>
-                  <Labeled label="Muestra">
-                    <select value={block.field} onChange={e => patchBlock(block.id, { field: e.target.value as LabelField })} style={inputStyle}>
-                      {(Object.keys(FIELD_LABEL) as LabelField[]).map(f => <option key={f} value={f}>{FIELD_LABEL[f]}</option>)}
-                    </select>
-                  </Labeled>
                   {block.field === 'text' && (
                     <Labeled label="Texto">
                       <textarea rows={2} value={block.text || ''} onChange={e => patchBlock(block.id, { text: e.target.value })}
@@ -403,40 +374,7 @@ export function ShipperLabelDialog({
                     <Seg<Align> value={block.align} onChange={v => patchBlock(block.id, { align: v })}
                       options={[{ value: 'left', label: 'Izq.' }, { value: 'center', label: 'Centro' }, { value: 'right', label: 'Der.' }]} />
                   </Labeled>
-                  <Labeled label="Vertical">
-                    <Seg<VAlign> value={block.valign} onChange={v => patchBlock(block.id, { valign: v })}
-                      options={[{ value: 'top', label: 'Arriba' }, { value: 'middle', label: 'Centro' }, { value: 'bottom', label: 'Abajo' }]} />
-                  </Labeled>
-                  <div style={{ display: 'flex', gap: 14 }}>
-                    <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                      <input type="checkbox" checked={block.bold} onChange={e => patchBlock(block.id, { bold: e.target.checked })} /> Negrita
-                    </label>
-                    <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                      <input type="checkbox" checked={block.upper} onChange={e => patchBlock(block.id, { upper: e.target.checked })} /> MAYÚSCULAS
-                    </label>
-                  </div>
-                  <Labeled label="Posición y caja (mm)">
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
-                      {(['x', 'y', 'w', 'h'] as const).map(k => (
-                        <label key={k} style={{ display: 'flex', flexDirection: 'column', gap: 2, color: '#888' }}>
-                          {k === 'x' ? 'X' : k === 'y' ? 'Y' : k === 'w' ? 'Ancho' : 'Alto'}
-                          <input type="number" step={0.5} value={+(block[k] / 8).toFixed(1)}
-                            onChange={e => {
-                              const v = Math.round((Number(e.target.value) || 0) * 8)
-                              const p: Partial<LabelBlock> =
-                                k === 'x' ? { x: clamp(v, 0, DW - block.w) }
-                                : k === 'y' ? { y: clamp(v, 0, DH - block.h) }
-                                : k === 'w' ? { w: clamp(v, 40, DW - block.x) }
-                                : { h: clamp(v, 20, DH - block.y) }
-                              patchBlock(block.id, p)
-                            }}
-                            style={{ ...inputStyle, padding: '4px 4px' }} />
-                        </label>
-                      ))}
-                    </div>
-                  </Labeled>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button type="button" className="form-dialog-btn" onClick={() => duplicateBlock(block)}>Duplicar</button>
                     <button type="button" className="form-dialog-btn" onClick={() => removeBlock(block.id)}>Eliminar texto</button>
                   </div>
                 </>
