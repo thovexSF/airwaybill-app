@@ -1,6 +1,6 @@
 import { DGDData, DGDItem } from '../types/dgd'
 import {
-  LabelDesign, LabelValues, Orientation, canvasToZpl, cloneDesign, defaultItemDesign, defaultOverpackDesign, designToSvg, renderStock,
+  LabelDesign, LabelValues, canvasToZpl, cloneDesign, defaultItemDesign, defaultOverpackDesign, designToSvg, renderStock,
 } from './labelDesign'
 import { DOTS_PER_MM, loadPrintOffsetMm } from './labelZpl'
 
@@ -118,9 +118,7 @@ export function buildStickersZpl(stickers: EditableSticker[]): string {
     .join('\n')
 }
 
-/** The selected stickers as vector pages for the system print dialog, all on the first one's orientation. */
-export function stickersSvgs(stickers: EditableSticker[]): { svgs: string[]; orientation: Orientation } {
-  const chosen = stickers.filter(s => s.selected)
-  const orientation = chosen[0]?.design.orientation ?? 'landscape'
-  return { svgs: chosen.map(s => designToSvg(s.design, stickerValues(s), orientation)), orientation }
+/** The selected stickers as vector pages on the 10×15 stock, turned the same way as the ZPL. */
+export function stickersSvgs(stickers: EditableSticker[]): string[] {
+  return stickers.filter(s => s.selected).map(s => designToSvg(s.design, stickerValues(s), 'portrait'))
 }

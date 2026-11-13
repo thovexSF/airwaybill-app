@@ -6,7 +6,6 @@
  */
 import { pdfjs } from 'react-pdf'
 import { loadPrintOffsetMm } from './labelZpl'
-import { Orientation } from './labelDesign'
 
 /** 203 dpi: rasterise at the printer's own resolution so the driver doesn't resample. */
 const PRINTER_DPI = 203
@@ -32,13 +31,12 @@ export function printLabelImages(images: string[]): Promise<void> {
 }
 
 /**
- * Vector labels (see `designToSvg`), on sheets in the label's own orientation:
- * a landscape label goes as a 150×100 mm page and the driver turns it onto the
- * stock. Pre-rotating it onto a 100×150 page made drivers whose paper is
- * listed as 6×4 turn it back and shrink it to fit across the 10 cm.
+ * Vector labels (see `designToSvg`) already turned onto the 100×150 stock.
+ * A landscape page is not rotated by Chrome or the Zebra driver: it is shrunk
+ * to fit across the 10 cm, so the turn has to be ours.
  */
-export function printLabelSvgs(svgs: string[], orientation: Orientation): Promise<void> {
-  return orientation === 'landscape' ? printPages(svgs, 150, 100) : printPages(svgs, 100, 150)
+export function printLabelSvgs(svgs: string[]): Promise<void> {
+  return printPages(svgs, 100, 150)
 }
 
 function printPages(pages: string[], wMm: number, hMm: number): Promise<void> {

@@ -228,8 +228,7 @@ export function DGDPage() {
     setLabelPrinting(true)
     setSaveMsg(null)
     try {
-      const { svgs, orientation } = stickersSvgs(chosen)
-      await printLabelSvgs(svgs, orientation)
+      await printLabelSvgs(stickersSvgs(chosen))
       track('dgd_label_printed', { overpack: chosen.some(l => l.overpack), count: chosen.length, via: 'system' })
       setLabelOpen(false)
     } catch {
