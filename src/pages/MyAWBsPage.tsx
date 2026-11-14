@@ -32,9 +32,10 @@ type TableCol = 'awb' | 'shipper' | 'consignee' | 'route' | 'pcs' | 'weight' | '
 type ColPrefs = { order: TableCol[]; widths: Partial<Record<TableCol, number>> }
 const DEFAULT_COL_ORDER: TableCol[] = ['awb', 'shipper', 'consignee', 'route', 'pcs', 'weight', 'prepaid', 'eawb', 'status', 'date']
 const DEFAULT_COL_WIDTH: Record<TableCol, number> = {
-  awb: 130, shipper: 200, consignee: 200, route: 110, pcs: 60, weight: 90, prepaid: 90, eawb: 90, status: 80, date: 110,
+  awb: 130, shipper: 220, consignee: 220, route: 150, pcs: 55, weight: 90, prepaid: 95, eawb: 70, status: 80, date: 115,
 }
 const COL_PREFS_KEY = 'doc-hub-table-columns'
+const NUM_COLS = new Set<TableCol>(['pcs', 'weight', 'prepaid'])
 
 function loadColPrefs(): ColPrefs {
   try {
@@ -174,6 +175,12 @@ export function MyAWBsPage() {
 
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })
+  // The table column is narrow: day-month-year and time, without seconds or a comma.
+  const fmtShort = (iso: string) => {
+    const d = new Date(iso)
+    const p = (n: number) => String(n).padStart(2, '0')
+    return `${p(d.getDate())}-${p(d.getMonth() + 1)}-${String(d.getFullYear()).slice(2)} ${p(d.getHours())}:${p(d.getMinutes())}`
+  }
 
   function rowOf(doc: AWBDocument) {
     const d = doc.data as any
@@ -184,13 +191,16 @@ export function MyAWBsPage() {
     const origin = d.airportOfDeparture || d.originStation || d.puertoEmbarque || d.origin || d.portOfLoading || d.departure || ''
     const dest = d.airportOfDestination || d.destinationStation || d.puertoDestino || d.destination || d.portOfDischarge || ''
     const route = origin && dest ? `${origin} → ${dest}` : origin || dest || '—'
+    // Departure is often "A. MERINO . B (SCL/ATL/HND)": the codes say the route in a narrow column.
+    const codes = /\(([A-Z]{3}(?:\s*[/-]\s*[A-Z]{3})+)\)/.exec(origin)?.[1].split(/\s*[/-]\s*/)
+    const routeShort = codes ? codes.join(' → ') : route
     const weight = d.rateItems?.reduce((s: number, r: any) => s + (parseFloat(r.chargeableWeight) || 0), 0)
       || parseFloat(d.totalKgNetos) || 0
     const pcs = d.rateItems?.reduce((s: number, r: any) => s + (parseFloat(r.pieces) || 0), 0) || 0
     const prepaid = parseFloat(d.totalPrepaid) || 0
     const eawb = d.eAwbStatus && d.eAwbStatus !== 'none' ? String(d.eAwbStatus) : ''
     const editPath = `${meta.route}?id=${doc.id}`
-    return { awbNum, shipper, consignee, route, weight, pcs, prepaid, eawb, status: doc.status, meta, editPath }
+    return { awbNum, shipper, consignee, route, routeShort, weight, pcs, prepaid, eawb, status: doc.status, meta, editPath }
   }
 
   const counts = useMemo(() => {
@@ -600,7 +610,7 @@ export function MyAWBsPage() {
 
           {view === 'table' && filtered.length > 0 && (
             <div className="doc-hub-table-wrap">
-              <table className="doc-hub-table" style={{ tableLayout: 'fixed', width: 44 + colOrder.reduce((w, k) => w + colWidth(k), 0) }}>
+              <table className="doc-hub-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: 44 + colOrder.reduce((w, k) => w + colWidth(k), 0) }}>
                 <colgroup>
                   <col style={{ width: 44 }} />
                   {colOrder.map((k) => <col key={k} style={{ width: colWidth(k) }} />)}
@@ -612,7 +622,7 @@ export function MyAWBsPage() {
                       <th
                         key={k}
                         draggable
-                        className={`doc-hub-th${dragCol === k ? ' dragging' : ''}${dropCol === k && dragCol !== k ? ' drop' : ''}`}
+                        className={`doc-hub-th${NUM_COLS.has(k) ? ' num' : ''}${dragCol === k ? ' dragging' : ''}${dropCol === k && dragCol !== k ? ' drop' : ''}`}
                         onDragStart={(e) => { setDragCol(k); e.dataTransfer.effectAllowed = 'move' }}
                         onDragOver={(e) => { e.preventDefault(); if (dropCol !== k) setDropCol(k) }}
                         onDragEnd={() => { setDragCol(null); setDropCol(null) }}
@@ -636,16 +646,16 @@ export function MyAWBsPage() {
                   {filtered.map((doc, i) => {
                     const r = rowOf(doc)
                     const cell: Record<TableCol, React.ReactNode> = {
-                      awb: <td className="strong">{r.awbNum}</td>,
-                      shipper: <td className="ellipsis">{r.shipper}</td>,
-                      consignee: <td className="ellipsis">{r.consignee}</td>,
-                      route: <td className="ellipsis">{r.route}</td>,
-                      pcs: <td>{r.pcs > 0 ? r.pcs : '—'}</td>,
-                      weight: <td>{r.weight > 0 ? `${r.weight} kg` : '—'}</td>,
-                      prepaid: <td>{r.prepaid > 0 ? r.prepaid.toFixed(2) : '—'}</td>,
+                      awb: <td className="strong ellipsis" title={r.awbNum}>{r.awbNum}</td>,
+                      shipper: <td className="ellipsis" title={r.shipper}>{r.shipper}</td>,
+                      consignee: <td className="ellipsis" title={r.consignee}>{r.consignee}</td>,
+                      route: <td className="ellipsis" title={r.route}>{r.routeShort}</td>,
+                      pcs: <td className="num">{r.pcs > 0 ? r.pcs : '—'}</td>,
+                      weight: <td className="num">{r.weight > 0 ? `${r.weight} kg` : '—'}</td>,
+                      prepaid: <td className="num">{r.prepaid > 0 ? r.prepaid.toFixed(2) : '—'}</td>,
                       eawb: <td>{r.eawb ? <span className={`doc-hub-status eawb-${r.eawb}`}>{r.eawb}</span> : '—'}</td>,
                       status: <td><span className={`doc-hub-status ${doc.status}`}>{doc.status}</span></td>,
-                      date: <td className="muted">{fmt(doc.updated_at)}</td>,
+                      date: <td className="muted" title={fmt(doc.updated_at)}>{fmtShort(doc.updated_at)}</td>,
                     }
                     return (
                       <tr

@@ -17,6 +17,16 @@ export default defineConfig({
   plugins: [
     react(),
     {
+      // Each `new URL('pdf.worker…', import.meta.url)` becomes a 1.4 MB data: URI in lib mode.
+      name: 'host-pdf-worker',
+      enforce: 'pre',
+      async resolveId(source, importer, options) {
+        if (!/\/lib\/pdfWorker$/.test(source)) return null
+        const resolved = await this.resolve(source, importer, { ...options, skipSelf: true })
+        return resolved ? resolved.id.replace(/pdfWorker\.ts$/, 'pdfWorker.host.ts') : null
+      },
+    },
+    {
       name: 'copy-pdf-worker',
       writeBundle(options) {
         const dir = options.dir || path.resolve('dist/host')

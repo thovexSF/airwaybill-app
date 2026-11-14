@@ -5,7 +5,8 @@
  */
 import React, { useState, useRef, useEffect } from 'react'
 import { pdf } from '@react-pdf/renderer'
-import { Document, Page, pdfjs } from 'react-pdf'
+import { Document, Page } from 'react-pdf'
+import '../lib/pdfWorker'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { AWBDocument } from '../pdf/AWBDocument'
@@ -13,10 +14,6 @@ import { AWBOverlay } from '../components/AWBOverlay'
 import { AWBData, defaultAWBData } from '../types/awb'
 import { exampleAWB } from '../data/example'
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString()
 
 export function DevPreviewPage() {
   const [data, setData] = useState<AWBData>({ ...exampleAWB, isDraft: true })

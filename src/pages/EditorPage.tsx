@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { pdf } from '@react-pdf/renderer'
-import { Document, Page, pdfjs } from 'react-pdf'
+import { Document, Page } from 'react-pdf'
+import '../lib/pdfWorker'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import { StructuredFormPanel } from '../components/StructuredFormPanel'
@@ -27,12 +28,6 @@ import { LangSwitcher } from '../components/LangSwitcher'
 import { DraftToggle } from '../components/DraftToggle'
 import { usePostHog } from '@posthog/react'
 
-if (!isPartnerHost()) {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString()
-}
 
 /** Ancho inicial del panel formulario (~58% en modal hub, ~52% en editor full). */
 function initialFormWidth(): number {

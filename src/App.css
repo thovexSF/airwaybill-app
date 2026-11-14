@@ -604,7 +604,8 @@ html[data-hub-modal="1"] .preview-panel > div[style*="overflow"] { padding: 10px
 .doc-hub-card.doc-hub-row-clickable { cursor: pointer; display: flex; align-items: flex-start; }
 .doc-hub-card.doc-hub-row-clickable:hover { border-color: #e8c4c4; box-shadow: 0 2px 8px rgba(139, 0, 0, 0.08); }
 .doc-hub-table .strong { font-weight: 700; }
-.doc-hub-table .ellipsis { max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+.doc-hub-table .ellipsis { overflow: hidden; text-overflow: ellipsis; }
+.doc-hub-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 .doc-hub-table .muted { color: #888; font-size: 11px; }
 .doc-hub-table .sticky-left { position: sticky; left: 0; z-index: 1; }
 .doc-hub-table th.sticky-left { z-index: 2; }
@@ -671,7 +672,14 @@ html[data-partner-embed="1"] .doc-hub-table th {
 
 .awb-host .topbar,
 .awb-host .partner-hide-in-embed { display: none !important; }
+.awb-host {
+  --font: "Inter", "Poppins", "Roboto", "Helvetica", "Arial", sans-serif;
+  font-family: var(--font);
+}
 .awb-host .doc-hub { min-height: 100%; background: #fff; }
+/* B2B gives the hub its whole content area: no centered 1440px column with white margins. */
+.awb-host .doc-hub-body { max-width: none; padding: 16px 20px 20px; }
+.awb-host .doc-hub-table td { padding: 5px 8px; }
 .awb-host .doc-hub-btn.primary,
 .awb-host .doc-hub-view-toggle button.active,
 .awb-host .doc-hub-chip.active,
