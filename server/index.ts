@@ -1031,10 +1031,15 @@ app.get('/host/version.txt', (_req, res) => {
   res.set('Cache-Control', 'no-store').type('text/plain').send(HOST_VERSION)
 })
 
-// Host bundle B2B loads into its own page. Filename is stable, so it must not sit in a long cache.
+// Host bundle B2B loads into its own page. Filename is stable, so it must not sit in a long cache,
+// except under ?v=<this deploy>: that URL never changes content, and without a long cache
+// Cloudflare revalidated it against Railway on every load (~0.8 s before the first byte).
 app.use('/host', express.static(path.join(DIST, 'host'), {
   index: false,
-  setHeaders(res) { res.setHeader('Cache-Control', 'no-cache') },
+  setHeaders(res) {
+    const versioned = (res as unknown as { req: express.Request }).req.query.v === HOST_VERSION
+    res.setHeader('Cache-Control', versioned ? 'public, max-age=31536000, immutable' : 'no-cache')
+  },
 }))
 
 // SPA: serve built assets; fall through to index.html for client routes
