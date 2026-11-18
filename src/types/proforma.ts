@@ -101,13 +101,30 @@ export const defaultProformaData: ProformaData = {
 export const B2B_EXPRESS_LOGO = '/proforma-logos/b2b-express.png'
 export const B2B_SERVICIOS_LOGO = '/proforma-logos/b2b-servicios.png'
 
+/**
+ * The leading number of a cell, read with either decimal separator: "3,47",
+ * "3.47", "1.234,56", "1,234.56", "8 packs". With both separators the last one
+ * is the decimal point; a lone comma is a decimal comma, as typed in Chile.
+ */
+export function parseAmount(raw: string): number {
+  const m = /^\s*-?[\d.,]+/.exec(raw || '')
+  if (!m) return 0
+  let t = m[0].trim()
+  const dot = t.lastIndexOf('.')
+  const comma = t.lastIndexOf(',')
+  if (dot >= 0 && comma >= 0) t = dot > comma ? t.replace(/,/g, '') : t.replace(/\./g, '').replace(',', '.')
+  else if (comma >= 0) t = t.replace(',', '.')
+  const n = parseFloat(t)
+  return Number.isFinite(n) ? n : 0
+}
+
 export function lineAmount(item: ProformaLineItem): number {
-  return (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0)
+  return parseAmount(item.quantity) * parseAmount(item.unitPrice)
 }
 
 export function proformaTotals(data: ProformaData): { subtotal: number; tax: number; total: number } {
   const subtotal = data.lineItems.reduce((sum, i) => sum + lineAmount(i), 0)
-  const lineTax = data.lineItems.reduce((sum, i) => sum + (parseFloat(i.tax) || 0), 0)
-  const tax = (parseFloat(data.tax) || 0) + lineTax
+  const lineTax = data.lineItems.reduce((sum, i) => sum + parseAmount(i.tax), 0)
+  const tax = parseAmount(data.tax) + lineTax
   return { subtotal, tax, total: subtotal + tax }
 }

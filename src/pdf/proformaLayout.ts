@@ -1,4 +1,4 @@
-import { ProformaData, ProformaLineItem, lineAmount, proformaTotals } from '../types/proforma'
+import { ProformaData, ProformaLineItem, lineAmount, parseAmount, proformaTotals } from '../types/proforma'
 
 /**
  * Fixed geometry of the proforma, in PDF points on a US Letter page. Imported
@@ -251,7 +251,7 @@ export function printedValue(data: ProformaData, key: string): string {
     // A plain number prints as money; anything else typed in the cell prints as typed.
     if (row[2] === 'unitPrice' || row[2] === 'tax') {
       const v = item[row[2]].trim()
-      return /^-?\d+([.,]\d+)?$/.test(v) ? money(parseFloat(v.replace(',', '.'))) : v
+      return /^-?[\d.,]+$/.test(v) ? money(parseAmount(v)) : v
     }
     return rawValue(data, key)
   }
@@ -283,4 +283,32 @@ export function setValue(data: ProformaData, key: string, value: string, newId: 
   }
   items[index] = { ...items[index], [row[2]]: value, ...(row[2] === 'quantity' ? { unit: '' } : {}) }
   return { ...data, lineItems: items }
+}
+
+const PASTE_COLUMNS = ['description', 'quantity', 'unitPrice', 'tax'] as const
+
+/**
+ * Rows copied from a spreadsheet or a table (tab-separated columns, one line
+ * per row), pasted into a line-item cell: fills from that cell rightwards and
+ * downwards. Returns null for a plain single value so the normal paste runs.
+ * A column equal to quantity × price is the sheet's own amount, not a tax.
+ */
+export function pasteRows(data: ProformaData, key: string, text: string, newId: () => string): ProformaData | null {
+  const m = /^lineItems\.(\d+)\.(description|quantity|unitPrice|tax)$/.exec(key)
+  const rows = text.replace(/\r/g, '').split('\n').filter(r => r.trim())
+  if (!m || (rows.length < 2 && !rows[0]?.includes('\t'))) return null
+  const start = Number(m[1])
+  const col = PASTE_COLUMNS.indexOf(m[2] as (typeof PASTE_COLUMNS)[number])
+  let next = data
+  rows.slice(0, LINE_ROWS - start).forEach((row, r) => {
+    const cells = row.split('\t').map(c => c.trim())
+    const item: Partial<Record<(typeof PASTE_COLUMNS)[number], string>> = {}
+    cells.forEach((c, i) => { const k = PASTE_COLUMNS[col + i]; if (k) item[k] = c })
+    if (item.tax && item.quantity && item.unitPrice
+      && Math.abs(parseAmount(item.tax) - parseAmount(item.quantity) * parseAmount(item.unitPrice)) < 0.01) {
+      item.tax = ''
+    }
+    for (const [k, v] of Object.entries(item)) next = setValue(next, `lineItems.${start + r}.${k}`, v, newId)
+  })
+  return next
 }

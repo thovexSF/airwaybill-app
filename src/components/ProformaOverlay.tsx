@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { ProformaData, B2B_EXPRESS_LOGO, B2B_SERVICIOS_LOGO } from '../types/proforma'
-import { PAGE_WIDTH, LEADING, proformaLayout, rawValue, setValue, clampLogo, centeredLogo, LogoBox } from '../pdf/proformaLayout'
+import { PAGE_WIDTH, LEADING, proformaLayout, rawValue, setValue, pasteRows, clampLogo, centeredLogo, LogoBox } from '../pdf/proformaLayout'
 import { newRowId } from '../lib/useDocEditor'
 
 if (typeof document !== 'undefined' && !document.getElementById('proforma-overlay-style')) {
@@ -52,6 +52,10 @@ export function ProformaOverlay({ data, onChange, pageWidthPx }: {
             : undefined,
           onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
             onChange(setValue(data, f.key, e.target.value, newRowId)),
+          onPaste: (e: React.ClipboardEvent) => {
+            const next = pasteRows(data, f.key, e.clipboardData.getData('text/plain'), newRowId)
+            if (next) { e.preventDefault(); onChange(next) }
+          },
         }
         return f.multiline
           ? <textarea key={f.key} {...props} style={{ ...style, overflow: 'auto' }} />

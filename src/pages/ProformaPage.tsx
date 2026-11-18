@@ -9,8 +9,10 @@ import {
   B2B_EXPRESS_LOGO,
 } from '../types/proforma'
 import { ProformaDocument } from '../pdf/ProformaDocument'
-import { LINE_ROWS, rawValue, setValue, ProformaLang } from '../pdf/proformaLayout'
+import { LINE_ROWS, rawValue, setValue, pasteRows, ProformaLang } from '../pdf/proformaLayout'
 import { translateTexts } from '../lib/translateApi'
+import { extractProforma } from '../lib/proformaExtractApi'
+import { ReadDocumentDialog } from '../components/ReadDocumentDialog'
 import { ProformaOverlay, LogoMenu } from '../components/ProformaOverlay'
 import { useAuth } from '../auth/AuthContext'
 import { DraftToggle } from '../components/DraftToggle'
@@ -30,6 +32,7 @@ export function ProformaPage() {
   const { subtotal, tax, total } = proformaTotals(data)
   const [translating, setTranslating] = useState(false)
   const [translateMsg, setTranslateMsg] = useState<string | null>(null)
+  const [readOpen, setReadOpen] = useState(false)
 
   const lang: ProformaLang = data.language === 'es' ? 'es' : 'en'
   const other: ProformaLang = lang === 'es' ? 'en' : 'es'
@@ -77,6 +80,27 @@ export function ProformaPage() {
   const addLine = () =>
     setData(d => d.lineItems.length >= LINE_ROWS ? d : ({ ...d, lineItems: [...d.lineItems, emptyProformaLine(newRowId())] }))
 
+  const onPasteRows = (index: number, key: string) => (e: React.ClipboardEvent) => {
+    const next = pasteRows(data, `lineItems.${index}.${key}`, e.clipboardData.getData('text/plain'), newRowId)
+    if (next) { e.preventDefault(); setData(next) }
+  }
+
+  // Fields the document shows replace what is typed; its lines replace the current lines.
+  async function readDocument(input: File | string) {
+    const { lineItems, ...fields } = await extractProforma(input)
+    const hasLines = data.lineItems.some(l => l.description.trim() || l.unitPrice.trim())
+    if (lineItems?.length && hasLines && !window.confirm('El documento trae ítems. ¿Reemplazar los ítems actuales?')) return
+    setData(d => {
+      let next = { ...d }
+      for (const [k, v] of Object.entries(fields)) if (typeof v === 'string' && k in d) (next as any)[k] = v
+      if (lineItems?.length) {
+        next.lineItems = lineItems.slice(0, LINE_ROWS).map(i => ({ ...emptyProformaLine(newRowId()), ...i }))
+      }
+      return next
+    })
+    track('proforma_document_read', { kind: typeof input === 'string' ? 'text' : input.type })
+  }
+
   const removeLine = (id: string) =>
     setData(d => ({ ...d, lineItems: d.lineItems.filter(l => l.id !== id) }))
 
@@ -90,6 +114,15 @@ export function ProformaPage() {
       toolbarExtra={
         <>
           <DraftToggle checked={data.isDraft} onChange={set('isDraft')} locked={atLimit} />
+          <button
+            type="button"
+            title="Llena la proforma desde una factura u otro documento (PDF, foto o texto)"
+            onClick={() => setReadOpen(true)}
+            style={{ background: '#333', border: 'none', color: '#ddd', padding: '0 10px', height: 26, borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
+          >
+            Leer documento
+          </button>
+          {readOpen && <ReadDocumentDialog onRead={readDocument} onClose={() => setReadOpen(false)} />}
           <button
             type="button"
             title={data.versions?.[other] ? `Ver la versión en ${other === 'es' ? 'español' : 'inglés'}` : `Traducir al ${other === 'es' ? 'español' : 'inglés'} y guardar ambas versiones`}
@@ -178,13 +211,13 @@ export function ProformaPage() {
           onAdd={addLine}
           addLabel={data.lineItems.length >= LINE_ROWS ? `Máximo ${LINE_ROWS} líneas` : '+ Add line'}
         >
-          {data.lineItems.map(item => (
+          {data.lineItems.map((item, i) => (
             <GridRow key={item.id} columns={COLS}>
-              <input value={item.description} onChange={e => updateLine(item.id, 'description', e.target.value)} placeholder="Description of goods" />
-              <input value={item.quantity} onChange={e => updateLine(item.id, 'quantity', e.target.value)} placeholder="1" style={{ textAlign: 'center' }} />
+              <input value={item.description} onChange={e => updateLine(item.id, 'description', e.target.value)} onPaste={onPasteRows(i, 'description')} placeholder="Description of goods" />
+              <input value={item.quantity} onChange={e => updateLine(item.id, 'quantity', e.target.value)} onPaste={onPasteRows(i, 'quantity')} placeholder="1" style={{ textAlign: 'center' }} />
               <input value={item.unit} onChange={e => updateLine(item.id, 'unit', e.target.value)} placeholder="pcs" style={{ textAlign: 'center' }} />
-              <input value={item.unitPrice} onChange={e => updateLine(item.id, 'unitPrice', e.target.value)} placeholder="0.00" style={{ textAlign: 'right' }} />
-              <input value={item.tax} onChange={e => updateLine(item.id, 'tax', e.target.value)} placeholder="0.00" style={{ textAlign: 'right' }} />
+              <input value={item.unitPrice} onChange={e => updateLine(item.id, 'unitPrice', e.target.value)} onPaste={onPasteRows(i, 'unitPrice')} placeholder="0.00" style={{ textAlign: 'right' }} />
+              <input value={item.tax} onChange={e => updateLine(item.id, 'tax', e.target.value)} onPaste={onPasteRows(i, 'tax')} placeholder="0.00" style={{ textAlign: 'right' }} />
               <span style={{ fontSize: 11, textAlign: 'right', alignSelf: 'center', color: '#555' }}>{money(lineAmount(item))}</span>
               <button className="btn-remove" onClick={() => removeLine(item.id)}>×</button>
             </GridRow>

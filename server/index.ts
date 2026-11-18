@@ -30,6 +30,7 @@ import type { AWBData } from '../src/types/awb'
 import { buildFwb17 } from '../src/lib/fwbCargoImp'
 import { authenticateUser } from './userAuth'
 import { translateFields } from './translate'
+import { extractProforma } from './extractProforma'
 import { EAWB_FROM, fetchReceivedEmail, parseAirlineReply, sendEawbMail, typeBEnvelope, verifyResendWebhook, type EawbChannel } from './eawb'
 import { splitAwbSerial } from '../src/lib/awbCheckDigit'
 import crypto from 'node:crypto'
@@ -929,6 +930,32 @@ app.post('/api/translate', async (req, res) => {
   } catch (e: any) {
     console.error('translate failed', e)
     res.status(502).json({ error: 'translate_failed', message: 'No se pudo traducir el contenido. Intenta de nuevo.' })
+  }
+})
+
+const EXTRACT_TYPES = /^(application\/pdf|image\/(png|jpe?g|webp|heic|heif))$/
+
+/** Lee un PDF, una imagen o texto pegado y devuelve los campos de la proforma (Gemini). */
+app.post('/api/proforma/extract', upload.single('file'), async (req, res) => {
+  try {
+    const ctx = await authenticateUser(req.header('authorization') ?? undefined)
+    if (!ctx) return res.status(401).json({ error: 'unauthorized', message: 'Inicia sesión para leer documentos.' })
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ error: 'extract_unavailable', message: 'La lectura de documentos no está configurada en el servidor.' })
+    }
+    const file = req.file
+    const text = typeof req.body?.text === 'string' ? req.body.text.slice(0, 50_000) : ''
+    if (file && !EXTRACT_TYPES.test(file.mimetype)) {
+      return res.status(400).json({ error: 'unsupported_type', message: 'Sube un PDF o una imagen (PNG, JPG).' })
+    }
+    if (file && file.size > 15 * 1024 * 1024) {
+      return res.status(400).json({ error: 'too_large', message: 'El archivo supera 15 MB.' })
+    }
+    if (!file && !text.trim()) return res.status(400).json({ error: 'invalid_request', message: 'Adjunta un archivo o pega el texto.' })
+    res.json({ fields: await extractProforma(file ? { mime: file.mimetype, data: file.buffer } : { text }) })
+  } catch (e: any) {
+    console.error('proforma extract failed', e)
+    res.status(502).json({ error: 'extract_failed', message: 'No se pudo leer el documento. Intenta de nuevo.' })
   }
 })
 
