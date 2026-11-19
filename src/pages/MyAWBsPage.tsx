@@ -28,11 +28,11 @@ function newDocPath(meta: DocTypeMeta): string {
   return meta.route
 }
 
-type TableCol = 'awb' | 'shipper' | 'consignee' | 'route' | 'pcs' | 'weight' | 'prepaid' | 'eawb' | 'status' | 'date'
+type TableCol = 'awb' | 'shipper' | 'consignee' | 'route' | 'pcs' | 'weight' | 'prepaid' | 'eawb' | 'status' | 'date' | 'user'
 type ColPrefs = { order: TableCol[]; widths: Partial<Record<TableCol, number>> }
-const DEFAULT_COL_ORDER: TableCol[] = ['awb', 'shipper', 'consignee', 'route', 'pcs', 'weight', 'prepaid', 'eawb', 'status', 'date']
+const DEFAULT_COL_ORDER: TableCol[] = ['awb', 'shipper', 'consignee', 'route', 'pcs', 'weight', 'prepaid', 'eawb', 'status', 'date', 'user']
 const DEFAULT_COL_WIDTH: Record<TableCol, number> = {
-  awb: 130, shipper: 220, consignee: 220, route: 150, pcs: 55, weight: 90, prepaid: 95, eawb: 70, status: 80, date: 115,
+  awb: 130, shipper: 220, consignee: 220, route: 150, pcs: 55, weight: 90, prepaid: 95, eawb: 70, status: 80, date: 115, user: 160,
 }
 const COL_PREFS_KEY = 'doc-hub-table-columns'
 const NUM_COLS = new Set<TableCol>(['pcs', 'weight', 'prepaid'])
@@ -40,9 +40,10 @@ const NUM_COLS = new Set<TableCol>(['pcs', 'weight', 'prepaid'])
 function loadColPrefs(): ColPrefs {
   try {
     const saved = JSON.parse(localStorage.getItem(COL_PREFS_KEY) || 'null') as ColPrefs | null
-    // A saved order is kept only while it names exactly today's columns.
-    if (saved && saved.order?.length === DEFAULT_COL_ORDER.length && DEFAULT_COL_ORDER.every((k) => saved.order.includes(k))) {
-      return { order: saved.order, widths: saved.widths ?? {} }
+    // A saved order keeps the columns that still exist; a column added since goes at the end.
+    if (saved?.order?.length) {
+      const kept = saved.order.filter((k) => DEFAULT_COL_ORDER.includes(k))
+      return { order: [...kept, ...DEFAULT_COL_ORDER.filter((k) => !kept.includes(k))], widths: saved.widths ?? {} }
     }
   } catch { /* unreadable or blocked storage */ }
   return { order: [...DEFAULT_COL_ORDER], widths: {} }
@@ -100,6 +101,7 @@ export function MyAWBsPage() {
   const hubBadge = (dt: DocTypeMeta) => (isB2bPartner && dt.type === 'dgd' ? 'SHIPPER' : dt.badge)
 
   const [docs, setDocs] = useState<AWBDocument[]>([])
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -107,7 +109,7 @@ export function MyAWBsPage() {
   const [view, setView] = useState<ViewMode>('table')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [sortCol, setSortCol] = useState<'awb' | 'shipper' | 'consignee' | 'route' | 'weight' | 'pcs' | 'prepaid' | 'eawb' | 'status' | 'date'>('date')
+  const [sortCol, setSortCol] = useState<TableCol>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [editorOpen, setEditorOpen] = useState(false)
   const [editorSrc, setEditorSrc] = useState('')
@@ -124,6 +126,12 @@ export function MyAWBsPage() {
     setEditorSrc('')
     listAWBs().then(setDocs).catch(() => {})
   }
+
+  useEffect(() => {
+    supabase.rpc('org_member_names').then(({ data }) => {
+      if (data) setMemberNames(Object.fromEntries((data as { user_id: string; name: string }[]).map((m) => [m.user_id, m.name])))
+    })
+  }, [])
 
   useEffect(() => {
     listAWBs()
@@ -224,7 +232,8 @@ export function MyAWBsPage() {
           r.shipper.toLowerCase().includes(q) ||
           r.consignee.toLowerCase().includes(q) ||
           r.route.toLowerCase().includes(q) ||
-          r.eawb.toLowerCase().includes(q)
+          r.eawb.toLowerCase().includes(q) ||
+          (memberNames[d.user_id] ?? '').toLowerCase().includes(q)
         )
       })
     }
@@ -236,6 +245,9 @@ export function MyAWBsPage() {
       if (sortCol === 'date') {
         va = a.updated_at
         vb = b.updated_at
+      } else if (sortCol === 'user') {
+        va = memberNames[a.user_id] ?? ''
+        vb = memberNames[b.user_id] ?? ''
       } else if (sortCol === 'weight') {
         va = ra.weight
         vb = rb.weight
@@ -268,7 +280,7 @@ export function MyAWBsPage() {
       if (va > vb) return sortDir === 'asc' ? 1 : -1
       return 0
     })
-  }, [docs, search, statusFilter, activeMeta.type, sortCol, sortDir])
+  }, [docs, search, statusFilter, activeMeta.type, sortCol, sortDir, memberNames])
 
   function handleSort(col: typeof sortCol) {
     if (sortCol === col) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -290,6 +302,7 @@ export function MyAWBsPage() {
       t('myAwbs.colEawb'),
       t('myAwbs.colStatus'),
       t('myAwbs.colDate'),
+      t('myAwbs.colUser'),
     ]
     const rows = filtered.map((doc) => {
       const r = rowOf(doc)
@@ -304,6 +317,7 @@ export function MyAWBsPage() {
         r.eawb || '—',
         r.status,
         fmt(doc.updated_at),
+        memberNames[doc.user_id] ?? '',
       ]
     })
     const csv = [headers, ...rows]
@@ -322,7 +336,7 @@ export function MyAWBsPage() {
   const colLabel: Record<TableCol, string> = {
     awb: t('myAwbs.colAwb'), shipper: t('myAwbs.colShipper'), consignee: t('myAwbs.colConsignee'),
     route: t('myAwbs.colRoute'), pcs: t('myAwbs.colPcs'), weight: t('myAwbs.colWeight'),
-    prepaid: t('myAwbs.colPrepaid'), eawb: t('myAwbs.colEawb'), status: t('myAwbs.colStatus'), date: t('myAwbs.colDate'),
+    prepaid: t('myAwbs.colPrepaid'), eawb: t('myAwbs.colEawb'), status: t('myAwbs.colStatus'), date: t('myAwbs.colDate'), user: t('myAwbs.colUser'),
   }
   const [colPrefs, setColPrefs] = useState<ColPrefs>(loadColPrefs)
   const [dragCol, setDragCol] = useState<TableCol | null>(null)
@@ -600,6 +614,7 @@ export function MyAWBsPage() {
                         {r.weight > 0 && <span>{r.weight} kg · </span>}
                         {r.eawb && <span>eAWB:{r.eawb} · </span>}
                         {fmt(doc.updated_at)} · {doc.status}
+                        {memberNames[doc.user_id] && <span> · {memberNames[doc.user_id]}</span>}
                       </div>
                     </div>
                   </div>
@@ -656,6 +671,7 @@ export function MyAWBsPage() {
                       eawb: <td>{r.eawb ? <span className={`doc-hub-status eawb-${r.eawb}`}>{r.eawb}</span> : '—'}</td>,
                       status: <td><span className={`doc-hub-status ${doc.status}`}>{doc.status}</span></td>,
                       date: <td className="muted" title={fmt(doc.updated_at)}>{fmtShort(doc.updated_at)}</td>,
+                      user: <td className="ellipsis muted" title={memberNames[doc.user_id]}>{memberNames[doc.user_id] ?? '—'}</td>,
                     }
                     return (
                       <tr

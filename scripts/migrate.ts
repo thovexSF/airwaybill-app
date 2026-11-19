@@ -26,6 +26,7 @@ const MIGRATIONS = [
   'migration_eawb_messaging.sql',
   'migration_free_doc_limit_10.sql',
   'migration_schema_migrations_rls.sql',
+  'migration_org_member_names.sql',
 ]
 
 const url = process.env.DATABASE_URL

@@ -204,6 +204,7 @@ const en = {
     colEawb: 'eAWB',
     colStatus: 'Status',
     colDate: 'Updated',
+    colUser: 'Entered by',
     colActions: 'Actions',
   },
 
