@@ -102,6 +102,12 @@ export function MyAWBsPage() {
 
   const [docs, setDocs] = useState<AWBDocument[]>([])
   const [memberNames, setMemberNames] = useState<Record<string, string>>({})
+  // A shipper is entered by whoever signs it: B2B creates them through the API key, so user_id is always the key owner.
+  const enteredBy = (doc: AWBDocument) => {
+    const d = doc.data as any
+    const signer = (d?.docType === 'dgd' || d?.docType === 'imo_dgd') && typeof d.signatoryName === 'string' ? d.signatoryName.trim() : ''
+    return signer || memberNames[doc.user_id]
+  }
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -233,7 +239,7 @@ export function MyAWBsPage() {
           r.consignee.toLowerCase().includes(q) ||
           r.route.toLowerCase().includes(q) ||
           r.eawb.toLowerCase().includes(q) ||
-          (memberNames[d.user_id] ?? '').toLowerCase().includes(q)
+          (enteredBy(d) ?? '').toLowerCase().includes(q)
         )
       })
     }
@@ -246,8 +252,8 @@ export function MyAWBsPage() {
         va = a.updated_at
         vb = b.updated_at
       } else if (sortCol === 'user') {
-        va = memberNames[a.user_id] ?? ''
-        vb = memberNames[b.user_id] ?? ''
+        va = enteredBy(a) ?? ''
+        vb = enteredBy(b) ?? ''
       } else if (sortCol === 'weight') {
         va = ra.weight
         vb = rb.weight
@@ -317,7 +323,7 @@ export function MyAWBsPage() {
         r.eawb || '—',
         r.status,
         fmt(doc.updated_at),
-        memberNames[doc.user_id] ?? '',
+        enteredBy(doc) ?? '',
       ]
     })
     const csv = [headers, ...rows]
@@ -614,7 +620,7 @@ export function MyAWBsPage() {
                         {r.weight > 0 && <span>{r.weight} kg · </span>}
                         {r.eawb && <span>eAWB:{r.eawb} · </span>}
                         {fmt(doc.updated_at)} · {doc.status}
-                        {memberNames[doc.user_id] && <span> · {memberNames[doc.user_id]}</span>}
+                        {enteredBy(doc) && <span> · {enteredBy(doc)}</span>}
                       </div>
                     </div>
                   </div>
@@ -671,7 +677,7 @@ export function MyAWBsPage() {
                       eawb: <td>{r.eawb ? <span className={`doc-hub-status eawb-${r.eawb}`}>{r.eawb}</span> : '—'}</td>,
                       status: <td><span className={`doc-hub-status ${doc.status}`}>{doc.status}</span></td>,
                       date: <td className="muted" title={fmt(doc.updated_at)}>{fmtShort(doc.updated_at)}</td>,
-                      user: <td className="ellipsis muted" title={memberNames[doc.user_id]}>{memberNames[doc.user_id] ?? '—'}</td>,
+                      user: <td className="ellipsis muted" title={enteredBy(doc)}>{enteredBy(doc) ?? '—'}</td>,
                     }
                     return (
                       <tr
