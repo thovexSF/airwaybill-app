@@ -8,6 +8,7 @@ const CORS = {
 
 const WEBHOOK_URL = Deno.env.get('FEEDBACK_WEBHOOK_URL') ?? ''
 const FEEDBACK_TOKEN = Deno.env.get('FEEDBACK_TOKEN') ?? ''
+const MIN_FEEDBACK_CHARS = 12
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
@@ -24,7 +25,7 @@ serve(async (req) => {
     const body = await req.json()
     const text = String(body?.text ?? '').trim()
 
-    if (text.length < 3) {
+    if (text.length < MIN_FEEDBACK_CHARS) {
       return new Response(
         JSON.stringify({ ok: false, error: 'too_short' }),
         { headers: CORS, status: 400 },

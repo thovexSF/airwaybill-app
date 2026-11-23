@@ -6,6 +6,7 @@ import { submitFeedback } from '../lib/feedbackService'
 import { usePostHog } from '@posthog/react'
 
 const ENABLED = import.meta.env.VITE_FEEDBACK_ENABLED !== 'false'
+const MIN_FEEDBACK_CHARS = 12
 
 type Step = 'form' | 'sending' | 'done' | 'error'
 
@@ -46,7 +47,7 @@ export function FeedbackWidget() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const trimmed = text.trim()
-    if (trimmed.length < 3) {
+    if (trimmed.length < MIN_FEEDBACK_CHARS) {
       setErrorKey('too_short')
       return
     }
@@ -182,7 +183,7 @@ export function FeedbackWidget() {
                     onChange={(e) => setText(e.target.value)}
                     placeholder={t('feedback.placeholder')}
                     required
-                    minLength={3}
+                    minLength={MIN_FEEDBACK_CHARS}
                     maxLength={2000}
                     disabled={step === 'sending'}
                     rows={5}
@@ -198,6 +199,9 @@ export function FeedbackWidget() {
                       marginBottom: 10,
                     }}
                   />
+                  <p style={{ margin: '-2px 0 10px', fontSize: 11, color: '#666', lineHeight: 1.45 }}>
+                    {t('feedback.helper')}
+                  </p>
 
                   <input
                     type="email"
