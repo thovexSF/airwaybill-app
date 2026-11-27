@@ -137,6 +137,12 @@
   border-color: #8b0000;
 }
 
+.auth-help {
+  color: #777;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .auth-error {
   background: #ffe8e8;
   color: #8b0000;

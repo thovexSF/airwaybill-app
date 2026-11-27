@@ -13,11 +13,35 @@ type AuthContextValue = {
   login: (input: { email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>
   sendLoginCode: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>
   verifyLoginCode: (input: { email: string; code: string }) => Promise<{ ok: true } | { ok: false; error: string }>
-  loginWithProvider: (provider: 'google' | 'github' | 'apple') => Promise<void>
+  loginWithProvider: (provider: AuthProviderName, options?: ProviderAuthOptions) => Promise<void>
   logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+
+type AuthProviderName = 'google' | 'github' | 'apple'
+type AuthFlow = 'login' | 'signup'
+type AuthAttribution = Partial<Record<'source' | 'intent' | 'doc_type' | 'from', string>>
+type ProviderAuthOptions = {
+  flow?: AuthFlow
+  attribution?: AuthAttribution
+}
+
+const AUTH_PROVIDER_KEY = 'posthog_pending_auth_provider'
+const AUTH_FLOW_KEY = 'posthog_pending_auth_flow'
+const AUTH_ATTRIBUTION_KEY = 'posthog_pending_auth_attribution'
+const OAUTH_NEW_USER_WINDOW_MS = 10 * 60 * 1000
+
+function readPendingAttribution(): AuthAttribution {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(AUTH_ATTRIBUTION_KEY) || '{}') as AuthAttribution
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, value]) => typeof value === 'string' && value.length > 0),
+    ) as AuthAttribution
+  } catch {
+    return {}
+  }
+}
 
 const HOST_SESSION = {
   user: {
@@ -61,10 +85,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
       if (event === 'SIGNED_IN' && s?.user) {
         posthog?.identify(s.user.id, { email: s.user.email })
-        const pendingProvider = sessionStorage.getItem('posthog_pending_login')
+        const pendingProvider = sessionStorage.getItem(AUTH_PROVIDER_KEY) || sessionStorage.getItem('posthog_pending_login')
         if (pendingProvider) {
+          const pendingFlow = sessionStorage.getItem(AUTH_FLOW_KEY) as AuthFlow | null
+          const attribution = readPendingAttribution()
+          sessionStorage.removeItem(AUTH_PROVIDER_KEY)
+          sessionStorage.removeItem(AUTH_FLOW_KEY)
+          sessionStorage.removeItem(AUTH_ATTRIBUTION_KEY)
           sessionStorage.removeItem('posthog_pending_login')
-          posthog?.capture('user_logged_in', { method: pendingProvider })
+          if (pendingFlow === 'signup') {
+            const createdAtMs = Date.parse(s.user.created_at || '')
+            const likelyNewUser = Number.isFinite(createdAtMs) && Date.now() - createdAtMs < OAUTH_NEW_USER_WINDOW_MS
+            if (likelyNewUser) {
+              ;(window as any).clarity?.('event', 'signup_completed')
+              posthog?.capture('user_signed_up', {
+                method: pendingProvider,
+                provider: pendingProvider,
+                auth_flow: 'oauth',
+                ...attribution,
+              })
+            } else {
+              posthog?.capture('user_logged_in', {
+                method: pendingProvider,
+                signup_flow: true,
+                ...attribution,
+              })
+            }
+          } else {
+            posthog?.capture('user_logged_in', { method: pendingProvider })
+          }
         }
         supabase.rpc('record_login').then(({ error }) => {
           if (error) console.error('record_login failed:', error)
@@ -130,8 +179,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { ok: true }
     },
 
-    loginWithProvider: async (provider) => {
+    loginWithProvider: async (provider, options) => {
+      sessionStorage.setItem(AUTH_PROVIDER_KEY, provider)
+      sessionStorage.setItem(AUTH_FLOW_KEY, options?.flow ?? 'login')
       sessionStorage.setItem('posthog_pending_login', provider)
+      if (options?.attribution) {
+        sessionStorage.setItem(AUTH_ATTRIBUTION_KEY, JSON.stringify(options.attribution))
+      } else {
+        sessionStorage.removeItem(AUTH_ATTRIBUTION_KEY)
+      }
       await supabase.auth.signInWithOAuth({
         provider,
         options: { redirectTo: window.location.origin + '/my-awbs' },
