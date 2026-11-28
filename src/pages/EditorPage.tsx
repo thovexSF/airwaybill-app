@@ -26,6 +26,7 @@ import { supabase } from '../lib/supabase'
 import { isPartnerHost } from '../lib/partnerHost'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { DraftToggle } from '../components/DraftToggle'
+import { WatermarkLimitBanner } from '../components/WatermarkLimitBanner'
 import { usePostHog } from '@posthog/react'
 
 
@@ -432,12 +433,7 @@ export function EditorPage() {
       </div>
 
       {/* Free plan limit banner */}
-      {atLimit && (
-        <div style={{ background: '#fff3cd', borderBottom: '1px solid #ffc107', padding: '8px 20px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>{t('editor.limitBanner')}</span>
-          <Link to="/pricing" style={{ fontWeight: 700, color: 'var(--red)', textDecoration: 'none' }}>{t('editor.upgradeNow')}</Link>
-        </div>
-      )}
+      {atLimit && <WatermarkLimitBanner source="awb_editor" />}
 
       <div className={`main ${overlayMode ? 'main-single' : ''}`}>
         {!overlayMode && (
