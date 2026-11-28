@@ -14,6 +14,7 @@ import { usePdfDownloadGuard } from '../lib/pdfQuota'
 import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
+import { WatermarkLimitBanner } from '../components/WatermarkLimitBanner'
 import { track } from '../lib/analytics'
 
 
@@ -247,6 +248,8 @@ export function NeppexPage() {
           />
         )}
       </div>
+
+      {!demo && quota.atLimit && <WatermarkLimitBanner source="neppex_editor" />}
 
       <div className="main">
         <div className="form-panel-wrap" style={{ width: formWidth }}>

@@ -19,6 +19,7 @@ import { usePdfDownloadGuard } from '../lib/pdfQuota'
 import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
+import { WatermarkLimitBanner } from '../components/WatermarkLimitBanner'
 import { track } from '../lib/analytics'
 import { EditableSticker, buildStickersZpl, shipperStickers, stickersSvgs, toEditable } from '../lib/shipperLabel'
 import { printLabelSvgs } from '../lib/labelPrint'
@@ -376,6 +377,8 @@ export function DGDPage() {
           />
         )}
       </div>
+
+      {!demo && quota.atLimit && <WatermarkLimitBanner source="dgd_editor" />}
 
       <div className="main">
         {/* Form panel */}

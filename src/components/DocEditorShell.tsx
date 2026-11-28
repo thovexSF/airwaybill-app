@@ -11,6 +11,7 @@ import { DownloadAuthorization } from '../lib/pdfQuota'
 import { LangSwitcher } from './LangSwitcher'
 import { useDemoMode } from './DemoMode'
 import { useTranslation } from 'react-i18next'
+import { WatermarkLimitBanner } from './WatermarkLimitBanner'
 
 
 /**
@@ -246,6 +247,8 @@ export function DocEditorShell<T>({
           </button>
         )}
       </div>
+
+      {!demo && forceWatermark && <WatermarkLimitBanner source="doc_editor_shell" />}
 
       <div className="main">
         {/* ── Form panel ── */}

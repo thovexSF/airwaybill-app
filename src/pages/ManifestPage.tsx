@@ -14,6 +14,7 @@ import { usePdfDownloadGuard } from '../lib/pdfQuota'
 import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { LangSwitcher } from '../components/LangSwitcher'
 import { useDemoMode } from '../components/DemoMode'
+import { WatermarkLimitBanner } from '../components/WatermarkLimitBanner'
 import { track } from '../lib/analytics'
 
 
@@ -220,6 +221,8 @@ export function ManifestPage() {
           />
         )}
       </div>
+
+      {!demo && quota.atLimit && <WatermarkLimitBanner source="manifest_editor" />}
 
       <div className="main">
         {/* Form panel */}
